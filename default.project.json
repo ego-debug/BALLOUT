@@ -1,0 +1,17 @@
+{
+  "name": "Ballout",
+  "tree": {
+    "$className": "DataModel",
+    "Workspace": {
+      "$properties": { "StreamingEnabled": false }
+    },
+    "ServerScriptService": { "$path": "src/Server" },
+    "ServerStorage": { "$path": "src/ServerStorage" },
+    "ReplicatedStorage": { "$path": "src/Shared" },
+    "ReplicatedFirst": { "$path": "src/First" },
+    "StarterPlayer": {
+      "StarterPlayerScripts": { "$path": "src/Client" },
+      "StarterCharacterScripts": { "$path": "src/Character" }
+    }
+  }
+}

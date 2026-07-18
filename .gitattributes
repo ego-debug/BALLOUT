@@ -1,0 +1,13 @@
+# Roblox place/model files are BINARY. Never let git touch line endings in
+# them — CRLF conversion would corrupt the file, and BALLOUT.rbxl is the only
+# copy of the HQ map. Also stops git from trying to diff/merge them.
+*.rbxl  binary
+*.rbxm  binary
+*.rbxlx binary
+*.rbxmx binary
+
+# Source is text; normalize to LF in the repo, native in the working copy.
+*.luau  text
+*.lua   text
+*.md    text
+*.json  text

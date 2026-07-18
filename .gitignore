@@ -1,0 +1,16 @@
+# ── Roblox Studio junk ──────────────────────────────────────────────
+# Lock files created while a place is open in Studio
+*.rbxl.lock
+*.rbxlx.lock
+# Studio crash-recovery snapshots (never the real save)
+*AutoRecovery*.rbxl
+AutoRecovery*/
+
+# NOTE: BALLOUT.rbxl IS committed on purpose — the HQ map lives inside
+# the place file, not in Rojo. It is the only copy of the map geometry.
+
+# ── OS / editor ─────────────────────────────────────────────────────
+Thumbs.db
+desktop.ini
+.DS_Store
+.vscode/
