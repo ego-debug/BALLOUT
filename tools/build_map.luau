@@ -70,7 +70,7 @@ part({ Name = "DummyPad", Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.3
 
 -- Hedges around the lawn (KC's dummy roof has hedge rows)
 local function hedge(x, z, sx, sz, y)
-	part({ Size = Vector3.new(sx, 2.4, sz), Position = Vector3.new(x, y + 1.2, z),
+	part({ Size = Vector3.new(sx, 3.4, sz), Position = Vector3.new(x, y + 1.7, z),
 		Color = Color3.fromRGB(58, 118, 48), Material = Enum.Material.Grass })
 end
 hedge(88, 4, 20, 2.2, -6)
@@ -103,9 +103,9 @@ winStrips(105, -35, 60, 90, -9, false, true)
 
 -- ══ PARAPETS ════════════════════════════════════════════════════════════════
 local function parapet(x, z, sx, sz, baseY)
-	part({ Size = Vector3.new(sx, 3.2, sz), Position = Vector3.new(x, baseY + 1.6, z),
+	part({ Size = Vector3.new(sx, 4.2, sz), Position = Vector3.new(x, baseY + 2.1, z),
 		Color = BRICK_DARK, Material = Enum.Material.Brick })
-	part({ Size = Vector3.new(sx + 0.6, 0.5, sz + 0.6), Position = Vector3.new(x, baseY + 3.45, z),
+	part({ Size = Vector3.new(sx + 0.6, 0.6, sz + 0.6), Position = Vector3.new(x, baseY + 4.5, z),
 		Color = TEAL, Material = Enum.Material.Metal })
 end
 -- Main deck (x -40..60, z -60..40); east opening z -26..-12 for the planks
@@ -270,17 +270,17 @@ for _, by in { 10, 22 } do
 	part({ Size = Vector3.new(0.6, 0.6, 9.5), Position = Vector3.new(TWX + 4, by, TWZ), Color = METAL_DK, Material = Enum.Material.Metal })
 end
 
--- ══ SPAWN DRUM (raised teal tank cap, KC spawn) ═════════════════════════════
-part({ Name = "SpawnDrum", Shape = Enum.PartType.Cylinder, Size = Vector3.new(7, 18, 18),
-	CFrame = CFrame.new(34, 3.5, 30) * CFrame.Angles(0, 0, math.rad(90)),
+-- ══ SPAWN DRUM (raised teal tank cap, KC vibe — garage-scale) ═══════════════
+part({ Name = "SpawnDrum", Shape = Enum.PartType.Cylinder, Size = Vector3.new(10, 24, 24),
+	CFrame = CFrame.new(34, 5, 26) * CFrame.Angles(0, 0, math.rad(90)),
 	Color = BRICK_DARK, Material = Enum.Material.Brick })
-part({ Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.6, 18.6, 18.6),
-	CFrame = CFrame.new(34, 7.3, 30) * CFrame.Angles(0, 0, math.rad(90)),
+part({ Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.6, 24.8, 24.8),
+	CFrame = CFrame.new(34, 10.3, 26) * CFrame.Angles(0, 0, math.rad(90)),
 	Color = TEAL, Material = Enum.Material.Metal })
 -- steps down the north side
-for i = 1, 4 do
-	local top = 7.6 - i * 1.5
-	part({ Size = Vector3.new(6, top, 2.2), Position = Vector3.new(34, top / 2, 20.8 - i * 2.2),
+for i = 1, 5 do
+	local top = 10.3 - i * 1.72
+	part({ Size = Vector3.new(8, top, 2.6), Position = Vector3.new(34, top / 2, 14.2 - i * 2.6),
 		Color = Color3.fromRGB(160, 152, 138), Material = Enum.Material.Concrete })
 end
 
@@ -311,13 +311,13 @@ launchPad(-32, 32, 0)
 
 -- ══ BASKETBALL HOOPS ════════════════════════════════════════════════════════
 local function hoop(x, z, baseY, faceDir)
-	part({ Size = Vector3.new(0.6, 10, 0.6), Position = Vector3.new(x, baseY + 5, z),
+	part({ Size = Vector3.new(0.8, 13, 0.8), Position = Vector3.new(x, baseY + 6.5, z),
 		Color = METAL_DK, Material = Enum.Material.Metal })
-	local bb = part({ Size = Vector3.new(0.4, 3.2, 4.6),
-		CFrame = CFrame.new(x, baseY + 9.2, z) * CFrame.Angles(0, math.rad(faceDir), 0),
+	local bb = part({ Size = Vector3.new(0.5, 4.5, 6.5),
+		CFrame = CFrame.new(x, baseY + 12, z) * CFrame.Angles(0, math.rad(faceDir), 0),
 		Color = Color3.fromRGB(235, 232, 226), Material = Enum.Material.SmoothPlastic })
-	local off = CFrame.new(x, baseY + 8, z) * CFrame.Angles(0, math.rad(faceDir), 0) * CFrame.new(1.6, 0, 0)
-	part({ Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.25, 2.6, 2.6),
+	local off = CFrame.new(x, baseY + 10.4, z) * CFrame.Angles(0, math.rad(faceDir), 0) * CFrame.new(2.2, 0, 0)
+	part({ Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.3, 3.4, 3.4),
 		CFrame = CFrame.new(off.Position) * CFrame.Angles(0, 0, math.rad(90)),
 		Color = Color3.fromRGB(255, 120, 40), Material = Enum.Material.Metal })
 end
@@ -327,20 +327,20 @@ hoop(95, 5, -6, 90)       -- dummy roof south edge, faces north
 
 -- ══ SPECIAL-BALL SPAWNER PODS (decorative, purple hover pods) ═══════════════
 local function ballPod(x, z, baseY)
-	part({ Shape = Enum.PartType.Cylinder, Size = Vector3.new(1.1, 3.4, 3.4),
-		CFrame = CFrame.new(x, baseY + 0.55, z) * CFrame.Angles(0, 0, math.rad(90)),
+	part({ Shape = Enum.PartType.Cylinder, Size = Vector3.new(1.4, 5, 5),
+		CFrame = CFrame.new(x, baseY + 0.7, z) * CFrame.Angles(0, 0, math.rad(90)),
 		Color = Color3.fromRGB(50, 46, 56), Material = Enum.Material.Metal })
-	part({ Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.25, 2.9, 2.9),
-		CFrame = CFrame.new(x, baseY + 1.6, z) * CFrame.Angles(0, 0, math.rad(90)),
+	part({ Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.3, 4.3, 4.3),
+		CFrame = CFrame.new(x, baseY + 2.1, z) * CFrame.Angles(0, 0, math.rad(90)),
 		Color = PURPLE, Material = Enum.Material.Neon, Transparency = 0.35,
 		CanCollide = false, CanQuery = false })
-	local b = part({ Shape = Enum.PartType.Ball, Size = Vector3.new(1.8, 1.8, 1.8),
-		Position = Vector3.new(x, baseY + 3.3, z),
+	local b = part({ Shape = Enum.PartType.Ball, Size = Vector3.new(2.4, 2.4, 2.4),
+		Position = Vector3.new(x, baseY + 4.4, z),
 		Color = Color3.fromRGB(150, 70, 230), Material = Enum.Material.SmoothPlastic,
 		CanCollide = false, CanQuery = false })
 	local pl = Instance.new("PointLight")
 	pl.Color = PURPLE
-	pl.Range = 7
+	pl.Range = 10
 	pl.Brightness = 0.8
 	pl.Parent = b
 end
@@ -354,23 +354,24 @@ ballPod(10, -54, 0)  -- basic/boomerang pod at the far end of the open area
 -- Three walk-in bays (UBG-style): stand in a bay to queue for that mode.
 -- The QueuePad* names are the contract the queue system reads — keep them.
 -- shell: back wall against the parapet, sides, flat roof
+-- (Scaled to garage proportions: 15-stud walls, 12-stud openings.)
 part({ Name = "QueueRoomsFloor", Size = Vector3.new(44, 0.16, 28), Position = Vector3.new(105, -5.92, -66),
 	Color = TAR, Material = Enum.Material.Asphalt })
-part({ Size = Vector3.new(44, 12, 1.2), Position = Vector3.new(105, 0, -79.4),
+part({ Size = Vector3.new(44, 15, 1.2), Position = Vector3.new(105, 1.5, -79.4),
 	Color = BRICK_B, Material = Enum.Material.Brick })
-part({ Size = Vector3.new(1.2, 12, 28), Position = Vector3.new(83.6, 0, -66),
+part({ Size = Vector3.new(1.2, 15, 28), Position = Vector3.new(83.6, 1.5, -66),
 	Color = BRICK_B, Material = Enum.Material.Brick })
-part({ Size = Vector3.new(1.2, 12, 28), Position = Vector3.new(126.4, 0, -66),
+part({ Size = Vector3.new(1.2, 15, 28), Position = Vector3.new(126.4, 1.5, -66),
 	Color = BRICK_B, Material = Enum.Material.Brick })
-part({ Name = "QueueRoomsRoof", Size = Vector3.new(46, 1, 30), Position = Vector3.new(105, 6.5, -66),
+part({ Name = "QueueRoomsRoof", Size = Vector3.new(46, 1, 30), Position = Vector3.new(105, 9.5, -66),
 	Color = TAR, Material = Enum.Material.Concrete })
--- front header above the three openings
-part({ Size = Vector3.new(44, 3, 1), Position = Vector3.new(105, 4.5, -52.5),
+-- front header above the three openings (openings 12 high, like the garage door)
+part({ Size = Vector3.new(44, 3, 1), Position = Vector3.new(105, 7.5, -52.5),
 	Color = BRICK_DARK, Material = Enum.Material.Brick })
 -- bay dividers (leave a 4-stud porch at the front)
-part({ Size = Vector3.new(1, 12, 24), Position = Vector3.new(97.7, 0, -68),
+part({ Size = Vector3.new(1, 15, 24), Position = Vector3.new(97.7, 1.5, -68),
 	Color = BRICK_B, Material = Enum.Material.Brick })
-part({ Size = Vector3.new(1, 12, 24), Position = Vector3.new(112.3, 0, -68),
+part({ Size = Vector3.new(1, 15, 24), Position = Vector3.new(112.3, 1.5, -68),
 	Color = BRICK_B, Material = Enum.Material.Brick })
 -- per-bay queue pads + entrance signs (bay centers x 90.3 / 105 / 119.7)
 -- NOTE: uses the sign() SurfaceGui helper defined in the GARAGE section.
@@ -378,16 +379,16 @@ local function queueBay(cx, padName, signText, accent)
 	part({ Name = padName, Size = Vector3.new(10, 0.2, 10), Position = Vector3.new(cx, -5.7, -68),
 		Color = accent, Material = Enum.Material.Neon })
 	-- marquee panel over the entrance, text on its face (garage-marquee style)
-	local panel = part({ Name = padName .. "Sign", Size = Vector3.new(12.5, 2.4, 0.6),
-		Position = Vector3.new(cx, 4.5, -52.1), Color = Color3.fromRGB(30, 28, 34),
+	local panel = part({ Name = padName .. "Sign", Size = Vector3.new(14, 3, 0.6),
+		Position = Vector3.new(cx, 7.5, -52.1), Color = Color3.fromRGB(30, 28, 34),
 		Material = Enum.Material.Metal })
 	sign(panel, Enum.NormalId.Back, signText, accent, Color3.fromRGB(30, 28, 34))
 	-- bay glow
 	local light = Instance.new("PointLight")
 	light.Color = accent
-	light.Range = 14
+	light.Range = 18
 	light.Brightness = 1.2
-	light.Parent = part({ Size = Vector3.new(3, 0.3, 3), Position = Vector3.new(cx, 5.8, -66),
+	light.Parent = part({ Size = Vector3.new(4, 0.3, 4), Position = Vector3.new(cx, 8.7, -66),
 		Color = accent, Material = Enum.Material.Neon, CanCollide = false, CanQuery = false })
 end
 queueBay(90.3, "QueuePadTeamKO", "TEAM KO 3v3", Color3.fromRGB(255, 90, 70))
@@ -405,9 +406,9 @@ patch(12, 0, 12, 46, TILE, Enum.Material.SmoothPlastic)
 patch(28, 6, 26, 10, TILE, Enum.Material.SmoothPlastic)
 
 local function chimney(x, z)
-	part({ Size = Vector3.new(4, 7, 4), Position = Vector3.new(x, 3.5, z),
+	part({ Size = Vector3.new(6, 11, 6), Position = Vector3.new(x, 5.5, z),
 		Color = BRICK_DARK, Material = Enum.Material.Brick })
-	part({ Size = Vector3.new(5, 0.9, 5), Position = Vector3.new(x, 7.45, z),
+	part({ Size = Vector3.new(7.4, 1.2, 7.4), Position = Vector3.new(x, 11.6, z),
 		Color = Color3.fromRGB(72, 64, 62), Material = Enum.Material.Concrete })
 end
 chimney(0, -56)
@@ -433,19 +434,19 @@ local function waterTower(x, z, baseY, scale)
 		CFrame = CFrame.new(x, baseY + 20.9 * s, z) * CFrame.Angles(0, 0, math.rad(90)),
 		Color = Color3.fromRGB(112, 60, 48), Material = Enum.Material.Metal })
 end
-waterTower(52, 32, 0, 0.85)
+waterTower(51, 31, 0, 1.25)
 
 -- solar panels (tilted)
 for i = 0, 2 do
-	part({ Size = Vector3.new(9, 0.3, 6),
-		CFrame = CFrame.new(2 + i * 10, 1.5, 33) * CFrame.Angles(math.rad(-22), 0, 0),
+	part({ Size = Vector3.new(12, 0.4, 8),
+		CFrame = CFrame.new(2 + i * 13, 2, 33) * CFrame.Angles(math.rad(-22), 0, 0),
 		Color = Color3.fromRGB(28, 34, 52), Material = Enum.Material.Glass })
 end
 
 -- plank pile
 for i, ang in { 0.35, 1.15, 1.95 } do
-	part({ Size = Vector3.new(7, 0.3, 1.4),
-		CFrame = CFrame.new(14, 0.2 + (i - 1) * 0.32, -8) * CFrame.Angles(0, ang, 0),
+	part({ Size = Vector3.new(10, 0.4, 2),
+		CFrame = CFrame.new(14, 0.25 + (i - 1) * 0.42, -8) * CFrame.Angles(0, ang, 0),
 		Color = Color3.fromRGB(202, 122, 62), Material = Enum.Material.WoodPlanks })
 end
 
@@ -457,13 +458,13 @@ part({ Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.6, 3, 3),
 	Color = Color3.fromRGB(60, 58, 56), Material = Enum.Material.Metal })
 
 -- chalkboard near the plank crossing
-local board = part({ Size = Vector3.new(0.8, 5, 10), Position = Vector3.new(57, 3.2, 2),
+local board = part({ Size = Vector3.new(0.8, 7, 14), Position = Vector3.new(57, 4.2, 2),
 	Color = Color3.fromRGB(35, 80, 55), Material = Enum.Material.SmoothPlastic })
 sign(board, Enum.NormalId.Left, "KNOCK 'EM DOWN!", Color3.fromRGB(235, 235, 225), Color3.fromRGB(35, 80, 55))
 
 -- string lights: garage roof corner -> radio tower platform
 do
-	local a = Vector3.new(-20, 11.5, -11)
+	local a = Vector3.new(-12, 17.4, -6)
 	local b = Vector3.new(-30, 29, 14)
 	local len = (b - a).Magnitude
 	part({ Size = Vector3.new(0.15, 0.15, len),
@@ -563,21 +564,10 @@ end
 
 map.Parent = Workspace
 
--- ══ SPAWN + WORLD SETTINGS ══════════════════════════════════════════════════
-local spawnLoc = Workspace:FindFirstChildOfClass("SpawnLocation")
-if not spawnLoc then
-	spawnLoc = Instance.new("SpawnLocation")
-	spawnLoc.Parent = Workspace
-end
-spawnLoc.Anchored = true
-spawnLoc.Size = Vector3.new(12, 0.4, 12)
-spawnLoc.CFrame = CFrame.lookAt(Vector3.new(34, 7.85, 30), Vector3.new(0, 7.85, -20))
-spawnLoc.Transparency = 1
-spawnLoc.CanCollide = false
-spawnLoc.Duration = 0
-for _, d in spawnLoc:GetChildren() do
-	if d:IsA("Decal") then d:Destroy() end
-end
+-- ══ WORLD SETTINGS ══════════════════════════════════════════════════════════
+-- (Spawning is the GarageSpawn pad, created in the GARAGE section. The old
+-- loose-SpawnLocation bootstrap that used to live here silently re-created a
+-- competing invisible spawn on the drum every rebuild — gone for good.)
 
 local baseplate = Workspace:FindFirstChild("Baseplate")
 if baseplate then baseplate:Destroy() end

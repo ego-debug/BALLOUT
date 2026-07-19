@@ -180,7 +180,13 @@ function MatchService.StartMatch(queued: { Player }): boolean
 			local cf = spawnCFrame(team, i)
 			local model, root = BotService.Spawn(cf.Position, (arena.BallSpawn :: BasePart).Position)
 			model.Name = ("Bot_%s%d"):format(team, i)
-			root.Color = TEAM_COLORS[team]
+			-- team-color the robot's accent parts (root is invisible)
+			for _, partName in { "Torso", "Visor", "Core" } do
+				local p = model:FindFirstChild(partName)
+				if p and p:IsA("BasePart") then
+					p.Color = TEAM_COLORS[team]
+				end
+			end
 			-- retag the billboard
 			local head = model:FindFirstChild("Head")
 			local bb = head and head:FindFirstChildOfClass("BillboardGui")
