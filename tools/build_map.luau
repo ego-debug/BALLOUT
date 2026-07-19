@@ -566,8 +566,8 @@ local function streetLamp(x, z, baseY)
 		Color = Color3.fromRGB(200, 240, 255), Material = Enum.Material.Neon })
 	local pl = Instance.new("PointLight")
 	pl.Color = Color3.fromRGB(190, 225, 255)
-	pl.Range = 28
-	pl.Brightness = 1.4
+	pl.Range = 36
+	pl.Brightness = 2.0
 	pl.Parent = head
 end
 streetLamp(30, -10, 0)
@@ -684,12 +684,12 @@ Workspace.FallenPartsDestroyHeight = -330
 local atmo = Lighting:FindFirstChildOfClass("Atmosphere")
 if atmo then atmo:Destroy() end
 -- CYBERPUNK night: deep dusk, purple haze, bloom so every neon edge blooms.
-Lighting.ClockTime = 18.7
-Lighting.Brightness = 2.0
-Lighting.Ambient = Color3.fromRGB(92, 80, 130)
-Lighting.OutdoorAmbient = Color3.fromRGB(118, 100, 158)
-Lighting.ColorShift_Top = Color3.fromRGB(140, 90, 255)
-Lighting.FogColor = Color3.fromRGB(96, 52, 132)
+Lighting.ClockTime = 18.15
+Lighting.Brightness = 2.6
+Lighting.Ambient = Color3.fromRGB(118, 105, 150)
+Lighting.OutdoorAmbient = Color3.fromRGB(152, 134, 186)
+Lighting.ColorShift_Top = Color3.fromRGB(150, 105, 255)
+Lighting.FogColor = Color3.fromRGB(122, 80, 158)
 Lighting.FogStart = 180
 Lighting.FogEnd = 750
 local bloom = Lighting:FindFirstChildOfClass("BloomEffect")
