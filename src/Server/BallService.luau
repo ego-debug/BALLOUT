@@ -77,6 +77,20 @@ local hits: { [Model]: number } = {}
 local catching: { [Model]: { pressedAt: number, expires: number } } = {}
 local botHoldStart: number? = nil
 
+-- Catch commitment: arms-out is a bet, same as the dodge. While the catch
+-- window is open NOTHING else works — you can't dash/flip/ball-up your way
+-- out of a baited catch; the whiff stun is yours to eat. A SUCCESSFUL catch
+-- clears `catching` (catchBall), so the lock releases instantly on a catch.
+local function catchLocked(character: Model): boolean
+	local c = catching[character]
+	return c ~= nil and os.clock() <= c.expires
+end
+
+-- The one gate action handlers check: mid-dodge or mid-catch = committed.
+local function actionLocked(character: Model): boolean
+	return dashLocked(character) or catchLocked(character)
+end
+
 local groundY = 0
 
 -- Where the ball spawns and respawns after falling off the world. HQ midfield
@@ -377,8 +391,8 @@ function BallService.Throw(f: Fighter, chargeFrac: number, curveDir: number, isL
 	if now() < (stunned[f.character] or 0) then
 		return
 	end
-	if dashLocked(f.character) then
-		return -- dodge commitment: no throwing out of the dive/roll
+	if actionLocked(f.character) then
+		return -- committed (dodge or catch): no throwing out of it
 	end
 	local enemy = enemyOf(f)
 	if not enemy then
@@ -631,6 +645,9 @@ function BallService.RegisterCatch(character: Model)
 	if dashLocked(character) then
 		return -- dodge commitment: no catching out of the dive/roll
 	end
+	if catchLocked(character) then
+		return -- one bet at a time: no re-pressing to roll the window forward
+	end
 	catching[character] = { pressedAt = now(), expires = now() + BallConfig.CATCH_WINDOW }
 	-- Arms fly WIDE OPEN — the visible catch attempt. They only snap closed
 	-- if a ball actually arrives (catchBall); otherwise they drop: whiffed.
@@ -661,6 +678,11 @@ end
 -- Dev hook: lets test scripts drive throws for a character directly.
 function BallService.DebugFighter(character: Model): Fighter?
 	return fighterFor(character)
+end
+
+-- Dev hook: report the commitment locks for a character.
+function BallService.DebugLocks(character: Model)
+	return { dash = dashLocked(character), catch = catchLocked(character), stunned = now() < (stunned[character] or 0) }
 end
 
 -- Dev hook: dump the ball state machine for diagnosis.
@@ -1043,7 +1065,7 @@ function BallService.Start()
 		if not f then return end
 
 		if phase == "start" then
-			if state == "Held" and holder == f and not dashLocked(char) then
+			if state == "Held" and holder == f and not actionLocked(char) then
 				AnimService.Windup(char)
 				chargeStart = now()
 				chargeFull = false
@@ -1068,7 +1090,7 @@ function BallService.Start()
 		local char = player.Character
 		local f = char and fighterFor(char)
 		if f then
-			if now() < (stunned[char] or 0) or dashLocked(char) then
+			if now() < (stunned[char] or 0) or actionLocked(char) then
 				return
 			end
 			AnimService.TuckPulse(char, BallConfig.FLIP_TIME)
@@ -1090,8 +1112,8 @@ function BallService.Start()
 			return
 		end
 		if on == true then
-			if dashLocked(char) then
-				return -- dodge commitment: no balling up mid-dive/roll
+			if actionLocked(char) then
+				return -- committed (dodge or catch): no balling up
 			end
 			GliderService.Disable(char) -- can't glide as a ball
 			-- You can't be a ball AND hold a ball: drop it first.
@@ -1114,7 +1136,7 @@ function BallService.Start()
 	Remotes.DropRequest.OnServerEvent:Connect(function(player)
 		local char = player.Character
 		local f = char and fighterFor(char)
-		if f and state == "Held" and holder == f and not dashLocked(char) then
+		if f and state == "Held" and holder == f and not actionLocked(char) then
 			AnimService.Reset(f.character)
 			local look = f.root.CFrame.LookVector
 			BallService.MakeFree(f.root.Position + Vector3.new(look.X, 0, look.Z) * 5)
@@ -1129,8 +1151,8 @@ function BallService.Start()
 		if not f then
 			return
 		end
-		if dashLocked(char) and on ~= false then
-			return -- dodge commitment: no glider out of the dive/roll
+		if actionLocked(char) and on ~= false then
+			return -- committed (dodge or catch): no glider escape
 		end
 		if on == "flare" then
 			AnimService.GlideFlare(char, extra == true)
@@ -1158,8 +1180,8 @@ function BallService.Start()
 		if not f then
 			return
 		end
-		if dashLocked(char) then
-			return -- dodge commitment: no passing out of the dive/roll
+		if actionLocked(char) then
+			return -- committed (dodge or catch): no passing out of it
 		end
 		if state == "Held" and holder == f then
 			BallService.Pass(f)
@@ -1182,8 +1204,8 @@ function BallService.Start()
 			return
 		end
 		sprintState[char] = on == true
-		if holder == f and not dashLocked(char) then
-			applyCarry(f) -- mid-dodge the dash pose owns the body
+		if holder == f and not actionLocked(char) then
+			applyCarry(f) -- mid-commitment the committed pose owns the body
 		end
 	end)
 
@@ -1198,8 +1220,8 @@ function BallService.Start()
 		if now() < (stunned[char] or 0) then
 			return
 		end
-		if dashLocked(char) then
-			return -- no dash-chaining out of the landing roll
+		if actionLocked(char) then
+			return -- no dash-chaining, and no dashing out of a catch bet
 		end
 		local d = if typeof(dir) == "Vector3" then Vector3.new(dir.X, 0, dir.Z) else Vector3.zero
 		d = if d.Magnitude > 0.01 then d.Unit else Vector3.zero
@@ -1234,7 +1256,7 @@ function BallService.Start()
 	Remotes.FakeRequest.OnServerEvent:Connect(function(player, curveDir, isLob)
 		local char = player.Character
 		local f = char and fighterFor(char)
-		if f and state == "Held" and holder == f and not dashLocked(char) then
+		if f and state == "Held" and holder == f and not actionLocked(char) then
 			-- The fake cancels the windup: the aura falls back to whatever
 			-- the ACTUAL caught-overcharge state is.
 			chargeStart = nil

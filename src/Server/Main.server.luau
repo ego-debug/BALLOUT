@@ -124,6 +124,11 @@ debugFn.OnInvoke = function(cmd: string, character: Model, frac: number?, curve:
 		return "thrown"
 	elseif cmd == "state" then
 		return BallService.DebugState()
+	elseif cmd == "locks" then
+		return BallService.DebugLocks(character)
+	elseif cmd == "catch" then
+		BallService.RegisterCatch(character)
+		return "catch registered"
 	end
 	return "unknown cmd"
 end

@@ -752,8 +752,14 @@ local function dashLockActive(): boolean
 	return os.clock() < dashRollEndsAt
 end
 
+-- Same deal for the catch: arms-out is a bet. While the catch window (or the
+-- closing beat) runs, nothing else fires — no dashing out of a baited catch.
+local function actionLockActive(): boolean
+	return dashLockActive() or os.clock() < catchRootEndsAt
+end
+
 local function doSpinJump()
-	if isStunned() or dashLockActive() then return end
+	if isStunned() or actionLockActive() then return end
 	local dir = strafeDir()
 	if dir == 0 then dir = 1 end
 	trickKind = "spin"
@@ -769,7 +775,7 @@ end
 -- you are vertically.
 local flipBusyUntil = 0
 local function doFlipJump()
-	if isStunned() or dashLockActive() or os.clock() < flipBusyUntil then
+	if isStunned() or actionLockActive() or os.clock() < flipBusyUntil then
 		return -- stunned, mid-dodge, or tuck already playing
 	end
 	stowGlider() -- tricks take the glider away
@@ -783,7 +789,7 @@ local function doFlipJump()
 end
 
 local function startCharge()
-	if isStunned() or dashLockActive() then return end
+	if isStunned() or actionLockActive() then return end
 	charging = true
 	chargeStart = os.clock()
 	-- KC-style: you CAN jump while charging — releasing mid-hop is the lob.
@@ -816,7 +822,7 @@ end
 -- holding LMB through the fake and release right after for the instant
 -- real throw (fake → throw).
 local function doFake()
-	if isStunned() or dashLockActive() then return end
+	if isStunned() or actionLockActive() then return end
 	Remotes.FakeRequest:FireServer(currentCurveDir(), currentIsLob())
 	trickKind = nil -- trick consumed by the fake
 	if charging then
@@ -835,6 +841,7 @@ local function doCatch()
 	-- finish first. Get baited mid-trick and the hit is yours to eat.
 	local nowT = os.clock()
 	if nowT < flipEndsAt or nowT < spinEndsAt or nowT < dashRollEndsAt
+		or nowT < catchRootEndsAt -- one bet at a time: no catch re-spam
 		or gliding or ballformOn then
 		return
 	end
@@ -893,7 +900,7 @@ end)
 
 -- ── Input (mouse + gamepad) ─────────────────────────────────────────────────
 local function doDash()
-	if isStunned() then return end
+	if isStunned() or actionLockActive() then return end
 	local nowT = os.clock()
 	if nowT < dashReadyAt then
 		return
@@ -950,7 +957,7 @@ UserInputService.InputBegan:Connect(function(input, processed)
 		if gliding then
 			stowGlider()
 		elseif hum and hum.FloorMaterial == Enum.Material.Air
-			and not ballformOn and not isStunned() and os.clock() > dashRollEndsAt then
+			and not ballformOn and not isStunned() and not actionLockActive() then
 			gliding = true
 			glideFlaring = false
 			glideTilt = 0
@@ -983,7 +990,7 @@ UserInputService.InputBegan:Connect(function(input, processed)
 		Remotes.DropRequest:FireServer()
 	elseif input.KeyCode == Enum.KeyCode.LeftAlt
 		or input.KeyCode == Enum.KeyCode.ButtonR1 then
-		if not isStunned() and not dashLockActive() then
+		if not isStunned() and not actionLockActive() then
 			Remotes.BallformRequest:FireServer(true) -- hold to stay balled
 		end
 	end
