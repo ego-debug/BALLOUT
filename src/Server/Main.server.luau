@@ -17,8 +17,8 @@ print("[Ballout] Booting throw/catch prototype…")
 -- their pose and even the welded ball until cleanup).
 Players.RespawnTime = 2
 
--- Lobby island FIRST: BallService.Start reads its BallSpawn marker, and
--- players spawn on its pads (it disables the old HQ dev spawn).
+-- Lobby overlay FIRST (safe zone + ball spawn markers over the HQ city):
+-- BallService.Start reads its BallSpawn marker.
 LobbyMap.Build()
 
 BallService.Start()
@@ -122,20 +122,5 @@ debugFn.OnInvoke = function(cmd: string, character: Model, frac: number?, curve:
 	return "unknown cmd"
 end
 debugFn.Parent = game:GetService("ServerStorage")
-
--- The HQ soccer court's giant ball is pure physics — if it gets punted off
--- the roof, put it back on the court.
-task.spawn(function()
-	while true do
-		task.wait(3)
-		local m = Workspace:FindFirstChild("BalloutMap")
-		local sb = m and m:FindFirstChild("SoccerBall")
-		if sb and sb:IsA("BasePart") and sb.Position.Y < -60 then
-			sb.AssemblyLinearVelocity = Vector3.zero
-			sb.AssemblyAngularVelocity = Vector3.zero
-			sb.CFrame = CFrame.new(105, -2.5, -65)
-		end
-	end
-end)
 
 print("[Ballout] Prototype ready. Walk into the ball to pick it up, hold LMB to charge & throw, RMB to catch.")

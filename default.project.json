@@ -6,7 +6,10 @@
       "$properties": { "StreamingEnabled": false }
     },
     "ServerScriptService": { "$path": "src/Server" },
-    "ServerStorage": { "$path": "src/ServerStorage" },
+    "ServerStorage": {
+      "$path": "src/ServerStorage",
+      "MapTools": { "$path": "tools" }
+    },
     "ReplicatedStorage": { "$path": "src/Shared" },
     "ReplicatedFirst": { "$path": "src/First" },
     "StarterPlayer": {
