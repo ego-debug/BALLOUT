@@ -34,20 +34,29 @@ local function part(props)
 	for k, v in props do
 		p[k] = v
 	end
+	-- CYBERPUNK knob: every wall that asks for Brick renders as dark metal
+	-- paneling instead — one switch restyles the whole city.
+	if p.Material == Enum.Material.Brick then
+		p.Material = Enum.Material.Metal
+	end
 	p.Parent = map
 	return p
 end
 
-local BRICK_A = Color3.fromRGB(152, 88, 66)
-local BRICK_B = Color3.fromRGB(128, 72, 56)
-local BRICK_DARK = Color3.fromRGB(118, 64, 50)
-local TEAL = Color3.fromRGB(70, 150, 140)
-local TAR = Color3.fromRGB(58, 55, 61)
-local PAVE = Color3.fromRGB(196, 188, 172)
-local TILE = Color3.fromRGB(219, 211, 197)
-local GRASS = Color3.fromRGB(112, 175, 66)
-local GRASS_DK = Color3.fromRGB(88, 148, 52)
-local METAL_DK = Color3.fromRGB(70, 68, 66)
+-- CYBERPUNK palette: dark panel towers + neon trim (the brick hideout era is
+-- over). The BRICK_* names stay so the whole file keeps reading the same —
+-- they're "wall A/B/darkest" tiers now.
+local BRICK_A = Color3.fromRGB(40, 40, 54)
+local BRICK_B = Color3.fromRGB(32, 32, 44)
+local BRICK_DARK = Color3.fromRGB(24, 24, 34)
+local TEAL = Color3.fromRGB(60, 230, 240)   -- neon cyan trim
+local MAGENTA = Color3.fromRGB(255, 60, 180) -- neon magenta accent
+local TAR = Color3.fromRGB(38, 38, 48)
+local PAVE = Color3.fromRGB(76, 76, 92)
+local TILE = Color3.fromRGB(92, 92, 112)
+local GRASS = Color3.fromRGB(70, 170, 110)   -- synth turf
+local GRASS_DK = Color3.fromRGB(52, 140, 90)
+local METAL_DK = Color3.fromRGB(56, 56, 64)
 local PURPLE = Color3.fromRGB(170, 80, 255)
 
 -- ══ MAIN DECK ═══════════════════════════════════════════════════════════════
@@ -80,23 +89,33 @@ hedge(124, 4, 16, 2.2, -6)
 hedge(88, -44, 18, 2.2, -6)
 
 -- ══ WINDOW STRIPS down the outward faces ════════════════════════════════════
-local GLASSC = Color3.fromRGB(38, 44, 58)
+local GLASSC = Color3.fromRGB(24, 30, 46)
+-- Cyberpunk skyscraper look: the middle strip of every face GLOWS (cyan on
+-- x-faces, magenta on z-faces); the outer strips stay dark glass.
 local function winStrips(cx, cz, w, d, topY, skipEast, skipWest)
 	local cy = topY - 170
-	for _, off in { -w * 0.3, 0, w * 0.3 } do
+	for si, off in { -w * 0.3, 0, w * 0.3 } do
+		local neon = si == 2
+		local color = if neon then TEAL else GLASSC
+		local mat = if neon then Enum.Material.Neon else Enum.Material.Glass
+		local tr = if neon then 0.35 else 0
 		part({ Size = Vector3.new(3, 320, 0.5), Position = Vector3.new(cx + off, cy, cz - d / 2 - 0.3),
-			Color = GLASSC, Material = Enum.Material.Glass })
+			Color = color, Material = mat, Transparency = tr })
 		part({ Size = Vector3.new(3, 320, 0.5), Position = Vector3.new(cx + off, cy, cz + d / 2 + 0.3),
-			Color = GLASSC, Material = Enum.Material.Glass })
+			Color = color, Material = mat, Transparency = tr })
 	end
-	for _, off in { -d * 0.3, 0, d * 0.3 } do
+	for si, off in { -d * 0.3, 0, d * 0.3 } do
+		local neon = si == 2
+		local color = if neon then MAGENTA else GLASSC
+		local mat = if neon then Enum.Material.Neon else Enum.Material.Glass
+		local tr = if neon then 0.35 else 0
 		if not skipEast then
 			part({ Size = Vector3.new(0.5, 320, 3), Position = Vector3.new(cx + w / 2 + 0.3, cy, cz + off),
-				Color = GLASSC, Material = Enum.Material.Glass })
+				Color = color, Material = mat, Transparency = tr })
 		end
 		if not skipWest then
 			part({ Size = Vector3.new(0.5, 320, 3), Position = Vector3.new(cx - w / 2 - 0.3, cy, cz + off),
-				Color = GLASSC, Material = Enum.Material.Glass })
+				Color = color, Material = mat, Transparency = tr })
 		end
 	end
 end
@@ -107,8 +126,9 @@ winStrips(105, -35, 60, 90, -9, false, true)
 local function parapet(x, z, sx, sz, baseY)
 	part({ Size = Vector3.new(sx, 4.2, sz), Position = Vector3.new(x, baseY + 2.1, z),
 		Color = BRICK_DARK, Material = Enum.Material.Brick })
+	-- glowing cyan cap: every rooftop edge in the city is a neon outline
 	part({ Size = Vector3.new(sx + 0.6, 0.6, sz + 0.6), Position = Vector3.new(x, baseY + 4.5, z),
-		Color = TEAL, Material = Enum.Material.Metal })
+		Color = TEAL, Material = Enum.Material.Neon, Transparency = 0.25 })
 end
 -- Main deck (x -40..60, z -60..40); east opening z -26..-12 for the planks,
 -- west opening z -20..0 for the queue-roof stairs
@@ -518,20 +538,43 @@ do
 		Transparency = 0.25, CanCollide = false, CanQuery = false })
 end
 
+-- ══ STREET LAMPS (cool light pools so the decks read at night) ══════════════
+local function streetLamp(x, z, baseY)
+	part({ Size = Vector3.new(0.6, 12, 0.6), Position = Vector3.new(x, baseY + 6, z),
+		Color = METAL_DK, Material = Enum.Material.Metal })
+	local head = part({ Size = Vector3.new(2.6, 0.5, 1.2), Position = Vector3.new(x, baseY + 12.2, z),
+		Color = Color3.fromRGB(200, 240, 255), Material = Enum.Material.Neon })
+	local pl = Instance.new("PointLight")
+	pl.Color = Color3.fromRGB(190, 225, 255)
+	pl.Range = 28
+	pl.Brightness = 1.4
+	pl.Parent = head
+end
+streetLamp(30, -10, 0)
+streetLamp(-15, 12, 0)
+streetLamp(45, -35, 0)
+streetLamp(0, 28, 0)
+streetLamp(-70, -20, 4)   -- queue roof plaza
+streetLamp(-115, -5, 4)
+streetLamp(95, -15, -6)   -- training roof
+streetLamp(120, -55, -6)
+
 -- ══ BARRIER SKYLINE ═════════════════════════════════════════════════════════
 local BARRIER_COLORS = {
-	Color3.fromRGB(150, 88, 66), Color3.fromRGB(128, 72, 56), Color3.fromRGB(168, 120, 96),
-	Color3.fromRGB(165, 155, 142), Color3.fromRGB(122, 82, 70),
+	Color3.fromRGB(34, 36, 52), Color3.fromRGB(28, 30, 44), Color3.fromRGB(46, 40, 66),
+	Color3.fromRGB(38, 42, 60), Color3.fromRGB(26, 26, 38),
 }
+local BARRIER_NEONS = { TEAL, MAGENTA, PURPLE }
 local function barrier(name, cx, cz, w, d, top, ci)
 	local color = BARRIER_COLORS[(ci - 1) % #BARRIER_COLORS + 1]
 	part({ Name = name, Size = Vector3.new(w, top + 400, d),
 		Position = Vector3.new(cx, (top - 400) / 2, cz), Color = color, Material = Enum.Material.Brick })
-	local pc = Color3.new(color.R * 0.8, color.G * 0.8, color.B * 0.8)
-	part({ Size = Vector3.new(w, 3, 2), Position = Vector3.new(cx, top + 1.5, cz - d / 2 + 1), Color = pc, Material = Enum.Material.Brick })
-	part({ Size = Vector3.new(w, 3, 2), Position = Vector3.new(cx, top + 1.5, cz + d / 2 - 1), Color = pc, Material = Enum.Material.Brick })
-	part({ Size = Vector3.new(2, 3, d), Position = Vector3.new(cx - w / 2 + 1, top + 1.5, cz), Color = pc, Material = Enum.Material.Brick })
-	part({ Size = Vector3.new(2, 3, d), Position = Vector3.new(cx + w / 2 - 1, top + 1.5, cz), Color = pc, Material = Enum.Material.Brick })
+	-- glowing roofline ring: each skyline tower is outlined in its own neon
+	local pc = BARRIER_NEONS[(ci - 1) % #BARRIER_NEONS + 1]
+	part({ Size = Vector3.new(w, 3, 2), Position = Vector3.new(cx, top + 1.5, cz - d / 2 + 1), Color = pc, Material = Enum.Material.Neon, Transparency = 0.45 })
+	part({ Size = Vector3.new(w, 3, 2), Position = Vector3.new(cx, top + 1.5, cz + d / 2 - 1), Color = pc, Material = Enum.Material.Neon, Transparency = 0.45 })
+	part({ Size = Vector3.new(2, 3, d), Position = Vector3.new(cx - w / 2 + 1, top + 1.5, cz), Color = pc, Material = Enum.Material.Neon, Transparency = 0.45 })
+	part({ Size = Vector3.new(2, 3, d), Position = Vector3.new(cx + w / 2 - 1, top + 1.5, cz), Color = pc, Material = Enum.Material.Neon, Transparency = 0.45 })
 end
 barrier("N1", -80, -150, 100, 80, 120, 1)
 barrier("N2", 10, -160, 90, 90, 90, 2)
@@ -590,10 +633,10 @@ wall(-240, -22.5, 4, 369)
 
 -- ══ CLOUD VOID ══════════════════════════════════════════════════════════════
 part({ Name = "CloudHi", Size = Vector3.new(1500, 24, 1500), Position = Vector3.new(35, -225, -22),
-	Color = Color3.fromRGB(216, 208, 220), Material = Enum.Material.SmoothPlastic,
+	Color = Color3.fromRGB(140, 118, 170), Material = Enum.Material.SmoothPlastic,
 	Transparency = 0.3, CanCollide = false, CanQuery = false, CastShadow = false })
 part({ Name = "CloudLo", Size = Vector3.new(1600, 30, 1600), Position = Vector3.new(35, -262, -22),
-	Color = Color3.fromRGB(198, 190, 205), Material = Enum.Material.SmoothPlastic,
+	Color = Color3.fromRGB(108, 92, 140), Material = Enum.Material.SmoothPlastic,
 	Transparency = 0.05, CanCollide = false, CanQuery = false, CastShadow = false })
 local puffs = {
 	{ 40, -215, -90, 46 }, { 120, -210, 10, 38 }, { -70, -218, 40, 52 }, { -140, -208, -60, 40 },
@@ -603,7 +646,7 @@ local puffs = {
 for _, q in puffs do
 	part({ Shape = Enum.PartType.Ball, Size = Vector3.new(q[4], q[4] * 0.45, q[4]),
 		Position = Vector3.new(q[1], q[2], q[3]),
-		Color = Color3.fromRGB(232, 226, 235), Material = Enum.Material.SmoothPlastic,
+		Color = Color3.fromRGB(150, 128, 180), Material = Enum.Material.SmoothPlastic,
 		Transparency = 0.15, CanCollide = false, CanQuery = false, CastShadow = false })
 end
 
@@ -620,14 +663,31 @@ Workspace.FallenPartsDestroyHeight = -330
 
 local atmo = Lighting:FindFirstChildOfClass("Atmosphere")
 if atmo then atmo:Destroy() end
-Lighting.ClockTime = 17.45
-Lighting.Brightness = 2.5
-Lighting.Ambient = Color3.fromRGB(95, 82, 105)
-Lighting.OutdoorAmbient = Color3.fromRGB(135, 112, 138)
-Lighting.ColorShift_Top = Color3.fromRGB(255, 185, 120)
-Lighting.FogColor = Color3.fromRGB(200, 178, 200)
-Lighting.FogStart = 200
-Lighting.FogEnd = 800
+-- CYBERPUNK night: deep dusk, purple haze, bloom so every neon edge blooms.
+Lighting.ClockTime = 18.7
+Lighting.Brightness = 2.0
+Lighting.Ambient = Color3.fromRGB(92, 80, 130)
+Lighting.OutdoorAmbient = Color3.fromRGB(118, 100, 158)
+Lighting.ColorShift_Top = Color3.fromRGB(140, 90, 255)
+Lighting.FogColor = Color3.fromRGB(96, 52, 132)
+Lighting.FogStart = 180
+Lighting.FogEnd = 750
+local bloom = Lighting:FindFirstChildOfClass("BloomEffect")
+if not bloom then
+	bloom = Instance.new("BloomEffect")
+	bloom.Parent = Lighting
+end
+bloom.Intensity = 0.55
+bloom.Size = 40
+bloom.Threshold = 1.1
+local cc = Lighting:FindFirstChildOfClass("ColorCorrectionEffect")
+if not cc then
+	cc = Instance.new("ColorCorrectionEffect")
+	cc.Parent = Lighting
+end
+cc.Saturation = 0.12
+cc.Contrast = 0.06
+cc.TintColor = Color3.fromRGB(235, 240, 255)
 
 local terrain = Workspace:FindFirstChildOfClass("Terrain")
 if terrain and not terrain:FindFirstChildOfClass("Clouds") then

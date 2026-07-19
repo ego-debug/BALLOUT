@@ -22,15 +22,17 @@ local W = 150 -- x span
 local D = 110 -- z span
 local WALL_H = 18
 
-local ASPHALT = Color3.fromRGB(52, 50, 56)
-local PAVE = Color3.fromRGB(188, 180, 165)
-local BRICK = Color3.fromRGB(140, 78, 60)
-local BRICK_DK = Color3.fromRGB(112, 60, 48)
-local METAL = Color3.fromRGB(70, 68, 66)
-local RED = Color3.fromRGB(196, 60, 50)
-local BLUE = Color3.fromRGB(56, 110, 200)
-local NEON_W = Color3.fromRGB(235, 232, 226)
-local GRASS = Color3.fromRGB(96, 158, 58)
+-- CYBERPUNK palette (matches the HQ city): dark metal + neon.
+local ASPHALT = Color3.fromRGB(24, 24, 32)
+local PAVE = Color3.fromRGB(60, 60, 74)
+local BRICK = Color3.fromRGB(36, 36, 50)
+local BRICK_DK = Color3.fromRGB(26, 26, 38)
+local METAL = Color3.fromRGB(56, 56, 64)
+local RED = Color3.fromRGB(255, 70, 60)
+local BLUE = Color3.fromRGB(70, 140, 255)
+local NEON_W = Color3.fromRGB(220, 240, 255)
+local GRASS = Color3.fromRGB(70, 170, 110)
+local CYAN = Color3.fromRGB(60, 230, 240)
 
 local function mk(parent: Instance, name: string, size: Vector3, cfOrPos: CFrame | Vector3, color: Color3, material: Enum.Material?, class: string?): BasePart
 	local p = Instance.new((class or "Part") :: any) :: BasePart
@@ -42,7 +44,9 @@ local function mk(parent: Instance, name: string, size: Vector3, cfOrPos: CFrame
 		p.Position = cfOrPos
 	end
 	p.Color = color
-	p.Material = material or Enum.Material.Concrete
+	local mat = material or Enum.Material.Concrete
+	-- cyberpunk knob: brick walls render as dark metal paneling
+	p.Material = if mat == Enum.Material.Brick then Enum.Material.Metal else mat
 	p.Anchored = true
 	p.TopSurface = Enum.SurfaceType.Smooth
 	p.BottomSurface = Enum.SurfaceType.Smooth
@@ -75,6 +79,15 @@ function Arena.Build(): Model
 	mk(model, "WallS", Vector3.new(W + 3, WALL_H, 1.5), CENTER + Vector3.new(0, WALL_H / 2, D / 2), BRICK_DK, Enum.Material.Brick)
 	mk(model, "WallW", Vector3.new(1.5, WALL_H, D + 3), CENTER + Vector3.new(-W / 2, WALL_H / 2, 0), BRICK_DK, Enum.Material.Brick)
 	mk(model, "WallE", Vector3.new(1.5, WALL_H, D + 3), CENTER + Vector3.new(W / 2, WALL_H / 2, 0), BRICK_DK, Enum.Material.Brick)
+	-- neon rim along every wall top (cyberpunk roofline outline)
+	local rim = mk(model, "RimN", Vector3.new(W + 3.6, 0.6, 0.6), CENTER + Vector3.new(0, WALL_H + 0.3, -D / 2), CYAN, Enum.Material.Neon)
+	rim.Transparency = 0.25
+	rim = mk(model, "RimS", Vector3.new(W + 3.6, 0.6, 0.6), CENTER + Vector3.new(0, WALL_H + 0.3, D / 2), CYAN, Enum.Material.Neon)
+	rim.Transparency = 0.25
+	rim = mk(model, "RimW", Vector3.new(0.6, 0.6, D + 3.6), CENTER + Vector3.new(-W / 2, WALL_H + 0.3, 0), CYAN, Enum.Material.Neon)
+	rim.Transparency = 0.25
+	rim = mk(model, "RimE", Vector3.new(0.6, 0.6, D + 3.6), CENTER + Vector3.new(W / 2, WALL_H + 0.3, 0), CYAN, Enum.Material.Neon)
+	rim.Transparency = 0.25
 	-- skyline: stepped building silhouettes on the rim (pure vibe)
 	local heights = { 8, 14, 6, 18, 10, 15, 7, 12 }
 	for i, h in heights do
