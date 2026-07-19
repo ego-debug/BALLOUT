@@ -3,8 +3,8 @@
 --
 -- Layout (researched from the KC Hideout wiki + in-game screenshots):
 --   MAIN DECK (top Y=0, x -40..60, z -60..40): the wide open practice space.
---     - GARAGE (west): interior with trophy case + jukebox, walkable roof,
---       hidden nook behind it with a basketball hoop + crates
+--     - GARAGE (north edge, by the hoops): spawn inside, door faces south so
+--       the deck pans left/right on exit; trophy case + jukebox interior
 --     - RADIO TOWER outside the garage (two-tier lattice + red beacon)
 --     - SPAWN DRUM (south-east): raised teal round tank cap you spawn on,
 --       steps down to the deck (KC spawn vibe)
@@ -132,26 +132,27 @@ for _, zc in { -18, -22 } do
 		Color = Color3.fromRGB(202, 122, 62), Material = Enum.Material.WoodPlanks })
 end
 
--- ══ GARAGE (west side of main deck) ═════════════════════════════════════════
--- Footprint x -40..-8, z -42..-2, open front facing EAST into the deck.
--- Big-box scale: 16-stud ceiling (~3 characters), 20x12 door.
-part({ Size = Vector3.new(1.5, 16, 40), Position = Vector3.new(-39.25, 8, -22),
-	Color = BRICK_B, Material = Enum.Material.Brick }) -- back (west) wall
-part({ Size = Vector3.new(32, 16, 1.5), Position = Vector3.new(-24, 8, -41.25),
-	Color = BRICK_B, Material = Enum.Material.Brick }) -- north wall
-part({ Size = Vector3.new(32, 16, 1.5), Position = Vector3.new(-24, 8, -2.75),
-	Color = BRICK_B, Material = Enum.Material.Brick }) -- south wall
-part({ Size = Vector3.new(1.5, 16, 10), Position = Vector3.new(-8.75, 8, -37),
+-- ══ GARAGE (north edge of the main deck, by the basketball hoops) ═══════════
+-- Footprint x -25..15, z -59..-27, door facing SOUTH into the deck — spawning
+-- players walk out with the whole deck panning left (training roof) and
+-- right (radio tower + queue roof). 16-stud ceiling, 20x12 door.
+part({ Size = Vector3.new(40, 16, 1.5), Position = Vector3.new(-5, 8, -58.25),
+	Color = BRICK_B, Material = Enum.Material.Brick }) -- back (north) wall
+part({ Size = Vector3.new(1.5, 16, 32), Position = Vector3.new(-24.25, 8, -43),
+	Color = BRICK_B, Material = Enum.Material.Brick }) -- west wall
+part({ Size = Vector3.new(1.5, 16, 32), Position = Vector3.new(14.25, 8, -43),
+	Color = BRICK_B, Material = Enum.Material.Brick }) -- east wall
+part({ Size = Vector3.new(10, 16, 1.5), Position = Vector3.new(-20, 8, -27.75),
 	Color = BRICK_B, Material = Enum.Material.Brick }) -- front side piece
-part({ Size = Vector3.new(1.5, 16, 10), Position = Vector3.new(-8.75, 8, -7),
+part({ Size = Vector3.new(10, 16, 1.5), Position = Vector3.new(10, 8, -27.75),
 	Color = BRICK_B, Material = Enum.Material.Brick }) -- front side piece
-part({ Size = Vector3.new(1.5, 4, 20), Position = Vector3.new(-8.75, 14, -22),
+part({ Size = Vector3.new(20, 4, 1.5), Position = Vector3.new(-5, 14, -27.75),
 	Color = BRICK_B, Material = Enum.Material.Brick }) -- lintel over the door
-local groof = part({ Name = "GarageRoof", Size = Vector3.new(34, 1.2, 42), Position = Vector3.new(-24, 16.6, -22),
+local groof = part({ Name = "GarageRoof", Size = Vector3.new(42, 1.2, 34), Position = Vector3.new(-5, 16.6, -43),
 	Color = TAR, Material = Enum.Material.Slate })
 -- rolled-up door slats hint
 for i = 0, 2 do
-	part({ Size = Vector3.new(0.4, 0.7, 20), Position = Vector3.new(-9.6, 11.2 + i * 0.75, -22),
+	part({ Size = Vector3.new(20, 0.7, 0.4), Position = Vector3.new(-5, 11.2 + i * 0.75, -27.1),
 		Color = Color3.fromRGB(140, 140, 138), Material = Enum.Material.Metal })
 end
 -- interior glow
@@ -167,7 +168,7 @@ glight.Parent = groof
 local gspawn = Instance.new("SpawnLocation")
 gspawn.Name = "GarageSpawn"
 gspawn.Size = Vector3.new(10, 0.4, 10)
-gspawn.CFrame = CFrame.new(-24, 0.2, -22) * CFrame.Angles(0, math.rad(-90), 0) -- face EAST (the door)
+gspawn.CFrame = CFrame.new(-5, 0.2, -43) * CFrame.Angles(0, math.rad(180), 0) -- face SOUTH (the door)
 gspawn.Color = TEAL
 gspawn.Material = Enum.Material.SmoothPlastic
 gspawn.Anchored = true
@@ -196,49 +197,49 @@ local function sign(host, face, text, textColor, bg)
 	l.Parent = g
 end
 
--- GARAGE marquee + KO graffiti on the south wall
-local marquee = part({ Size = Vector3.new(16, 3.5, 0.6), Position = Vector3.new(-7.9, 18.3, -22),
+-- GARAGE marquee over the door + KO graffiti on the east wall (faces midfield)
+local marquee = part({ Size = Vector3.new(16, 3.5, 0.6), Position = Vector3.new(-5, 18.3, -26.9),
 	Color = Color3.fromRGB(30, 28, 34), Material = Enum.Material.Metal })
-sign(marquee, Enum.NormalId.Right, "GARAGE", Color3.fromRGB(120, 235, 255), Color3.fromRGB(30, 28, 34))
-local ko = part({ Size = Vector3.new(16, 10, 0.3), Position = Vector3.new(-24, 8, -1.85),
+sign(marquee, Enum.NormalId.Back, "GARAGE", Color3.fromRGB(120, 235, 255), Color3.fromRGB(30, 28, 34))
+local ko = part({ Size = Vector3.new(0.3, 10, 16), Position = Vector3.new(15.15, 8, -43),
 	Color = BRICK_B, Material = Enum.Material.Brick })
-sign(ko, Enum.NormalId.Back, "KO!!", Color3.fromRGB(255, 220, 60), Color3.fromRGB(96, 44, 150))
+sign(ko, Enum.NormalId.Right, "KO!!", Color3.fromRGB(255, 220, 60), Color3.fromRGB(96, 44, 150))
 
--- Trophy case (against the back wall)
-part({ Size = Vector3.new(1.2, 10, 18), Position = Vector3.new(-37.9, 5, -22),
+-- Trophy case (against the back/north wall)
+part({ Size = Vector3.new(18, 10, 1.2), Position = Vector3.new(-5, 5, -56.9),
 	Color = Color3.fromRGB(52, 44, 40), Material = Enum.Material.Wood })
 for i, sy in { 3.8, 6.8 } do
-	part({ Size = Vector3.new(1.4, 0.35, 17.2), Position = Vector3.new(-37.8, sy, -22),
+	part({ Size = Vector3.new(17.2, 0.35, 1.4), Position = Vector3.new(-5, sy, -56.8),
 		Color = Color3.fromRGB(84, 70, 60), Material = Enum.Material.Wood })
 end
-for _, tz in { -28, -22, -16 } do
+for _, tx in { -11, -5, 1 } do
 	part({ Shape = Enum.PartType.Cylinder, Size = Vector3.new(1.2, 1.4, 1.4),
-		CFrame = CFrame.new(-37.7, 7.75, tz) * CFrame.Angles(0, 0, math.rad(90)),
+		CFrame = CFrame.new(tx, 7.75, -56.7) * CFrame.Angles(0, 0, math.rad(90)),
 		Color = Color3.fromRGB(230, 190, 70), Material = Enum.Material.Metal })
 	part({ Shape = Enum.PartType.Ball, Size = Vector3.new(1.5, 1.5, 1.5),
-		Position = Vector3.new(-37.7, 8.9, tz),
+		Position = Vector3.new(tx, 8.9, -56.7),
 		Color = Color3.fromRGB(240, 200, 80), Material = Enum.Material.Metal })
 end
 
--- Jukebox (north wall)
-part({ Size = Vector3.new(5, 6, 3), Position = Vector3.new(-24, 3, -39.5),
+-- Jukebox (west interior wall)
+part({ Size = Vector3.new(3, 6, 5), Position = Vector3.new(-22.2, 3, -36),
 	Color = Color3.fromRGB(120, 34, 50), Material = Enum.Material.SmoothPlastic })
-part({ Size = Vector3.new(5, 0.9, 3.1), Position = Vector3.new(-24, 6.45, -39.45),
+part({ Size = Vector3.new(3.1, 0.9, 5), Position = Vector3.new(-22.15, 6.45, -36),
 	Color = Color3.fromRGB(120, 235, 255), Material = Enum.Material.Neon })
-part({ Size = Vector3.new(3.6, 1.5, 0.25), Position = Vector3.new(-24, 4.6, -37.85),
+part({ Size = Vector3.new(0.25, 1.5, 3.6), Position = Vector3.new(-20.55, 4.6, -36),
 	Color = Color3.fromRGB(255, 190, 90), Material = Enum.Material.Neon })
-part({ Size = Vector3.new(3.9, 2.1, 0.2), Position = Vector3.new(-24, 1.9, -37.88),
+part({ Size = Vector3.new(0.2, 2.1, 3.9), Position = Vector3.new(-20.58, 1.9, -36),
 	Color = Color3.fromRGB(40, 36, 42), Material = Enum.Material.Fabric })
 
--- Workbench (south interior wall)
-part({ Size = Vector3.new(9, 0.6, 3.4), Position = Vector3.new(-30, 3, -5.2),
+-- Workbench (east interior wall)
+part({ Size = Vector3.new(3.4, 0.6, 9), Position = Vector3.new(12.5, 3, -38),
 	Color = Color3.fromRGB(120, 92, 60), Material = Enum.Material.WoodPlanks })
-for _, lx in { -33.8, -26.2 } do
-	part({ Size = Vector3.new(0.6, 2.7, 3), Position = Vector3.new(lx, 1.35, -5.2),
+for _, lz in { -41.8, -34.2 } do
+	part({ Size = Vector3.new(3, 2.7, 0.6), Position = Vector3.new(12.5, 1.35, lz),
 		Color = METAL_DK, Material = Enum.Material.Metal })
 end
 
--- Hidden nook behind the garage (north alley between garage and parapet)
+-- Crate nook beside the hoops on the garage's west flank
 part({ Size = Vector3.new(4, 4, 4), Position = Vector3.new(-34, 2, -48),
 	Color = Color3.fromRGB(150, 105, 65), Material = Enum.Material.WoodPlanks })
 part({ Size = Vector3.new(3, 3, 3), Position = Vector3.new(-33.4, 5.5, -47.4),
@@ -325,8 +326,8 @@ local function hoop(x, z, baseY, faceDir)
 		CFrame = CFrame.new(off.Position) * CFrame.Angles(0, 0, math.rad(90)),
 		Color = Color3.fromRGB(255, 120, 40), Material = Enum.Material.Metal })
 end
-hoop(-27, -52, 0, -90)    -- hidden nook behind the garage, faces south
-hoop(20, -56, 0, -90)     -- main deck north edge, faces south
+hoop(-30, -52, 0, -90)    -- west of the garage, faces south
+hoop(20, -56, 0, -90)     -- east of the garage, faces south
 hoop(95, 5, -6, 90)       -- dummy roof south edge, faces north
 
 -- ══ SPECIAL-BALL SPAWNER PODS (decorative, purple hover pods) ═══════════════
@@ -351,8 +352,8 @@ end
 for i = 0, 4 do -- five special-ball pods along the dummy roof's east wall
 	ballPod(130, -44 + i * 8, -6)
 end
-ballPod(-33, -28, 0) -- basic ball pod in the garage
-ballPod(10, -54, 0)  -- basic/boomerang pod at the far end of the open area
+ballPod(10, -52, 0)  -- basic ball pod in the garage (east corner)
+ballPod(-24, -20, 0) -- basic/boomerang pod on the open deck
 
 -- ══ TRAINING LAWN (north half of the dummy roof) ════════════════════════════
 -- Open practice ground around the training bot — the queue rooms moved to
@@ -443,7 +444,7 @@ end
 local function patch(x, z, sx, sz, color, mat)
 	part({ Size = Vector3.new(sx, 0.16, sz), Position = Vector3.new(x, 0.08, z), Color = color, Material = mat })
 end
-patch(-2, -30, 30, 20, GRASS, Enum.Material.Grass)
+patch(-24, -16, 30, 20, GRASS, Enum.Material.Grass)
 patch(30, -20, 22, 26, GRASS, Enum.Material.Grass)
 patch(-10, 14, 16, 14, GRASS, Enum.Material.Grass)
 patch(12, 0, 12, 46, TILE, Enum.Material.SmoothPlastic)
@@ -455,7 +456,7 @@ local function chimney(x, z)
 	part({ Size = Vector3.new(7.4, 1.2, 7.4), Position = Vector3.new(x, 11.6, z),
 		Color = Color3.fromRGB(72, 64, 62), Material = Enum.Material.Concrete })
 end
-chimney(0, -56)
+chimney(-30, -34)
 chimney(54, 20)
 
 local function waterTower(x, z, baseY, scale)
@@ -495,10 +496,10 @@ for i, ang in { 0.35, 1.15, 1.95 } do
 end
 
 -- AC unit on the garage roof
-part({ Size = Vector3.new(6, 3.4, 4.5), Position = Vector3.new(-30, 18.9, -28),
+part({ Size = Vector3.new(6, 3.4, 4.5), Position = Vector3.new(-12, 18.9, -50),
 	Color = Color3.fromRGB(152, 150, 147), Material = Enum.Material.Metal })
 part({ Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.6, 3, 3),
-	CFrame = CFrame.new(-30, 20.9, -28) * CFrame.Angles(0, 0, math.rad(90)),
+	CFrame = CFrame.new(-12, 20.9, -50) * CFrame.Angles(0, 0, math.rad(90)),
 	Color = Color3.fromRGB(60, 58, 56), Material = Enum.Material.Metal })
 
 -- chalkboard near the plank crossing
@@ -508,7 +509,7 @@ sign(board, Enum.NormalId.Left, "KNOCK 'EM DOWN!", Color3.fromRGB(235, 235, 225)
 
 -- string lights: garage roof corner -> radio tower platform
 do
-	local a = Vector3.new(-12, 17.4, -6)
+	local a = Vector3.new(-22, 17.4, -28)
 	local b = Vector3.new(-30, 29, 14)
 	local len = (b - a).Magnitude
 	part({ Size = Vector3.new(0.15, 0.15, len),
