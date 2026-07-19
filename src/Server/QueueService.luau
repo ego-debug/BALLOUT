@@ -19,33 +19,52 @@ local QueueService = {}
 
 local IDLE_TEXT = "TEAM KO 3v3"
 
-local function findPad(): BasePart?
+-- There are multiple TeamKO rooms (QueuePadTeamKO_A/_B…): every pad whose
+-- name starts with the prefix is the same queue, and all their signs show
+-- the same status.
+local function findPads(): { BasePart }
 	local map = Workspace:FindFirstChild("BalloutMap")
-	local pad = if map then map:FindFirstChild("QueuePadTeamKO") else nil
-	return if pad and pad:IsA("BasePart") then pad else nil
+	local pads = {}
+	if map then
+		for _, c in map:GetChildren() do
+			if c:IsA("BasePart") and c.Name:sub(1, 14) == "QueuePadTeamKO" and c.Name:sub(-4) ~= "Sign" then
+				table.insert(pads, c)
+			end
+		end
+	end
+	return pads
 end
 
 local function setSign(text: string)
 	local map = Workspace:FindFirstChild("BalloutMap")
-	local panel = if map then map:FindFirstChild("QueuePadTeamKOSign") else nil
-	local gui = if panel then panel:FindFirstChildOfClass("SurfaceGui") else nil
-	local label = if gui then gui:FindFirstChildOfClass("TextLabel") else nil
-	if label then
-		label.Text = text
+	if not map then
+		return
+	end
+	for _, panel in map:GetChildren() do
+		if panel.Name:sub(1, 14) == "QueuePadTeamKO" and panel.Name:sub(-4) == "Sign" then
+			local gui = panel:FindFirstChildOfClass("SurfaceGui")
+			local label = if gui then gui:FindFirstChildOfClass("TextLabel") else nil
+			if label then
+				label.Text = text
+			end
+		end
 	end
 end
 
-local function playersOnPad(pad: BasePart): { Player }
+local function playersOnPads(pads: { BasePart }): { Player }
 	local standing = {}
 	for _, player in Players:GetPlayers() do
 		local character = player.Character
 		local root = character and character:FindFirstChild("HumanoidRootPart")
 		if root and root:IsA("BasePart") then
-			local rel = root.Position - pad.Position
-			if math.abs(rel.X) <= pad.Size.X / 2 + 1.5
-				and math.abs(rel.Z) <= pad.Size.Z / 2 + 1.5
-				and rel.Y > -1 and rel.Y < 8 then
-				table.insert(standing, player)
+			for _, pad in pads do
+				local rel = root.Position - pad.Position
+				if math.abs(rel.X) <= pad.Size.X / 2 + 1.5
+					and math.abs(rel.Z) <= pad.Size.Z / 2 + 1.5
+					and rel.Y > -1 and rel.Y < 8 then
+					table.insert(standing, player)
+					break
+				end
 			end
 		end
 	end
@@ -58,8 +77,8 @@ function QueueService.Start()
 		local wasLive = false
 		while true do
 			task.wait(0.25)
-			local pad = findPad()
-			if not pad then
+			local pads = findPads()
+			if #pads == 0 then
 				continue
 			end
 			if MatchService.IsActive() then
@@ -73,7 +92,7 @@ function QueueService.Start()
 				wasLive = false
 				setSign(IDLE_TEXT)
 			end
-			local standing = playersOnPad(pad)
+			local standing = playersOnPads(pads)
 			if #standing == 0 then
 				if firstQueuedAt ~= nil then
 					firstQueuedAt = nil

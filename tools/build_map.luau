@@ -11,9 +11,11 @@
 --     - Launch pads with light beams + golden halo rings (matchmaking pads)
 --     - Basketball hoops, solar panels, chimneys, water tower, plank pile
 --   DUMMY ROOF (top Y=-6, x 75..135, z -80..10): smaller SEPARATE LOWER roof
---     - lawn + hedges, training dummy pad, 5 special-ball spawner pods
---     - QUEUE ROOMS behind it (north half): 3 walk-in mode-queue bays
+--     - lawn + hedges, training bot pad, 5 special-ball spawner pods
 --     - wooden planks bridge the gap from the main deck
+--   QUEUE ROOF (top Y=4, x -140..-50, z -55..35): main-deck-sized WEST roof
+--     - SIX walk-in queue rooms in two facing banks (two rooms per mode)
+--     - stair bridge from the main deck's west edge
 --   Barrier skyline + invisible walls + cloud void + dusk fog all around.
 
 local Workspace = game:GetService("Workspace")
@@ -108,10 +110,12 @@ local function parapet(x, z, sx, sz, baseY)
 	part({ Size = Vector3.new(sx + 0.6, 0.6, sz + 0.6), Position = Vector3.new(x, baseY + 4.5, z),
 		Color = TEAL, Material = Enum.Material.Metal })
 end
--- Main deck (x -40..60, z -60..40); east opening z -26..-12 for the planks
+-- Main deck (x -40..60, z -60..40); east opening z -26..-12 for the planks,
+-- west opening z -20..0 for the queue-roof stairs
 parapet(10, -59, 100, 2, 0)
 parapet(10, 39, 100, 2, 0)
-parapet(-39, -10, 2, 96, 0)
+parapet(-39, -39, 2, 38, 0)
+parapet(-39, 19, 2, 38, 0)
 parapet(59, -42.5, 2, 33, 0)
 parapet(59, 13.5, 2, 51, 0)
 -- Dummy roof (x 75..135, z -80..10); west opening z -26..-12
@@ -350,50 +354,90 @@ end
 ballPod(-33, -28, 0) -- basic ball pod in the garage
 ballPod(10, -54, 0)  -- basic/boomerang pod at the far end of the open area
 
--- ══ QUEUE ROOMS (north half of the dummy roof — replaced the soccer court) ══
--- Three walk-in bays (UBG-style): stand in a bay to queue for that mode.
--- The QueuePad* names are the contract the queue system reads — keep them.
--- shell: back wall against the parapet, sides, flat roof
--- (Scaled to garage proportions: 15-stud walls, 12-stud openings.)
-part({ Name = "QueueRoomsFloor", Size = Vector3.new(44, 0.16, 28), Position = Vector3.new(105, -5.92, -66),
-	Color = TAR, Material = Enum.Material.Asphalt })
-part({ Size = Vector3.new(44, 15, 1.2), Position = Vector3.new(105, 1.5, -79.4),
-	Color = BRICK_B, Material = Enum.Material.Brick })
-part({ Size = Vector3.new(1.2, 15, 28), Position = Vector3.new(83.6, 1.5, -66),
-	Color = BRICK_B, Material = Enum.Material.Brick })
-part({ Size = Vector3.new(1.2, 15, 28), Position = Vector3.new(126.4, 1.5, -66),
-	Color = BRICK_B, Material = Enum.Material.Brick })
-part({ Name = "QueueRoomsRoof", Size = Vector3.new(46, 1, 30), Position = Vector3.new(105, 9.5, -66),
-	Color = TAR, Material = Enum.Material.Concrete })
--- front header above the three openings (openings 12 high, like the garage door)
-part({ Size = Vector3.new(44, 3, 1), Position = Vector3.new(105, 7.5, -52.5),
-	Color = BRICK_DARK, Material = Enum.Material.Brick })
--- bay dividers (leave a 4-stud porch at the front)
-part({ Size = Vector3.new(1, 15, 24), Position = Vector3.new(97.7, 1.5, -68),
-	Color = BRICK_B, Material = Enum.Material.Brick })
-part({ Size = Vector3.new(1, 15, 24), Position = Vector3.new(112.3, 1.5, -68),
-	Color = BRICK_B, Material = Enum.Material.Brick })
--- per-bay queue pads + entrance signs (bay centers x 90.3 / 105 / 119.7)
--- NOTE: uses the sign() SurfaceGui helper defined in the GARAGE section.
-local function queueBay(cx, padName, signText, accent)
-	part({ Name = padName, Size = Vector3.new(10, 0.2, 10), Position = Vector3.new(cx, -5.7, -68),
-		Color = accent, Material = Enum.Material.Neon })
-	-- marquee panel over the entrance, text on its face (garage-marquee style)
-	local panel = part({ Name = padName .. "Sign", Size = Vector3.new(14, 3, 0.6),
-		Position = Vector3.new(cx, 7.5, -52.1), Color = Color3.fromRGB(30, 28, 34),
-		Material = Enum.Material.Metal })
-	sign(panel, Enum.NormalId.Back, signText, accent, Color3.fromRGB(30, 28, 34))
-	-- bay glow
-	local light = Instance.new("PointLight")
-	light.Color = accent
-	light.Range = 18
-	light.Brightness = 1.2
-	light.Parent = part({ Size = Vector3.new(4, 0.3, 4), Position = Vector3.new(cx, 8.7, -66),
-		Color = accent, Material = Enum.Material.Neon, CanCollide = false, CanQuery = false })
+-- ══ TRAINING LAWN (north half of the dummy roof) ════════════════════════════
+-- Open practice ground around the training bot — the queue rooms moved to
+-- their own west QUEUE ROOF (below).
+part({ Size = Vector3.new(44, 0.16, 30), Position = Vector3.new(105, -5.92, -65),
+	Color = GRASS_DK, Material = Enum.Material.Grass })
+
+-- ══ QUEUE ROOF (main-deck-sized WEST building: SIX queue rooms) ═════════════
+-- Two facing banks of three garage-scale bays across a central plaza —
+-- TWO rooms per mode (the TeamKO rooms sit diagonal from each other).
+-- QueuePad names are the queue system's contract: it matches the
+-- "QueuePadTeamKO" prefix, so both TeamKO_A and TeamKO_B count.
+local QX, QZ, QTOP = -95, -10, 4
+part({ Name = "QueueRoof", Size = Vector3.new(90, 3, 90), Position = Vector3.new(QX, QTOP - 1.5, QZ),
+	Color = PAVE, Material = Enum.Material.Concrete })
+part({ Name = "ShaftQueue", Size = Vector3.new(90, 400, 90), Position = Vector3.new(QX, QTOP - 203, QZ),
+	Color = BRICK_A, Material = Enum.Material.Brick })
+winStrips(QX, QZ, 90, 90, QTOP - 3, true, false)
+-- parapets: full N/S/W, east side leaves a z -20..0 gap for the stairs
+parapet(QX, QZ - 44, 90, 2, QTOP)
+parapet(QX, QZ + 44, 90, 2, QTOP)
+parapet(QX - 44, QZ, 2, 86, QTOP)
+parapet(-51, -37, 2, 34, QTOP)
+parapet(-51, 17, 2, 34, QTOP)
+-- stair bridge from the main deck (y 0) up to the roof (y 4)
+for i = 1, 3 do
+	local top = i * 4 / 3
+	part({ Size = Vector3.new(3.4, top, 20), Position = Vector3.new(-40 - i * 3.4 + 1.7, top / 2, -10),
+		Color = Color3.fromRGB(160, 152, 138), Material = Enum.Material.Concrete })
 end
-queueBay(90.3, "QueuePadTeamKO", "TEAM KO 3v3", Color3.fromRGB(255, 90, 70))
-queueBay(105, "QueuePadSoon1", "COMING SOON", Color3.fromRGB(200, 200, 205))
-queueBay(119.7, "QueuePadSoon2", "COMING SOON", Color3.fromRGB(200, 200, 205))
+-- one bank of three queue rooms; dir = +1 opens south (+Z), -1 opens north
+local function queueBank(shellZ, dir, defs)
+	local backZ = shellZ - dir * 10.4
+	local frontZ = shellZ + dir * 11
+	part({ Size = Vector3.new(66, 0.16, 22), Position = Vector3.new(QX, QTOP + 0.08, shellZ),
+		Color = TAR, Material = Enum.Material.Asphalt })
+	part({ Size = Vector3.new(66, 15, 1.2), Position = Vector3.new(QX, QTOP + 7.5, backZ),
+		Color = BRICK_B, Material = Enum.Material.Brick })
+	part({ Size = Vector3.new(1.2, 15, 22), Position = Vector3.new(QX - 33, QTOP + 7.5, shellZ),
+		Color = BRICK_B, Material = Enum.Material.Brick })
+	part({ Size = Vector3.new(1.2, 15, 22), Position = Vector3.new(QX + 33, QTOP + 7.5, shellZ),
+		Color = BRICK_B, Material = Enum.Material.Brick })
+	part({ Size = Vector3.new(68, 1, 24), Position = Vector3.new(QX, QTOP + 15.5, shellZ),
+		Color = TAR, Material = Enum.Material.Concrete })
+	part({ Size = Vector3.new(66, 3, 1), Position = Vector3.new(QX, QTOP + 13.5, frontZ + dir * 0.5),
+		Color = BRICK_DARK, Material = Enum.Material.Brick })
+	for _, dx in { -11, 11 } do
+		part({ Size = Vector3.new(1, 15, 18), Position = Vector3.new(QX + dx, QTOP + 7.5, shellZ - dir * 2),
+			Color = BRICK_B, Material = Enum.Material.Brick })
+	end
+	for _, def in defs do
+		local cx = QX + def.dx
+		part({ Name = def.name, Size = Vector3.new(12, 0.2, 12), Position = Vector3.new(cx, QTOP + 0.2, shellZ - dir * 3),
+			Color = def.accent, Material = Enum.Material.Neon })
+		local panel = part({ Name = def.name .. "Sign", Size = Vector3.new(14, 3, 0.6),
+			Position = Vector3.new(cx, QTOP + 13.5, frontZ - dir * 0.4), Color = Color3.fromRGB(30, 28, 34),
+			Material = Enum.Material.Metal })
+		sign(panel, if dir == 1 then Enum.NormalId.Back else Enum.NormalId.Front, def.text, def.accent, Color3.fromRGB(30, 28, 34))
+		local light = Instance.new("PointLight")
+		light.Color = def.accent
+		light.Range = 18
+		light.Brightness = 1.2
+		light.Parent = part({ Size = Vector3.new(4, 0.3, 4), Position = Vector3.new(cx, QTOP + 14.7, shellZ),
+			Color = def.accent, Material = Enum.Material.Neon, CanCollide = false, CanQuery = false })
+	end
+end
+local Q_RED = Color3.fromRGB(255, 90, 70)
+local Q_GRAY = Color3.fromRGB(200, 200, 205)
+queueBank(-42, 1, { -- north bank, opens onto the plaza (south)
+	{ dx = -22, name = "QueuePadTeamKO_A", text = "TEAM KO 3v3", accent = Q_RED },
+	{ dx = 0, name = "QueuePadSoon1_A", text = "COMING SOON", accent = Q_GRAY },
+	{ dx = 22, name = "QueuePadSoon2_A", text = "COMING SOON", accent = Q_GRAY },
+})
+queueBank(22, -1, { -- south bank, opens north — TeamKO diagonal from bank A
+	{ dx = -22, name = "QueuePadSoon2_B", text = "COMING SOON", accent = Q_GRAY },
+	{ dx = 0, name = "QueuePadSoon1_B", text = "COMING SOON", accent = Q_GRAY },
+	{ dx = 22, name = "QueuePadTeamKO_B", text = "TEAM KO 3v3", accent = Q_RED },
+})
+-- plaza dressing between the banks
+for _, dx in { -30, 30 } do
+	part({ Size = Vector3.new(10, 3, 4), Position = Vector3.new(QX + dx, QTOP + 1.5, QZ),
+		Color = BRICK_A, Material = Enum.Material.Brick })
+	part({ Size = Vector3.new(9.4, 1.8, 3.4), Position = Vector3.new(QX + dx, QTOP + 3.9, QZ),
+		Color = Color3.fromRGB(58, 118, 48), Material = Enum.Material.Grass })
+end
 
 -- ══ MAIN DECK DRESSING ══════════════════════════════════════════════════════
 local function patch(x, z, sx, sz, color, mat)
@@ -496,11 +540,11 @@ barrier("E2", 205, 20, 90, 80, 140, 5)
 barrier("S1", -60, 105, 100, 70, 110, 1)
 barrier("S2", 40, 115, 110, 80, 80, 2)
 barrier("S3", 130, 100, 80, 90, 125, 3)
-barrier("W1", -140, -40, 80, 90, 110, 4)
-barrier("W2", -135, 30, 90, 70, 85, 5)
+barrier("W1", -195, -40, 80, 90, 110, 4)
+barrier("W2", -190, 30, 90, 70, 85, 5)
 
 waterTower(10, -160, 90, 1.4)
-waterTower(-135, 30, 85, 1.1)
+waterTower(-190, 30, 85, 1.1)
 local function antenna(x, z, baseY)
 	part({ Size = Vector3.new(0.9, 32, 0.9), Position = Vector3.new(x, baseY + 16, z),
 		Color = METAL_DK, Material = Enum.Material.Metal })
@@ -538,10 +582,10 @@ local function wall(x, z, sx, sz)
 	part({ Name = "Barrier", Size = Vector3.new(sx, 270, sz), Position = Vector3.new(x, 125, z),
 		Transparency = 1, CanQuery = false, CastShadow = false })
 end
-wall(35, -205, 444, 4)
-wall(35, 160, 444, 4)
+wall(10, -205, 500, 4)
+wall(10, 160, 500, 4)
 wall(255, -22.5, 4, 369)
-wall(-185, -22.5, 4, 369)
+wall(-240, -22.5, 4, 369)
 
 -- ══ CLOUD VOID ══════════════════════════════════════════════════════════════
 part({ Name = "CloudHi", Size = Vector3.new(1500, 24, 1500), Position = Vector3.new(35, -225, -22),
