@@ -139,4 +139,11 @@ BallConfig.BOT_ALWAYS_CATCH = true  -- perfect-catches every incoming ball (feel
 BallConfig.BOT_HOLD_DELAY = 0.6     -- seconds it holds before throwing back
 BallConfig.BOT_NAME = "TrainingDummy"
 
+-- ── Queue + match (Team KO) ─────────────────────────────────────────────
+BallConfig.QUEUE_COUNTDOWN = 10   -- seconds from first player on the pad to start
+BallConfig.MATCH_TEAM_SIZE = 3    -- 3v3; short human queues are filled with bots
+BallConfig.MATCH_TARGET_KOS = 10  -- Team KO: first team to this many KOs wins
+BallConfig.MATCH_END_LINGER = 5   -- winner splash before everyone returns to lobby
+BallConfig.MATCH_BOT_CATCH_CHANCE = 0.35 -- match bots catch this fraction of throws
+
 return BallConfig

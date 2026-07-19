@@ -9,6 +9,8 @@ local Workspace = game:GetService("Workspace")
 
 local BallService = require(ServerScriptService.BallService)
 local BotService = require(ServerScriptService.BotService)
+local MatchService = require(ServerScriptService.MatchService)
+local QueueService = require(ServerScriptService.QueueService)
 local LobbyMap = require(ServerStorage.Maps.Lobby)
 
 print("[Ballout] Booting throw/catch prototype…")
@@ -22,6 +24,8 @@ Players.RespawnTime = 2
 LobbyMap.Build()
 
 BallService.Start()
+MatchService.Start() -- builds the arena, hooks KO scoring
+QueueService.Start() -- watches the queue-room pads
 
 -- Spawn the training dummy on its own (lower) training roof, KC-style.
 -- The map marks the spot with a "DummyPad" part; fall back to midfield.
@@ -84,6 +88,8 @@ local function onCharacter(player: Player, character: Model)
 			BallService.UnregisterFighter(character)
 		end)
 	end
+	-- Mid-match respawns go back to the arena on their team (no-op in lobby).
+	MatchService.HandleRespawn(player, character, root)
 end
 
 local function onPlayer(player: Player)

@@ -25,9 +25,14 @@ type Fighter = {
 	isBot: boolean,
 	player: Player?,
 	team: string?,
+	catchChance: number?, -- bots only: 0..1 odds of catching an incoming ball
+	                      -- (nil = BOT_ALWAYS_CATCH behavior; the training dummy)
 }
 
 local BallService = {}
+
+-- Match hook (set by MatchService): called with the KO'd fighter.
+BallService.OnKO = nil :: ((Fighter) -> ())?
 
 -- ── State ────────────────────────────────────────────────────────────────
 local ball: BasePart
@@ -158,24 +163,36 @@ local function fighterFor(character: Model): Fighter?
 	return nil
 end
 
+-- NEAREST enemy/teammate, not first-registered: with lobby + match fighters
+-- coexisting in one server, first-in-list could be someone across the map.
 local function enemyOf(f: Fighter): Fighter?
+	local best: Fighter? = nil
+	local bestDist = math.huge
 	for _, other in fighters do
-		if other.character ~= f.character and other.character.Parent
+		if other.character ~= f.character and other.character.Parent and other.root.Parent
 			and (other.team == nil or f.team == nil or other.team ~= f.team) then
-			return other
+			local d = (other.root.Position - f.root.Position).Magnitude
+			if d < bestDist then
+				best, bestDist = other, d
+			end
 		end
 	end
-	return nil
+	return best
 end
 
 local function teammateOf(f: Fighter): Fighter?
+	local best: Fighter? = nil
+	local bestDist = math.huge
 	for _, other in fighters do
-		if other.character ~= f.character and other.character.Parent
+		if other.character ~= f.character and other.character.Parent and other.root.Parent
 			and other.team ~= nil and other.team == f.team then
-			return other
+			local d = (other.root.Position - f.root.Position).Magnitude
+			if d < bestDist then
+				best, bestDist = other, d
+			end
 		end
 	end
-	return nil
+	return best
 end
 
 -- Sprint state per character (client-reported): picks which carry pose.
@@ -513,6 +530,10 @@ local function koFighter(f: Fighter)
 			hum.Health = 0
 		end
 	end
+	-- Match hook: MatchService keeps score off this.
+	if BallService.OnKO then
+		task.spawn(BallService.OnKO :: (Fighter) -> (), f)
+	end
 end
 
 local function hitFighter(f: Fighter)
@@ -554,9 +575,18 @@ local function resolveArrival(target: Fighter)
 		catchBall(target, true)
 		return
 	end
-	if target.isBot and BallConfig.BOT_ALWAYS_CATCH then
-		catchBall(target, true)
-		return
+	if target.isBot then
+		-- Per-bot catch odds: the training dummy always catches (feel test);
+		-- match bots roll catchChance so they're actually beatable.
+		local chance = target.catchChance
+		if chance == nil then
+			chance = if BallConfig.BOT_ALWAYS_CATCH then 1 else 0
+		end
+		if math.random() < chance then
+			catchBall(target, true)
+			return
+		end
+		-- no catch: falls through to the normal arrival path (a hit)
 	end
 	local c = catching[target.character]
 	if c and now() <= c.expires then
@@ -621,7 +651,12 @@ end
 
 -- Dev hook: dump the ball state machine for diagnosis.
 function BallService.DebugState()
+	local hitCounts = {}
+	for m, c in hits do
+		hitCounts[m.Name] = c
+	end
 	return {
+		hits = hitCounts,
 		state = state,
 		holderName = holder and holder.character.Name or "nil",
 		target = flight.target and flight.target.character.Name or "nil",
@@ -642,6 +677,13 @@ function BallService.RegisterFighter(f: Fighter)
 	table.insert(fighters, f)
 	hits[f.character] = 0
 	overcharge[f.character] = 0
+end
+
+function BallService.SetTeam(character: Model, team: string?)
+	local f = fighterFor(character)
+	if f then
+		f.team = team
+	end
 end
 
 function BallService.UnregisterFighter(character: Model)
