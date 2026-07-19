@@ -88,6 +88,41 @@ local function floorYBelow(pos: Vector3): number?
 	return if hit then hit.Position.Y else nil
 end
 
+-- Walls only exist to the kinematic ball via swept raycasts — it is
+-- Anchored/CanCollide=false, so the physics engine never stops it. The sweep
+-- runs against MAP GEOMETRY ONLY (Include filter), so characters, ball decor,
+-- and the ball itself can never obstruct a throw. Map models are destroyed and
+-- rebuilt by build scripts, so cached roots are re-collected when stale.
+local wallRayParams = RaycastParams.new()
+wallRayParams.FilterType = Enum.RaycastFilterType.Include
+local wallRoots: { Instance } = {}
+local WALL_ROOT_NAMES = { "BalloutMap", "BalloutLobby", "BalloutArena", "Baseplate" }
+local function sweepWall(from: Vector3, to: Vector3): RaycastResult?
+	local delta = to - from
+	if delta.Magnitude < 1e-4 then
+		return nil
+	end
+	local stale = #wallRoots == 0
+	for _, root in wallRoots do
+		if root.Parent == nil then
+			stale = true
+			break
+		end
+	end
+	if stale then
+		table.clear(wallRoots)
+		for _, name in WALL_ROOT_NAMES do
+			local inst = Workspace:FindFirstChild(name)
+			if inst then
+				table.insert(wallRoots, inst)
+			end
+		end
+		wallRayParams.FilterDescendantsInstances = wallRoots
+	end
+	-- Pad by the radius so surfaces stop the ball's skin, not its center.
+	return Workspace:Raycast(from, delta.Unit * (delta.Magnitude + BallConfig.BALL_DIAMETER / 2), wallRayParams)
+end
+
 local function lerp(a: number, b: number, t: number): number
 	return a + (b - a) * t
 end
@@ -713,6 +748,17 @@ local function onHeartbeat(dt: number)
 				pos += (rightV * math.cos(theta) + Vector3.yAxis * math.sin(theta)) * radius
 			end
 		end
+		-- Walls end a flight: the ball smacks and drops. Kinematic flights
+		-- would otherwise sail straight through map geometry.
+		local wallHit = sweepWall(ball.Position, pos)
+		if wallHit then
+			local travelV = (pos - ball.Position) / math.max(dt, 1 / 240)
+			local n = wallHit.Normal
+			local reflected = travelV - 2 * travelV:Dot(n) * n
+			ball.Position = wallHit.Position + n * (BallConfig.BALL_DIAMETER / 2)
+			goLoose(reflected * BallConfig.FLIGHT_WALL_KEEP)
+			return
+		end
 		ball.Position = pos
 
 		if target then
@@ -744,6 +790,18 @@ local function onHeartbeat(dt: number)
 		-- Real-dodgeball feel: bounce with energy loss, roll with drag, settle.
 		flight.velocity += Vector3.new(0, -BallConfig.BALL_GRAVITY, 0) * dt
 		local newPos = ball.Position + flight.velocity * dt
+		-- Walls: swept raycast (see sweepWall). Steep surfaces reflect like a
+		-- real bounce; near-flat hits (roofs/floors) are left to the floor
+		-- logic below, which owns vertical bounce, roll, and settle.
+		local wallHit = sweepWall(ball.Position, newPos)
+		if wallHit and wallHit.Normal.Y < 0.7 then
+			local n = wallHit.Normal
+			newPos = wallHit.Position + n * (BallConfig.BALL_DIAMETER / 2)
+			local vn = flight.velocity:Dot(n)
+			if vn < 0 then
+				flight.velocity = (flight.velocity - 2 * vn * n) * BallConfig.WALL_RESTITUTION
+			end
+		end
 		-- The floor is whatever roof is under the ball (raycast — roofs sit
 		-- at different heights). Off the edge there is no floor: the ball
 		-- falls into the clouds and respawns at midfield.

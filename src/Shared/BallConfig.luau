@@ -64,6 +64,8 @@ BallConfig.BOUNCE_RESTITUTION = 0.55 -- energy kept per bounce
 BallConfig.BOUNCE_FRICTION = 0.75    -- horizontal speed kept per bounce
 BallConfig.ROLL_DRAG = 2.0           -- per-second horizontal decay while rolling
 BallConfig.SETTLE_SPEED = 4          -- below this the ball comes to rest
+BallConfig.WALL_RESTITUTION = 0.45   -- energy kept bouncing off a wall while Loose
+BallConfig.FLIGHT_WALL_KEEP = 0.35   -- speed kept when a thrown flight smacks a wall
 
 -- ── Trick jumps (KC-accurate: E = spin -> curve, Q = flip -> lob) ────────
 BallConfig.TRICK_WINDOW = 0.5    -- release the throw within this after a spin/flip
