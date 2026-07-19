@@ -54,7 +54,7 @@ end
 
 function QueueService.Start()
 	task.spawn(function()
-		local deadline: number? = nil
+		local firstQueuedAt: number? = nil
 		local wasLive = false
 		while true do
 			task.wait(0.25)
@@ -63,7 +63,7 @@ function QueueService.Start()
 				continue
 			end
 			if MatchService.IsActive() then
-				deadline = nil
+				firstQueuedAt = nil
 				wasLive = true
 				setSign("MATCH LIVE")
 				continue
@@ -75,25 +75,33 @@ function QueueService.Start()
 			end
 			local standing = playersOnPad(pad)
 			if #standing == 0 then
-				if deadline ~= nil then
-					deadline = nil
+				if firstQueuedAt ~= nil then
+					firstQueuedAt = nil
 					setSign(IDLE_TEXT)
 				end
 				continue
 			end
-			if deadline == nil then
-				deadline = os.clock() + BallConfig.QUEUE_COUNTDOWN
+			if firstQueuedAt == nil then
+				firstQueuedAt = os.clock()
 			end
-			local left = deadline - os.clock()
-			if left <= 0 then
-				deadline = nil
+			local fullSize = BallConfig.MATCH_TEAM_SIZE * 2
+			-- Humans first: a full pad starts NOW. Otherwise wait for real
+			-- players up to QUEUE_BOT_FALLBACK before bots fill — unless
+			-- everyone in the server is already queued (no one left to wait
+			-- for), which shortens the wait to QUEUE_ALL_IN_TIME.
+			local waited = os.clock() - firstQueuedAt
+			local allIn = #standing >= #Players:GetPlayers()
+			local waitTarget = if allIn then BallConfig.QUEUE_ALL_IN_TIME else BallConfig.QUEUE_BOT_FALLBACK
+			if #standing >= fullSize or waited >= waitTarget then
+				firstQueuedAt = nil
 				if MatchService.StartMatch(standing) then
 					setSign("MATCH LIVE")
 				else
 					setSign(IDLE_TEXT)
 				end
 			else
-				setSign(("STARTING IN %d — %d IN"):format(math.ceil(left), #standing))
+				local left = math.ceil(waitTarget - waited)
+				setSign(("%d/%d — BOTS IN %d:%02d"):format(#standing, fullSize, left // 60, left % 60))
 			end
 		end
 	end)

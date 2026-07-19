@@ -19,7 +19,7 @@ local Workspace = game:GetService("Workspace")
 local BallConfig = require(ReplicatedStorage.BallConfig)
 local BallService = require(ServerScriptService.BallService)
 local BotService = require(ServerScriptService.BotService)
-local ArenaBox = require(ServerStorage.Maps.ArenaBox)
+local ArenaMap = require(ServerStorage.Maps.ArenaBlockParty)
 
 local MatchService = {}
 
@@ -218,7 +218,7 @@ function MatchService.HandleRespawn(player: Player, character: Model, root: Base
 end
 
 function MatchService.Start()
-	arena = ArenaBox.Build()
+	arena = ArenaMap.Build()
 	BallService.OnKO = onKO
 	-- a match with zero humans left is over
 	Players.PlayerRemoving:Connect(function(player)
