@@ -66,7 +66,9 @@ local botHoldStart: number? = nil
 
 local groundY = 0
 
--- Midfield ball spawn (also where the ball respawns after falling off the roofs).
+-- Where the ball spawns and respawns after falling off the world. HQ midfield
+-- by default; Start() overrides it with the lobby's BallSpawn marker if the
+-- lobby island is built.
 local BALL_SPAWN = Vector3.new(0, 0, -20)
 
 -- ── Helpers ────────────────────────────────────────────────────────────────
@@ -121,6 +123,26 @@ local function sweepWall(from: Vector3, to: Vector3): RaycastResult?
 	end
 	-- Pad by the radius so surfaces stop the ball's skin, not its center.
 	return Workspace:Raycast(from, delta.Unit * (delta.Magnitude + BallConfig.BALL_DIAMETER / 2), wallRayParams)
+end
+
+-- Lobby = safe zone: hits inside still shove/sting/stun (the toy stays fun)
+-- but never count toward a KO — infinite health while hanging out. The zone
+-- is the invisible CanQuery=false "SafeZone" box under the lobby model.
+local safeZonePart: BasePart? = nil
+local function inSafeZone(pos: Vector3): boolean
+	if safeZonePart == nil or safeZonePart.Parent == nil then
+		local lobby = Workspace:FindFirstChild("BalloutLobby")
+		local zone = if lobby then lobby:FindFirstChild("SafeZone") else nil
+		safeZonePart = if zone and zone:IsA("BasePart") then zone else nil
+	end
+	local zone = safeZonePart
+	if not zone then
+		return false
+	end
+	local rel = zone.CFrame:PointToObjectSpace(pos)
+	return math.abs(rel.X) <= zone.Size.X / 2
+		and math.abs(rel.Y) <= zone.Size.Y / 2
+		and math.abs(rel.Z) <= zone.Size.Z / 2
 end
 
 local function lerp(a: number, b: number, t: number): number
@@ -494,8 +516,13 @@ local function koFighter(f: Fighter)
 end
 
 local function hitFighter(f: Fighter)
-	hits[f.character] = (hits[f.character] or 0) + 1
-	local count = hits[f.character]
+	-- In the lobby safe zone nothing counts toward a KO; everywhere else
+	-- hits accumulate as normal.
+	local safe = inSafeZone(f.root.Position)
+	if not safe then
+		hits[f.character] = (hits[f.character] or 0) + 1
+	end
+	local count = hits[f.character] or 0
 	-- Push direction = the ball's actual travel direction, so the shove is
 	-- exactly opposite the incoming throw from EVERY angle.
 	local travel
@@ -506,14 +533,14 @@ local function hitFighter(f: Fighter)
 	end
 	travel = Vector3.new(travel.X, 0, travel.Z)
 	local pushDir = if travel.Magnitude > 0.1 then travel.Unit else -f.root.CFrame.LookVector
-	feedback(f, "Hit", { count = count, ko = count >= BallConfig.HITS_TO_KO, knock = pushDir })
+	feedback(f, "Hit", { count = count, ko = not safe and count >= BallConfig.HITS_TO_KO, knock = pushDir })
 	-- Struck on the back if the ball was moving the way the victim faces.
 	local look = f.root.CFrame.LookVector
 	local fromBehind = Vector3.new(look.X, 0, look.Z):Dot(pushDir) > 0
 	AnimService.HitReact(f.character, fromBehind)
 	-- Stunned: no pickup, throws, catches or tricks until this expires.
 	stunned[f.character] = now() + BallConfig.STUN_TIME
-	if count >= BallConfig.HITS_TO_KO then
+	if not safe and count >= BallConfig.HITS_TO_KO then
 		koFighter(f)
 	end
 	-- Ball ricochets back the way it came — up and away, never caught.
@@ -935,8 +962,13 @@ function BallService.Start()
 	trail.Lifetime = 0.25
 	trail.Parent = ball
 
-	-- Spawn midfield, clear of the player spawn.
-	BallService.MakeFree(Vector3.new(0, 0, -20))
+	-- The lobby (if built) owns the hangout ball; fall back to HQ midfield.
+	local lobby = Workspace:FindFirstChild("BalloutLobby")
+	local marker = if lobby then lobby:FindFirstChild("BallSpawn") else nil
+	if marker and marker:IsA("BasePart") then
+		BALL_SPAWN = marker.Position
+	end
+	BallService.MakeFree(BALL_SPAWN)
 
 	RunService.Heartbeat:Connect(onHeartbeat)
 	-- No per-frame decor snap here: while the ball is server-driven the

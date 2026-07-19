@@ -4,16 +4,22 @@
 
 local Players = game:GetService("Players")
 local ServerScriptService = game:GetService("ServerScriptService")
+local ServerStorage = game:GetService("ServerStorage")
 local Workspace = game:GetService("Workspace")
 
 local BallService = require(ServerScriptService.BallService)
 local BotService = require(ServerScriptService.BotService)
+local LobbyMap = require(ServerStorage.Maps.Lobby)
 
 print("[Ballout] Booting throw/catch prototype…")
 
 -- Fast respawn: lingering corpses read as "cloned" characters (they hold
 -- their pose and even the welded ball until cleanup).
 Players.RespawnTime = 2
+
+-- Lobby island FIRST: BallService.Start reads its BallSpawn marker, and
+-- players spawn on its pads (it disables the old HQ dev spawn).
+LobbyMap.Build()
 
 BallService.Start()
 
@@ -69,7 +75,7 @@ local function onCharacter(player: Player, character: Model)
 		root = root,
 		isBot = false,
 		player = player,
-		team = "Ballers", -- all players together (vs the dummy) for now
+		team = nil, -- lobby free-for-all: nil team = lockable/hittable by anyone
 	})
 	-- On death: release the ball and clean up IMMEDIATELY — never leave a
 	-- corpse holding the ball (the "clone" illusion).
