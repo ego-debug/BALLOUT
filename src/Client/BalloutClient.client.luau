@@ -746,8 +746,14 @@ end
 -- E: spin. Works anywhere — ground, air, mid-run — and never interrupts
 -- movement. Throw released during the window = curveball in the held
 -- direction (defaults right if you're not holding one).
+-- No actions mid-dodge: the dive AND the landing roll must fully finish —
+-- eating that lockout is the punishment for a badly timed dodge.
+local function dashLockActive(): boolean
+	return os.clock() < dashRollEndsAt
+end
+
 local function doSpinJump()
-	if isStunned() then return end
+	if isStunned() or dashLockActive() then return end
 	local dir = strafeDir()
 	if dir == 0 then dir = 1 end
 	trickKind = "spin"
@@ -763,8 +769,8 @@ end
 -- you are vertically.
 local flipBusyUntil = 0
 local function doFlipJump()
-	if isStunned() or os.clock() < flipBusyUntil then
-		return -- stunned, or tuck already playing
+	if isStunned() or dashLockActive() or os.clock() < flipBusyUntil then
+		return -- stunned, mid-dodge, or tuck already playing
 	end
 	stowGlider() -- tricks take the glider away
 	flipBusyUntil = os.clock() + BallConfig.FLIP_TIME
@@ -777,7 +783,7 @@ local function doFlipJump()
 end
 
 local function startCharge()
-	if isStunned() then return end
+	if isStunned() or dashLockActive() then return end
 	charging = true
 	chargeStart = os.clock()
 	-- KC-style: you CAN jump while charging — releasing mid-hop is the lob.
@@ -810,7 +816,7 @@ end
 -- holding LMB through the fake and release right after for the instant
 -- real throw (fake → throw).
 local function doFake()
-	if isStunned() then return end
+	if isStunned() or dashLockActive() then return end
 	Remotes.FakeRequest:FireServer(currentCurveDir(), currentIsLob())
 	trickKind = nil -- trick consumed by the fake
 	if charging then
@@ -977,7 +983,7 @@ UserInputService.InputBegan:Connect(function(input, processed)
 		Remotes.DropRequest:FireServer()
 	elseif input.KeyCode == Enum.KeyCode.LeftAlt
 		or input.KeyCode == Enum.KeyCode.ButtonR1 then
-		if not isStunned() then
+		if not isStunned() and not dashLockActive() then
 			Remotes.BallformRequest:FireServer(true) -- hold to stay balled
 		end
 	end

@@ -459,6 +459,26 @@ for _, dx in { -30, 30 } do
 	part({ Size = Vector3.new(9.4, 1.8, 3.4), Position = Vector3.new(QX + dx, QTOP + 3.9, QZ),
 		Color = Color3.fromRGB(58, 118, 48), Material = Enum.Material.Grass })
 end
+-- QUEUE TOTEM: a huge lit sign towering over the west parapet so the queue
+-- roof reads from anywhere on the deck (it used to vanish at some angles).
+for _, tz in { QZ - 9, QZ + 9 } do
+	part({ Size = Vector3.new(2, 36, 2), Position = Vector3.new(QX - 40, QTOP + 18, tz),
+		Color = METAL_DK, Material = Enum.Material.Metal })
+end
+local totem = part({ Size = Vector3.new(1.2, 10, 34), Position = Vector3.new(QX - 40, QTOP + 38, QZ),
+	Color = Color3.fromRGB(24, 22, 30), Material = Enum.Material.Metal })
+sign(totem, Enum.NormalId.Right, "MATCH QUEUE", TEAL, Color3.fromRGB(24, 22, 30))
+sign(totem, Enum.NormalId.Left, "MATCH QUEUE", TEAL, Color3.fromRGB(24, 22, 30))
+part({ Size = Vector3.new(1.4, 0.8, 34.4), Position = Vector3.new(QX - 40, QTOP + 43.4, QZ),
+	Color = MAGENTA, Material = Enum.Material.Neon, Transparency = 0.3 })
+-- pointer signs flanking the stair gap on the main deck
+for _, sz in { -24.5, 4.5 } do
+	part({ Size = Vector3.new(0.8, 6, 0.8), Position = Vector3.new(-38.5, 3, sz),
+		Color = METAL_DK, Material = Enum.Material.Metal })
+	local ptr = part({ Size = Vector3.new(0.8, 3, 8), Position = Vector3.new(-38.5, 7.5, sz),
+		Color = Color3.fromRGB(24, 22, 30), Material = Enum.Material.Metal })
+	sign(ptr, Enum.NormalId.Right, "QUEUE", TEAL, Color3.fromRGB(24, 22, 30))
+end
 
 -- ══ MAIN DECK DRESSING ══════════════════════════════════════════════════════
 local function patch(x, z, sx, sz, color, mat)

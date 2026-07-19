@@ -57,7 +57,15 @@ local flight = {
 }
 
 -- Fighters currently mid-dash (shoulder bash); bashing a loose ball pops it up.
-local dashing: { [Model]: { expires: number, dir: Vector3 } } = {}
+-- `expires` is the bash window; `lockUntil` covers the WHOLE dive + landing
+-- roll — no other action is allowed until it passes (dodge commitment: eating
+-- the lockout is the punishment for bad timing).
+local dashing: { [Model]: { expires: number, dir: Vector3, lockUntil: number } } = {}
+
+local function dashLocked(character: Model): boolean
+	local dash = dashing[character]
+	return dash ~= nil and os.clock() < dash.lockUntil
+end
 
 local fighters: { Fighter } = {}
 local overcharge: { [Model]: number } = {}
@@ -369,6 +377,9 @@ function BallService.Throw(f: Fighter, chargeFrac: number, curveDir: number, isL
 	if now() < (stunned[f.character] or 0) then
 		return
 	end
+	if dashLocked(f.character) then
+		return -- dodge commitment: no throwing out of the dive/roll
+	end
 	local enemy = enemyOf(f)
 	if not enemy then
 		return
@@ -616,6 +627,9 @@ function BallService.RegisterCatch(character: Model)
 	end
 	if now() < (stunned[character] or 0) then
 		return -- stunned: hands don't work
+	end
+	if dashLocked(character) then
+		return -- dodge commitment: no catching out of the dive/roll
 	end
 	catching[character] = { pressedAt = now(), expires = now() + BallConfig.CATCH_WINDOW }
 	-- Arms fly WIDE OPEN — the visible catch attempt. They only snap closed
@@ -1029,7 +1043,7 @@ function BallService.Start()
 		if not f then return end
 
 		if phase == "start" then
-			if state == "Held" and holder == f then
+			if state == "Held" and holder == f and not dashLocked(char) then
 				AnimService.Windup(char)
 				chargeStart = now()
 				chargeFull = false
@@ -1054,7 +1068,7 @@ function BallService.Start()
 		local char = player.Character
 		local f = char and fighterFor(char)
 		if f then
-			if now() < (stunned[char] or 0) then
+			if now() < (stunned[char] or 0) or dashLocked(char) then
 				return
 			end
 			AnimService.TuckPulse(char, BallConfig.FLIP_TIME)
@@ -1076,6 +1090,9 @@ function BallService.Start()
 			return
 		end
 		if on == true then
+			if dashLocked(char) then
+				return -- dodge commitment: no balling up mid-dive/roll
+			end
 			GliderService.Disable(char) -- can't glide as a ball
 			-- You can't be a ball AND hold a ball: drop it first.
 			if state == "Held" and holder == f then
@@ -1097,7 +1114,7 @@ function BallService.Start()
 	Remotes.DropRequest.OnServerEvent:Connect(function(player)
 		local char = player.Character
 		local f = char and fighterFor(char)
-		if f and state == "Held" and holder == f then
+		if f and state == "Held" and holder == f and not dashLocked(char) then
 			AnimService.Reset(f.character)
 			local look = f.root.CFrame.LookVector
 			BallService.MakeFree(f.root.Position + Vector3.new(look.X, 0, look.Z) * 5)
@@ -1111,6 +1128,9 @@ function BallService.Start()
 		local f = char and fighterFor(char)
 		if not f then
 			return
+		end
+		if dashLocked(char) and on ~= false then
+			return -- dodge commitment: no glider out of the dive/roll
 		end
 		if on == "flare" then
 			AnimService.GlideFlare(char, extra == true)
@@ -1138,6 +1158,9 @@ function BallService.Start()
 		if not f then
 			return
 		end
+		if dashLocked(char) then
+			return -- dodge commitment: no passing out of the dive/roll
+		end
 		if state == "Held" and holder == f then
 			BallService.Pass(f)
 		else
@@ -1159,8 +1182,8 @@ function BallService.Start()
 			return
 		end
 		sprintState[char] = on == true
-		if holder == f then
-			applyCarry(f)
+		if holder == f and not dashLocked(char) then
+			applyCarry(f) -- mid-dodge the dash pose owns the body
 		end
 	end)
 
@@ -1175,9 +1198,16 @@ function BallService.Start()
 		if now() < (stunned[char] or 0) then
 			return
 		end
+		if dashLocked(char) then
+			return -- no dash-chaining out of the landing roll
+		end
 		local d = if typeof(dir) == "Vector3" then Vector3.new(dir.X, 0, dir.Z) else Vector3.zero
 		d = if d.Magnitude > 0.01 then d.Unit else Vector3.zero
-		dashing[char] = { expires = now() + BallConfig.DODGE_TIME + 0.1, dir = d }
+		dashing[char] = {
+			expires = now() + BallConfig.DODGE_TIME + 0.1,
+			dir = d,
+			lockUntil = now() + BallConfig.DODGE_TIME + BallConfig.DASH_ROLL_TIME,
+		}
 		if d.Magnitude > 0.01 then
 			AnimService.DashPose(char)
 			-- Sphere shell for the whole dive+roll: the tumbling body slides
@@ -1204,7 +1234,7 @@ function BallService.Start()
 	Remotes.FakeRequest.OnServerEvent:Connect(function(player, curveDir, isLob)
 		local char = player.Character
 		local f = char and fighterFor(char)
-		if f and state == "Held" and holder == f then
+		if f and state == "Held" and holder == f and not dashLocked(char) then
 			-- The fake cancels the windup: the aura falls back to whatever
 			-- the ACTUAL caught-overcharge state is.
 			chargeStart = nil
