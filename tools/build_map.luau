@@ -295,13 +295,14 @@ meshSign(-5, 18.3, -26.5, 16, 4.4, 180, "GARAGE", Color3.fromRGB(120, 235, 255))
 -- letter plates over spray splats and drips, not a flat font block
 do
 	local wallX = 15.05 -- just proud of the east wall face
-	for _, sp in {
+	-- each splat sits at its own depth: overlapping co-planar discs z-fight
+	for si, sp in {
 		{ z = -50, y = 8.2, r = 8, c = PURPLE },
 		{ z = -43, y = 7.2, r = 10, c = Color3.fromRGB(38, 34, 46) },
 		{ z = -36.5, y = 8.8, r = 7, c = MAGENTA },
 	} do
 		part({ Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.12, sp.r, sp.r),
-			CFrame = CFrame.new(wallX, sp.y, sp.z),
+			CFrame = CFrame.new(wallX + si * 0.05, sp.y, sp.z),
 			Color = sp.c, Material = Enum.Material.SmoothPlastic, CanCollide = false, CanQuery = false })
 	end
 	for _, d in { { z = -47, h = 3.2 }, { z = -41.5, h = 4.6 }, { z = -38, h = 2.6 } } do
