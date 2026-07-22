@@ -199,7 +199,7 @@ local gspawn = Instance.new("SpawnLocation")
 gspawn.Name = "GarageSpawn"
 gspawn.Size = Vector3.new(10, 0.4, 10)
 gspawn.CFrame = CFrame.new(-5, 0.2, -43) * CFrame.Angles(0, math.rad(180), 0) -- face SOUTH (the door)
-gspawn.Color = TEAL
+gspawn.Color = Color3.fromRGB(44, 48, 62) -- dark mat: sits quiet in the man cave
 gspawn.Material = Enum.Material.SmoothPlastic
 gspawn.Anchored = true
 gspawn.Neutral = true
@@ -339,39 +339,7 @@ do
 	end
 end
 
--- Trophy case (against the back/north wall)
-part({ Size = Vector3.new(18, 10, 1.2), Position = Vector3.new(-5, 5, -56.9),
-	Color = Color3.fromRGB(52, 44, 40), Material = Enum.Material.Wood })
-for i, sy in { 3.8, 6.8 } do
-	part({ Size = Vector3.new(17.2, 0.35, 1.4), Position = Vector3.new(-5, sy, -56.8),
-		Color = Color3.fromRGB(84, 70, 60), Material = Enum.Material.Wood })
-end
-for _, tx in { -11, -5, 1 } do
-	part({ Shape = Enum.PartType.Cylinder, Size = Vector3.new(1.2, 1.4, 1.4),
-		CFrame = CFrame.new(tx, 7.75, -56.7) * CFrame.Angles(0, 0, math.rad(90)),
-		Color = Color3.fromRGB(230, 190, 70), Material = Enum.Material.Metal })
-	part({ Shape = Enum.PartType.Ball, Size = Vector3.new(1.5, 1.5, 1.5),
-		Position = Vector3.new(tx, 8.9, -56.7),
-		Color = Color3.fromRGB(240, 200, 80), Material = Enum.Material.Metal })
-end
-
--- Jukebox (west interior wall)
-part({ Size = Vector3.new(3, 6, 5), Position = Vector3.new(-22.2, 3, -36),
-	Color = Color3.fromRGB(120, 34, 50), Material = Enum.Material.SmoothPlastic })
-part({ Size = Vector3.new(3.1, 0.9, 5), Position = Vector3.new(-22.15, 6.45, -36),
-	Color = Color3.fromRGB(120, 235, 255), Material = Enum.Material.SmoothPlastic })
-part({ Size = Vector3.new(0.25, 1.5, 3.6), Position = Vector3.new(-20.55, 4.6, -36),
-	Color = Color3.fromRGB(255, 190, 90), Material = Enum.Material.SmoothPlastic })
-part({ Size = Vector3.new(0.2, 2.1, 3.9), Position = Vector3.new(-20.58, 1.9, -36),
-	Color = Color3.fromRGB(40, 36, 42), Material = Enum.Material.Fabric })
-
--- Workbench (east interior wall)
-part({ Size = Vector3.new(3.4, 0.6, 9), Position = Vector3.new(12.5, 3, -38),
-	Color = Color3.fromRGB(120, 92, 60), Material = Enum.Material.WoodPlanks })
-for _, lz in { -41.8, -34.2 } do
-	part({ Size = Vector3.new(3, 2.7, 0.6), Position = Vector3.new(12.5, 1.35, lz),
-		Color = METAL_DK, Material = Enum.Material.Metal })
-end
+-- (garage interior is furnished with MAN CAVE meshes — see MESH DRESSING)
 
 -- Crate nook beside the hoops on the garage's west flank
 part({ Size = Vector3.new(4, 4, 4), Position = Vector3.new(-34, 2, -48),
@@ -407,20 +375,6 @@ for _, by in { 10, 22 } do
 	part({ Size = Vector3.new(9.5, 0.6, 0.6), Position = Vector3.new(TWX, by, TWZ + 4), Color = METAL_DK, Material = Enum.Material.Metal })
 	part({ Size = Vector3.new(0.6, 0.6, 9.5), Position = Vector3.new(TWX - 4, by, TWZ), Color = METAL_DK, Material = Enum.Material.Metal })
 	part({ Size = Vector3.new(0.6, 0.6, 9.5), Position = Vector3.new(TWX + 4, by, TWZ), Color = METAL_DK, Material = Enum.Material.Metal })
-end
-
--- ══ SPAWN DRUM (raised teal tank cap, KC vibe — garage-scale) ═══════════════
-part({ Name = "SpawnDrum", Shape = Enum.PartType.Cylinder, Size = Vector3.new(10, 24, 24),
-	CFrame = CFrame.new(34, 5, 26) * CFrame.Angles(0, 0, math.rad(90)),
-	Color = BRICK_DARK, Material = Enum.Material.Brick })
-part({ Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.6, 24.8, 24.8),
-	CFrame = CFrame.new(34, 10.3, 26) * CFrame.Angles(0, 0, math.rad(90)),
-	Color = TEAL, Material = Enum.Material.Metal })
--- steps down the north side
-for i = 1, 5 do
-	local top = 10.3 - i * 1.72
-	part({ Size = Vector3.new(8, top, 2.6), Position = Vector3.new(34, top / 2, 14.2 - i * 2.6),
-		Color = Color3.fromRGB(160, 152, 138), Material = Enum.Material.Concrete })
 end
 
 -- ══ LAUNCH PADS (light beam + golden halo rings) ════════════════════════════
@@ -476,7 +430,6 @@ end
 for i = 0, 4 do -- five special-ball pods along the dummy roof's east wall
 	ballPod(130, -44 + i * 8, -6)
 end
-ballPod(10, -52, 0)  -- basic ball pod in the garage (east corner)
 ballPod(-24, -20, 0) -- basic/boomerang pod on the open deck
 
 -- ══ TRAINING LAWN (north half of the dummy roof) ════════════════════════════
@@ -655,36 +608,64 @@ local function chimney(x, z)
 		Color = Color3.fromRGB(72, 64, 62), Material = Enum.Material.Concrete })
 end
 chimney(-30, -34)
-chimney(54, 20)
+-- (the drum-corner chimney left with the drum; the west one stays)
 
-local function waterTower(x, z, baseY, scale)
-	local s = scale
-	for _, dx in { -3.2 * s, 3.2 * s } do
-		for _, dz in { -3.2 * s, 3.2 * s } do
-			part({ Size = Vector3.new(1.2, 9 * s, 1.2), Position = Vector3.new(x + dx, baseY + 4.5 * s, z + dz),
-				Color = Color3.fromRGB(80, 74, 72), Material = Enum.Material.Metal })
+-- ══ PROP MESHES (generated with Studio's generate_mesh; original prompts) ══
+-- Same pattern as the towers: geometry from CreateMeshPartAsync, paired
+-- texture reapplied by hand, cached template cloned per placement.
+local PropAssets = game:GetService("AssetService")
+local PROP_MESHES = {
+	water  = { mesh = 96976809130016, tex = 77005750947519 },   -- wooden rooftop water tank
+	solar  = { mesh = 121984979647810, tex = 120499625068038 }, -- tilted solar array
+	couch  = { mesh = 110486186801689, tex = 99273308728241 },  -- burnt-orange sofa
+	media  = { mesh = 98033537025590, tex = 99379652460328 },   -- retro TV media wall
+	arcade = { mesh = 75784229888285, tex = 123364029334806 },  -- arcade cabinet
+	fridge = { mesh = 133543084994948, tex = 100659634387656 }, -- mint mini fridge
+	table  = { mesh = 96675283363598, tex = 128019790656861 },  -- wooden coffee table
+}
+local propCache = {}
+local function prop(kind, size, cf)
+	local def = PROP_MESHES[kind]
+	if propCache[kind] == nil then
+		local ok, mp = pcall(function()
+			return PropAssets:CreateMeshPartAsync(Content.fromAssetId(def.mesh))
+		end)
+		if ok and mp then
+			mp.TextureID = "rbxassetid://" .. def.tex
+			propCache[kind] = mp
+		else
+			propCache[kind] = false
 		end
 	end
-	part({ Size = Vector3.new(11 * s, 0.8, 11 * s), Position = Vector3.new(x, baseY + 9.4 * s, z),
-		Color = Color3.fromRGB(90, 82, 80), Material = Enum.Material.Metal })
-	part({ Shape = Enum.PartType.Cylinder, Size = Vector3.new(9 * s, 10 * s, 10 * s),
-		CFrame = CFrame.new(x, baseY + 14.3 * s, z) * CFrame.Angles(0, 0, math.rad(90)),
-		Color = Color3.fromRGB(96, 142, 132), Material = Enum.Material.Metal })
-	part({ Shape = Enum.PartType.Cylinder, Size = Vector3.new(1, 10.6 * s, 10.6 * s),
-		CFrame = CFrame.new(x, baseY + 19.2 * s, z) * CFrame.Angles(0, 0, math.rad(90)),
-		Color = Color3.fromRGB(112, 60, 48), Material = Enum.Material.Metal })
-	part({ Shape = Enum.PartType.Cylinder, Size = Vector3.new(2.6, 2.6, 2.6),
-		CFrame = CFrame.new(x, baseY + 20.9 * s, z) * CFrame.Angles(0, 0, math.rad(90)),
-		Color = Color3.fromRGB(112, 60, 48), Material = Enum.Material.Metal })
+	local template = propCache[kind]
+	if not template then
+		return nil -- offline: prop simply absent, nothing breaks
+	end
+	local m = template:Clone()
+	m.Name = "Prop_" .. kind
+	m.Size = size
+	m.CFrame = cf
+	m.Anchored = true
+	m.Parent = map
+	return m
 end
-waterTower(51, 31, 0, 1.25)
 
--- solar panels (tilted)
-for i = 0, 2 do
-	part({ Size = Vector3.new(12, 0.4, 8),
-		CFrame = CFrame.new(2 + i * 13, 2, 33) * CFrame.Angles(math.rad(-22), 0, 0),
-		Color = Color3.fromRGB(28, 34, 52), Material = Enum.Material.Glass })
-end
+-- rooftop water tank on the old drum corner (the drum + steps are gone)
+prop("water", Vector3.new(16, 24, 16), CFrame.new(38, 12, 27) * CFrame.Angles(0, math.rad(-30), 0))
+-- solar array along the south parapet
+prop("solar", Vector3.new(24, 6, 10), CFrame.new(14, 3, 33))
+
+-- MAN CAVE: the garage interior (everything else was stripped out) —
+-- couch against the west wall facing a media wall on the east wall,
+-- coffee table between them, arcade cabinet + mini fridge along the back
+prop("couch", Vector3.new(13, 4.5, 5.5), CFrame.new(-20.5, 2.25, -43) * CFrame.Angles(0, math.rad(-90), 0))
+prop("table", Vector3.new(7, 2, 4), CFrame.new(-13, 1, -43) * CFrame.Angles(0, math.rad(90), 0))
+prop("media", Vector3.new(11, 8, 3), CFrame.new(11.9, 4, -43) * CFrame.Angles(0, math.rad(90), 0))
+prop("arcade", Vector3.new(3.5, 7, 3.2), CFrame.new(-14, 3.5, -55.8) * CFrame.Angles(0, math.rad(180), 0))
+prop("fridge", Vector3.new(3, 4.5, 3), CFrame.new(-19.5, 2.25, -55.9) * CFrame.Angles(0, math.rad(180), 0))
+-- a rug under the seating area ties the room together
+part({ Size = Vector3.new(16, 0.12, 12), Position = Vector3.new(-14, 0.06, -43),
+	Color = Color3.fromRGB(158, 64, 52), Material = Enum.Material.Fabric })
 
 -- plank pile
 for i, ang in { 0.35, 1.15, 1.95 } do
@@ -828,9 +809,9 @@ barrier("S3", 130, 100, 80, 90, 125, 3)
 barrier("W1", -195, -40, 80, 90, 110, 4)
 barrier("W2", -190, 30, 90, 70, 85, 5)
 
-waterTower(10, -160, 90, 1.4)
-waterTower(-190, 30, 85, 1.1)
-waterTower(130, 100, 125, 0.9)
+prop("water", Vector3.new(20, 30, 20), CFrame.new(10, 105, -160) * CFrame.Angles(0, math.rad(20), 0))
+prop("water", Vector3.new(15, 23, 15), CFrame.new(-190, 96.5, 30) * CFrame.Angles(0, math.rad(-45), 0))
+prop("water", Vector3.new(13, 20, 13), CFrame.new(130, 135, 100))
 local function antenna(x, z, baseY)
 	part({ Size = Vector3.new(0.9, 32, 0.9), Position = Vector3.new(x, baseY + 16, z),
 		Color = METAL_DK, Material = Enum.Material.Metal })
