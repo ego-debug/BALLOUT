@@ -762,6 +762,37 @@ barrier("S3", 130, 100, 80, 90, 125, 3)
 barrier("W1", -195, -40, 80, 90, 110, 4)
 barrier("W2", -190, 30, 90, 70, 85, 5)
 
+-- ══ SECOND-ROW SKYLINE (AI-generated hero meshes) ═══════════════════════════
+-- Generated once with Studio's generate_mesh; the permanent asset IDs let the
+-- rebuild recreate them from code, so even meshes stay map-as-code. They sit
+-- BEHIND the front-row towers and peek over the rooflines — parallax depth
+-- that reads from the roofs and the glider.
+local AssetService = game:GetService("AssetService")
+local SKYLINE_MESHES = {
+	{ id = 120013690841017, size = Vector3.new(73.8, 140, 56.9),  -- pastel stepped tower + water tank
+		cf = CFrame.new(60, 75, -238) * CFrame.Angles(0, math.rad(180), 0) },
+	{ id = 115457179080850, size = Vector3.new(40.3, 160, 40.7),  -- brick clock tower
+		cf = CFrame.new(-35, 80, -245) * CFrame.Angles(0, math.rad(180), 0) },
+	{ id = 73320336492570, size = Vector3.new(57.8, 130, 57.9),   -- teal round corner tower
+		cf = CFrame.new(265, 90, -10) * CFrame.Angles(0, math.rad(-90), 0) },
+}
+for i, def in SKYLINE_MESHES do
+	local ok, mp = pcall(function()
+		return AssetService:CreateMeshPartAsync(Content.fromAssetId(def.id))
+	end)
+	if ok and mp then
+		mp.Name = "SkylineMesh" .. i
+		mp.Size = def.size
+		mp.CFrame = def.cf
+		mp.Anchored = true
+		mp.CanCollide = false
+		mp.CanQuery = false
+		mp.Parent = map
+	else
+		warn("[Ballout map] skyline mesh " .. def.id .. " failed: " .. tostring(mp))
+	end
+end
+
 -- vertical stacked-letter shop signs on the arena-facing tower walls
 -- (original Ballout-world brands — every city needs businesses)
 local function vsign(x, y, z, face, word, color)
