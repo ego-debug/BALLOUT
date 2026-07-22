@@ -159,27 +159,26 @@ local function probeDashWall(root: BasePart): boolean
 	return hit ~= nil and math.abs(hit.Normal.Y) < 0.5
 end
 
+-- Bonk phase state: the movement loop pins the body flat while this runs.
+-- NO free ragdoll (PlatformStand + spin let limbs catch the floor and the
+-- solver catapulted the whole character) — controlled Physics-state velocity
+-- and orientation writes every frame, the same pattern as the dash roll.
+local bonkEndsAt = 0
+local bonkRecovered = true
+
 local function applyBonk(dur: number)
 	bonkAppliedUntil = os.clock() + dur
 	stunnedUntil = os.clock() + dur
+	bonkEndsAt = os.clock() + dur
+	bonkRecovered = false
 	dashEndsAt = 0
 	dashRollEndsAt = 0
-	dashRecovered = true -- the stand-up branch must NOT fire; we get up from the floor
+	dashRecovered = true -- the dash stand-up branch must NOT fire mid-bonk
 	local char = player.Character
 	local root = char and char:FindFirstChild("HumanoidRootPart")
-	local hum = char and char:FindFirstChildOfClass("Humanoid")
-	if hum and root and root:IsA("BasePart") then
-		hum.PlatformStand = true
-		-- bounce off the wall and tip over
-		root.AssemblyLinearVelocity = Vector3.new(-dashDir.X * 9, 7, -dashDir.Z * 9)
-		root.AssemblyAngularVelocity = Vector3.new(dashDir.Z, 0, -dashDir.X) * 7
-		task.delay(dur - 0.15, function()
-			local h = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
-			if h then
-				h.PlatformStand = false
-				h:ChangeState(Enum.HumanoidStateType.GettingUp)
-			end
-		end)
+	if root and root:IsA("BasePart") then
+		-- small backward pop off the wall; the loop takes over from here
+		root.AssemblyLinearVelocity = Vector3.new(-dashDir.X * 8, 5, -dashDir.Z * 8)
 	end
 	setFootsteps(false)
 end
@@ -567,6 +566,30 @@ RunService:BindToRenderStep("BalloutLockedCamera", Enum.RenderPriority.Camera.Va
 	if nowT < hangEndsAt and humanoid.FloorMaterial == Enum.Material.Air then
 		local v = root.AssemblyLinearVelocity
 		root.AssemblyLinearVelocity = Vector3.new(v.X, 0, v.Z)
+	end
+
+	-- Bonk: pinned flat on the floor until the stun ends. Controlled physics
+	-- every frame — velocity decays, spin is zeroed, orientation is WRITTEN
+	-- (lying on the back, feet toward the wall) so limbs can never catch the
+	-- floor and fling the body.
+	if nowT < bonkEndsAt then
+		if not ballformOn and humanoid:GetState() ~= Enum.HumanoidStateType.Physics then
+			humanoid:ChangeState(Enum.HumanoidStateType.Physics)
+		end
+		local frac = (bonkEndsAt - nowT) / BallConfig.BONK_STUN
+		local v = root.AssemblyLinearVelocity
+		root.AssemblyLinearVelocity = Vector3.new(-dashDir.X * 7 * frac, math.min(v.Y, 2), -dashDir.Z * 7 * frac)
+		root.AssemblyAngularVelocity = Vector3.zero
+		root.CFrame = CFrame.lookAt(root.Position, root.Position + Vector3.yAxis, -dashDir)
+		return
+	elseif not bonkRecovered then
+		bonkRecovered = true
+		if not ballformOn then
+			setFootsteps(true)
+			if humanoid:GetState() == Enum.HumanoidStateType.Physics then
+				humanoid:ChangeState(Enum.HumanoidStateType.GettingUp)
+			end
+		end
 	end
 
 	-- Dash: full-speed dive, then a fast decaying landing roll. Physics
