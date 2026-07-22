@@ -311,11 +311,13 @@ do
 	local word = "BALLOUT"
 	local paints = { MAGENTA, TEAL, MUSTARD }
 	for i = 1, #word do
+		-- plates stay FLAT (tilting the part swings its edges ~0.4 studs in
+		-- depth and they clip through the splats = flicker); the tilt comes
+		-- from TextLabel.Rotation in gui space instead.
 		local plate = part({ Size = Vector3.new(0.25, 5.6, 3.1),
 			-- viewed from the east (+X), the viewer's LEFT is +Z: letters must
 			-- march toward -Z or the word renders mirrored
-			CFrame = CFrame.new(wallX + 0.15, 8 + (if i % 2 == 0 then -0.7 else 0.5), -29.7 - i * 2.9)
-				* CFrame.Angles(math.rad(if i % 2 == 0 then 9 else -7), 0, 0),
+			CFrame = CFrame.new(wallX + 0.3, 8 + (if i % 2 == 0 then -0.7 else 0.5), -29.7 - i * 2.9),
 			Transparency = 1, CanCollide = false, CanQuery = false })
 		local g = Instance.new("SurfaceGui")
 		g.Face = Enum.NormalId.Right
@@ -331,6 +333,7 @@ do
 		l.Font = Enum.Font.FredokaOne
 		l.TextScaled = true
 		l.Text = word:sub(i, i)
+		l.Rotation = if i % 2 == 0 then 9 else -7 -- the graffiti tilt, in gui space
 		l.Parent = g
 	end
 end
