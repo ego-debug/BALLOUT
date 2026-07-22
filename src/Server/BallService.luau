@@ -176,6 +176,31 @@ local function inSafeZone(pos: Vector3): boolean
 		and math.abs(rel.Z) <= zone.Size.Z / 2
 end
 
+-- Training drill: the chalk circle on the training roof. The lobby bot only
+-- throws while a player stands inside it (see the Held branch).
+local drillPart: BasePart? = nil
+local botDrillChargeAt: number? = nil
+local function drillTarget(): Fighter?
+	if drillPart == nil or drillPart.Parent == nil then
+		local m = Workspace:FindFirstChild("BalloutMap")
+		local d = if m then m:FindFirstChild("DrillCircle") else nil
+		drillPart = if d and d:IsA("BasePart") then d else nil
+	end
+	local zone = drillPart
+	if not zone then
+		return nil
+	end
+	for _, f in fighters do
+		if f.player and f.character.Parent and f.root.Parent then
+			local rel = f.root.Position - zone.Position
+			if Vector3.new(rel.X, 0, rel.Z).Magnitude <= BallConfig.DRILL_RADIUS then
+				return f
+			end
+		end
+	end
+	return nil
+end
+
 local function lerp(a: number, b: number, t: number): number
 	return a + (b - a) * t
 end
@@ -886,10 +911,35 @@ local function onHeartbeat(dt: number)
 	end
 
 	if state == "Held" and holder then
-		-- Weld keeps the ball glued to the hand; only the bot timer runs here.
-		if holder.isBot and botHoldStart and (now() - botHoldStart) >= BallConfig.BOT_HOLD_DELAY then
-			botHoldStart = nil
-			BallService.Throw(holder, 1.0, 0, false)
+		-- Weld keeps the ball glued to the hand; only bot logic runs here.
+		if holder.isBot then
+			if holder.character.Name == BallConfig.BOT_NAME then
+				-- TRAINING DRILL: the lobby bot holds the ball indefinitely.
+				-- A player standing in the chalk circle starts a visible
+				-- windup (chargeStart ignites the flame at full charge);
+				-- leaving the circle mid-windup cancels it.
+				if drillTarget() then
+					if botDrillChargeAt == nil then
+						botDrillChargeAt = now()
+						chargeStart = now()
+						chargeFull = false
+						AnimService.Windup(holder.character)
+					elseif now() - botDrillChargeAt >= BallConfig.BOT_DRILL_CHARGE then
+						botDrillChargeAt = nil
+						chargeStart = nil
+						BallService.Throw(holder, 1.0, 0, false)
+					end
+				elseif botDrillChargeAt then
+					botDrillChargeAt = nil
+					chargeStart = nil
+					setCharged(false)
+					applyCarry(holder) -- wind-down: the circle emptied
+				end
+			elseif botHoldStart and (now() - botHoldStart) >= BallConfig.BOT_HOLD_DELAY then
+				-- match bots: quick catch-and-return, as before
+				botHoldStart = nil
+				BallService.Throw(holder, 1.0, 0, false)
+			end
 		end
 		-- Full windup reached: purple flame ignites — this throw will fly
 		-- like an Overcharge tier ("charge = one purple catch").

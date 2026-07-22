@@ -82,6 +82,28 @@ part({ Name = "DummyPad", Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.3
 	CFrame = CFrame.new(105.5, -5.8, -69.7) * CFrame.Angles(0, 0, math.rad(90)),
 	Color = Color3.fromRGB(150, 120, 88), Material = Enum.Material.Ground })
 
+-- TRAINING DRILL chalk: stand in the circle downrange of the bot and it
+-- winds up and fires at you (drill logic in BallService). The ring is 12
+-- rough chalk dashes; the line leads from the circle back to the bot pad.
+do
+	local DX, DZ = 104, -8.8
+	local chalkY = -5.8
+	local CHALK = Color3.fromRGB(242, 242, 234)
+	for i = 0, 11 do
+		local a = i / 12 * math.pi * 2
+		part({ Size = Vector3.new(0.5, 0.06, 2.3),
+			CFrame = CFrame.new(DX + math.cos(a) * 4.2, chalkY, DZ + math.sin(a) * 4.2)
+				* CFrame.Angles(0, -a, 0),
+			Color = CHALK, Material = Enum.Material.SmoothPlastic, CanCollide = false })
+	end
+	part({ Size = Vector3.new(0.5, 0.06, 52), Position = Vector3.new(104.75, chalkY, -39.5),
+		Color = CHALK, Material = Enum.Material.SmoothPlastic, CanCollide = false })
+	-- invisible marker BallService reads for the stand-here check
+	local marker = part({ Name = "DrillCircle", Size = Vector3.new(1, 1, 1),
+		Position = Vector3.new(DX, chalkY + 2, DZ), Transparency = 1,
+		CanCollide = false, CanQuery = false, CanTouch = false })
+end
+
 -- ══ WINDOW STRIPS down the outward faces ════════════════════════════════════
 local GLASSC = Color3.fromRGB(24, 30, 46)
 -- Cyberpunk skyscraper look: the middle strip of every face GLOWS (cyan on

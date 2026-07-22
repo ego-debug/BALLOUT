@@ -136,8 +136,12 @@ BallConfig.RESPAWN_DELAY = 3.0
 
 -- ── Bot (training dummy) ────────────────────────────────────────────────
 BallConfig.BOT_ALWAYS_CATCH = true  -- perfect-catches every incoming ball (feel test)
-BallConfig.BOT_HOLD_DELAY = 0.6     -- seconds it holds before throwing back
+BallConfig.BOT_HOLD_DELAY = 0.6     -- match bots: seconds held before throwing back
 BallConfig.BOT_NAME = "TrainingDummy"
+-- Training drill (the chalk circle on the training roof): the lobby bot holds
+-- the ball until a player stands in the circle, then winds up and fires.
+BallConfig.BOT_DRILL_CHARGE = 2.5 -- seconds of visible windup before the drill throw
+BallConfig.DRILL_RADIUS = 4.5     -- stand within this of the circle center to trigger
 
 -- ── Dash bonk (reckless dodging has consequences) ───────────────────────
 BallConfig.BONK_STUN = 0.6        -- seconds on the floor holding your head
