@@ -140,7 +140,7 @@ BallConfig.BOT_HOLD_DELAY = 0.6     -- seconds it holds before throwing back
 BallConfig.BOT_NAME = "TrainingDummy"
 
 -- ── Dash bonk (reckless dodging has consequences) ───────────────────────
-BallConfig.BONK_STUN = 1.4        -- seconds on the floor holding your head
+BallConfig.BONK_STUN = 0.6        -- seconds on the floor holding your head
 BallConfig.BONK_WALL_RANGE = 2.4  -- how close to a wall mid-dash counts as a face-plant
 BallConfig.BONK_DASHER_RANGE = 4.5 -- two mid-dash players this close clonk heads
 
