@@ -22,17 +22,18 @@ local W = 150 -- x span
 local D = 110 -- z span
 local WALL_H = 18
 
--- CYBERPUNK palette (matches the HQ city): dark metal + neon.
-local ASPHALT = Color3.fromRGB(24, 24, 32)
-local PAVE = Color3.fromRGB(60, 60, 74)
-local BRICK = Color3.fromRGB(36, 36, 50)
-local BRICK_DK = Color3.fromRGB(26, 26, 38)
-local METAL = Color3.fromRGB(56, 56, 64)
-local RED = Color3.fromRGB(255, 70, 60)
-local BLUE = Color3.fromRGB(70, 140, 255)
-local NEON_W = Color3.fromRGB(220, 240, 255)
-local GRASS = Color3.fromRGB(70, 170, 110)
-local CYAN = Color3.fromRGB(60, 230, 240)
+-- RETRO-FUTURE palette (matches the HQ city): warm brick, cream pave,
+-- turquoise trim — bright and saturated, neon as accent only.
+local ASPHALT = Color3.fromRGB(88, 82, 78)
+local PAVE = Color3.fromRGB(214, 202, 182)
+local BRICK = Color3.fromRGB(168, 96, 70)
+local BRICK_DK = Color3.fromRGB(120, 66, 52)
+local METAL = Color3.fromRGB(92, 88, 84)
+local RED = Color3.fromRGB(226, 70, 55)
+local BLUE = Color3.fromRGB(58, 122, 224)
+local NEON_W = Color3.fromRGB(255, 250, 235)
+local GRASS = Color3.fromRGB(110, 178, 68)
+local CYAN = Color3.fromRGB(64, 190, 180)
 
 local function mk(parent: Instance, name: string, size: Vector3, cfOrPos: CFrame | Vector3, color: Color3, material: Enum.Material?, class: string?): BasePart
 	local p = Instance.new((class or "Part") :: any) :: BasePart
@@ -44,9 +45,7 @@ local function mk(parent: Instance, name: string, size: Vector3, cfOrPos: CFrame
 		p.Position = cfOrPos
 	end
 	p.Color = color
-	local mat = material or Enum.Material.Concrete
-	-- cyberpunk knob: brick walls render as dark metal paneling
-	p.Material = if mat == Enum.Material.Brick then Enum.Material.Metal else mat
+	p.Material = material or Enum.Material.Concrete
 	p.Anchored = true
 	p.TopSurface = Enum.SurfaceType.Smooth
 	p.BottomSurface = Enum.SurfaceType.Smooth

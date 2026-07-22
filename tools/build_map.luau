@@ -36,28 +36,25 @@ local function part(props)
 	end
 	-- CYBERPUNK knob: every wall that asks for Brick renders as dark metal
 	-- paneling instead — one switch restyles the whole city.
-	if p.Material == Enum.Material.Brick then
-		p.Material = Enum.Material.Metal
-	end
 	p.Parent = map
 	return p
 end
 
--- CYBERPUNK palette: dark panel towers + neon trim (the brick hideout era is
--- over). The BRICK_* names stay so the whole file keeps reading the same —
--- they're "wall A/B/darkest" tiers now.
-local BRICK_A = Color3.fromRGB(40, 40, 54)
-local BRICK_B = Color3.fromRGB(32, 32, 44)
-local BRICK_DARK = Color3.fromRGB(24, 24, 34)
-local TEAL = Color3.fromRGB(60, 230, 240)   -- neon cyan trim
-local MAGENTA = Color3.fromRGB(255, 60, 180) -- neon magenta accent
-local TAR = Color3.fromRGB(38, 38, 48)
-local PAVE = Color3.fromRGB(76, 76, 92)
-local TILE = Color3.fromRGB(92, 92, 112)
-local GRASS = Color3.fromRGB(70, 170, 110)   -- synth turf
-local GRASS_DK = Color3.fromRGB(52, 140, 90)
-local METAL_DK = Color3.fromRGB(56, 56, 64)
-local PURPLE = Color3.fromRGB(170, 80, 255)
+-- RETRO-FUTURE palette (KC "City of Tomorrow" MOOD, our own values): warm
+-- brick, cream pavement, 50s turquoise trim, sunny grass — bright and
+-- saturated. Neon (pink/purple/cyan) survives ONLY as sign + accent trim.
+local BRICK_A = Color3.fromRGB(168, 96, 70)
+local BRICK_B = Color3.fromRGB(146, 82, 62)
+local BRICK_DARK = Color3.fromRGB(120, 66, 52)
+local TEAL = Color3.fromRGB(64, 190, 180)    -- 50s turquoise trim
+local MAGENTA = Color3.fromRGB(255, 110, 190) -- holo-pink sign accent
+local TAR = Color3.fromRGB(74, 66, 62)
+local PAVE = Color3.fromRGB(214, 202, 182)
+local TILE = Color3.fromRGB(232, 222, 205)
+local GRASS = Color3.fromRGB(110, 178, 68)
+local GRASS_DK = Color3.fromRGB(90, 150, 55)
+local METAL_DK = Color3.fromRGB(92, 88, 84)
+local PURPLE = Color3.fromRGB(160, 85, 240)
 
 -- ══ MAIN DECK ═══════════════════════════════════════════════════════════════
 part({ Name = "MainDeck", Size = Vector3.new(100, 3, 100), Position = Vector3.new(10, -1.5, -10),
@@ -581,8 +578,8 @@ streetLamp(120, -55, -6)
 
 -- ══ BARRIER SKYLINE ═════════════════════════════════════════════════════════
 local BARRIER_COLORS = {
-	Color3.fromRGB(34, 36, 52), Color3.fromRGB(28, 30, 44), Color3.fromRGB(46, 40, 66),
-	Color3.fromRGB(38, 42, 60), Color3.fromRGB(26, 26, 38),
+	Color3.fromRGB(196, 130, 96), Color3.fromRGB(170, 108, 82), Color3.fromRGB(216, 168, 128),
+	Color3.fromRGB(206, 190, 168), Color3.fromRGB(154, 96, 78),
 }
 local BARRIER_NEONS = { TEAL, MAGENTA, PURPLE }
 local function barrier(name, cx, cz, w, d, top, ci)
@@ -684,12 +681,15 @@ Workspace.FallenPartsDestroyHeight = -330
 local atmo = Lighting:FindFirstChildOfClass("Atmosphere")
 if atmo then atmo:Destroy() end
 -- CYBERPUNK night: deep dusk, purple haze, bloom so every neon edge blooms.
-Lighting.ClockTime = 18.15
-Lighting.Brightness = 2.6
-Lighting.Ambient = Color3.fromRGB(118, 105, 150)
-Lighting.OutdoorAmbient = Color3.fromRGB(152, 134, 186)
-Lighting.ColorShift_Top = Color3.fromRGB(150, 105, 255)
-Lighting.FogColor = Color3.fromRGB(122, 80, 158)
+-- Bright retro-future afternoon: sunny with a golden lean, pastel haze far
+-- out. The world reads warm and saturated; neon signs still pop at dusk-less
+-- brightness because they're Neon material, not the light source.
+Lighting.ClockTime = 15.8
+Lighting.Brightness = 2.9
+Lighting.Ambient = Color3.fromRGB(150, 142, 132)
+Lighting.OutdoorAmbient = Color3.fromRGB(172, 162, 148)
+Lighting.ColorShift_Top = Color3.fromRGB(255, 208, 150)
+Lighting.FogColor = Color3.fromRGB(222, 204, 196)
 Lighting.FogStart = 180
 Lighting.FogEnd = 750
 local bloom = Lighting:FindFirstChildOfClass("BloomEffect")
