@@ -36,7 +36,7 @@ local dummyPad = hqMap and hqMap:FindFirstChild("DummyPad")
 local botPos = if dummyPad and dummyPad:IsA("BasePart")
 	then dummyPad.Position + Vector3.new(0, 0.9, 0)
 	else center + Vector3.new(0, 0, -40)
-local botModel, botRoot = BotService.Spawn(botPos, Vector3.new(0, 0, -20))
+local botModel, botRoot = BotService.Spawn(botPos, Vector3.new(95, 0, 5)) -- face the training hoop
 
 BallService.RegisterFighter({
 	character = botModel,

@@ -76,20 +76,11 @@ part({ Name = "ShaftDummy", Size = Vector3.new(60, 400, 90), Position = Vector3.
 part({ Size = Vector3.new(56, 0.16, 52), Position = Vector3.new(105, -5.92, -23),
 	Color = GRASS, Material = Enum.Material.Grass })
 
--- Bot pad (Main.server.luau spawns the training bot here): south edge of
--- the MAIN deck, centered, facing the basketball court across the deck
+-- Bot pad (Main.server.luau spawns the training bot here): center of the
+-- training lawn, facing the hoop at the roof's north edge
 part({ Name = "DummyPad", Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.3, 7, 7),
-	CFrame = CFrame.new(10, 0.15, 33) * CFrame.Angles(0, 0, math.rad(90)),
+	CFrame = CFrame.new(105, -5.8, -23) * CFrame.Angles(0, 0, math.rad(90)),
 	Color = Color3.fromRGB(150, 120, 88), Material = Enum.Material.Ground })
-
--- Hedges around the lawn (KC's dummy roof has hedge rows)
-local function hedge(x, z, sx, sz, y)
-	part({ Size = Vector3.new(sx, 3.4, sz), Position = Vector3.new(x, y + 1.7, z),
-		Color = Color3.fromRGB(58, 118, 48), Material = Enum.Material.Grass })
-end
-hedge(88, 4, 20, 2.2, -6)
-hedge(124, 4, 16, 2.2, -6)
-hedge(88, -44, 18, 2.2, -6)
 
 -- ══ WINDOW STRIPS down the outward faces ════════════════════════════════════
 local GLASSC = Color3.fromRGB(24, 30, 46)
