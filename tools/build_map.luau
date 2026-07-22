@@ -55,6 +55,10 @@ local GRASS = Color3.fromRGB(110, 178, 68)
 local GRASS_DK = Color3.fromRGB(90, 150, 55)
 local METAL_DK = Color3.fromRGB(92, 88, 84)
 local PURPLE = Color3.fromRGB(160, 85, 240)
+-- facade variety: a real city block isn't one material
+local PLASTER = Color3.fromRGB(236, 224, 200)  -- cream stucco buildings
+local CORAL = Color3.fromRGB(222, 118, 92)     -- painted concrete buildings
+local MUSTARD = Color3.fromRGB(228, 176, 84)   -- awning/trim pop color
 
 -- ══ MAIN DECK ═══════════════════════════════════════════════════════════════
 part({ Name = "MainDeck", Size = Vector3.new(100, 3, 100), Position = Vector3.new(10, -1.5, -10),
@@ -65,8 +69,9 @@ part({ Name = "ShaftMain", Size = Vector3.new(100, 400, 100), Position = Vector3
 -- ══ DUMMY ROOF (lower training roof) ════════════════════════════════════════
 part({ Name = "DummyRoof", Size = Vector3.new(60, 3, 90), Position = Vector3.new(105, -7.5, -35),
 	Color = Color3.fromRGB(178, 168, 150), Material = Enum.Material.Concrete })
+-- each tower is its own building: brick main, plaster training, coral queue
 part({ Name = "ShaftDummy", Size = Vector3.new(60, 400, 90), Position = Vector3.new(105, -209, -35),
-	Color = BRICK_B, Material = Enum.Material.Brick })
+	Color = PLASTER, Material = Enum.Material.Limestone })
 -- lawn (south half; the north half is the queue-rooms floor, built below)
 part({ Size = Vector3.new(56, 0.16, 52), Position = Vector3.new(105, -5.92, -23),
 	Color = GRASS, Material = Enum.Material.Grass })
@@ -153,18 +158,26 @@ end
 -- Footprint x -25..15, z -59..-27, door facing SOUTH into the deck — spawning
 -- players walk out with the whole deck panning left (training roof) and
 -- right (radio tower + queue roof). 16-stud ceiling, 20x12 door.
+-- plaster body with brick front trim: the hero building reads distinct
 part({ Size = Vector3.new(40, 16, 1.5), Position = Vector3.new(-5, 8, -58.25),
-	Color = BRICK_B, Material = Enum.Material.Brick }) -- back (north) wall
+	Color = PLASTER, Material = Enum.Material.Limestone }) -- back (north) wall
 part({ Size = Vector3.new(1.5, 16, 32), Position = Vector3.new(-24.25, 8, -43),
-	Color = BRICK_B, Material = Enum.Material.Brick }) -- west wall
+	Color = PLASTER, Material = Enum.Material.Limestone }) -- west wall
 part({ Size = Vector3.new(1.5, 16, 32), Position = Vector3.new(14.25, 8, -43),
-	Color = BRICK_B, Material = Enum.Material.Brick }) -- east wall
+	Color = PLASTER, Material = Enum.Material.Limestone }) -- east wall
 part({ Size = Vector3.new(10, 16, 1.5), Position = Vector3.new(-20, 8, -27.75),
 	Color = BRICK_B, Material = Enum.Material.Brick }) -- front side piece
 part({ Size = Vector3.new(10, 16, 1.5), Position = Vector3.new(10, 8, -27.75),
 	Color = BRICK_B, Material = Enum.Material.Brick }) -- front side piece
 part({ Size = Vector3.new(20, 4, 1.5), Position = Vector3.new(-5, 14, -27.75),
 	Color = BRICK_B, Material = Enum.Material.Brick }) -- lintel over the door
+-- striped awning over the door (alternating teal/cream slats, angled out)
+for i = 0, 5 do
+	local color = if i % 2 == 0 then TEAL else TILE
+	part({ Size = Vector3.new(3.4, 0.35, 5),
+		CFrame = CFrame.new(-13.5 + i * 3.4, 12.6, -25.2) * CFrame.Angles(math.rad(18), 0, 0),
+		Color = color, Material = Enum.Material.Fabric })
+end
 local groof = part({ Name = "GarageRoof", Size = Vector3.new(42, 1.2, 34), Position = Vector3.new(-5, 16.6, -43),
 	Color = TAR, Material = Enum.Material.Slate })
 -- rolled-up door slats hint
@@ -387,7 +400,7 @@ local QX, QZ, QTOP = -95, -10, 4
 part({ Name = "QueueRoof", Size = Vector3.new(90, 3, 90), Position = Vector3.new(QX, QTOP - 1.5, QZ),
 	Color = PAVE, Material = Enum.Material.Concrete })
 part({ Name = "ShaftQueue", Size = Vector3.new(90, 400, 90), Position = Vector3.new(QX, QTOP - 203, QZ),
-	Color = BRICK_A, Material = Enum.Material.Brick })
+	Color = CORAL, Material = Enum.Material.Concrete })
 winStrips(QX, QZ, 90, 90, QTOP - 3, true, false)
 -- parapets: full N/S/W, east side leaves a z -20..0 gap for the stairs
 parapet(QX, QZ - 44, 90, 2, QTOP)
@@ -402,25 +415,31 @@ for i = 1, 3 do
 		Color = Color3.fromRGB(160, 152, 138), Material = Enum.Material.Concrete })
 end
 -- one bank of three queue rooms; dir = +1 opens south (+Z), -1 opens north
-local function queueBank(shellZ, dir, defs)
+local function queueBank(shellZ, dir, wallColor, wallMat, defs)
 	local backZ = shellZ - dir * 10.4
 	local frontZ = shellZ + dir * 11
 	part({ Size = Vector3.new(66, 0.16, 22), Position = Vector3.new(QX, QTOP + 0.08, shellZ),
 		Color = TAR, Material = Enum.Material.Asphalt })
 	part({ Size = Vector3.new(66, 15, 1.2), Position = Vector3.new(QX, QTOP + 7.5, backZ),
-		Color = BRICK_B, Material = Enum.Material.Brick })
+		Color = wallColor, Material = wallMat })
 	part({ Size = Vector3.new(1.2, 15, 22), Position = Vector3.new(QX - 33, QTOP + 7.5, shellZ),
-		Color = BRICK_B, Material = Enum.Material.Brick })
+		Color = wallColor, Material = wallMat })
 	part({ Size = Vector3.new(1.2, 15, 22), Position = Vector3.new(QX + 33, QTOP + 7.5, shellZ),
-		Color = BRICK_B, Material = Enum.Material.Brick })
+		Color = wallColor, Material = wallMat })
 	part({ Size = Vector3.new(68, 1, 24), Position = Vector3.new(QX, QTOP + 15.5, shellZ),
 		Color = TAR, Material = Enum.Material.Concrete })
 	part({ Size = Vector3.new(66, 3, 1), Position = Vector3.new(QX, QTOP + 13.5, frontZ + dir * 0.5),
 		Color = BRICK_DARK, Material = Enum.Material.Brick })
 	for _, dx in { -11, 11 } do
 		part({ Size = Vector3.new(1, 15, 18), Position = Vector3.new(QX + dx, QTOP + 7.5, shellZ - dir * 2),
-			Color = BRICK_B, Material = Enum.Material.Brick })
+			Color = wallColor, Material = wallMat })
 	end
+	-- rooftop clutter: AC box + a vent pipe per bank
+	part({ Size = Vector3.new(5, 2.8, 4), Position = Vector3.new(QX - 20 * dir, QTOP + 17.4, shellZ),
+		Color = Color3.fromRGB(152, 150, 147), Material = Enum.Material.Metal })
+	part({ Shape = Enum.PartType.Cylinder, Size = Vector3.new(4, 1.2, 1.2),
+		CFrame = CFrame.new(QX + 24 * dir, QTOP + 18, shellZ) * CFrame.Angles(0, 0, math.rad(90)),
+		Color = METAL_DK, Material = Enum.Material.Metal })
 	for _, def in defs do
 		local cx = QX + def.dx
 		part({ Name = def.name, Size = Vector3.new(12, 0.2, 12), Position = Vector3.new(cx, QTOP + 0.2, shellZ - dir * 3),
@@ -439,12 +458,12 @@ local function queueBank(shellZ, dir, defs)
 end
 local Q_RED = Color3.fromRGB(255, 90, 70)
 local Q_GRAY = Color3.fromRGB(200, 200, 205)
-queueBank(-42, 1, { -- north bank, opens onto the plaza (south)
+queueBank(-42, 1, BRICK_B, Enum.Material.Brick, { -- north bank: brick
 	{ dx = -22, name = "QueuePadTeamKO_A", text = "TEAM KO 3v3", accent = Q_RED },
 	{ dx = 0, name = "QueuePadSoon1_A", text = "COMING SOON", accent = Q_GRAY },
 	{ dx = 22, name = "QueuePadSoon2_A", text = "COMING SOON", accent = Q_GRAY },
 })
-queueBank(22, -1, { -- south bank, opens north — TeamKO diagonal from bank A
+queueBank(22, -1, CORAL, Enum.Material.Concrete, { -- south bank: painted coral
 	{ dx = -22, name = "QueuePadSoon2_B", text = "COMING SOON", accent = Q_GRAY },
 	{ dx = 0, name = "QueuePadSoon1_B", text = "COMING SOON", accent = Q_GRAY },
 	{ dx = 22, name = "QueuePadTeamKO_B", text = "TEAM KO 3v3", accent = Q_RED },
@@ -475,6 +494,52 @@ for _, sz in { -24.5, 4.5 } do
 	local ptr = part({ Size = Vector3.new(0.8, 3, 8), Position = Vector3.new(-38.5, 7.5, sz),
 		Color = Color3.fromRGB(24, 22, 30), Material = Enum.Material.Metal })
 	sign(ptr, Enum.NormalId.Right, "QUEUE", TEAL, Color3.fromRGB(24, 22, 30))
+end
+
+-- ══ STREET FURNITURE (small props sell the "lived-in city" read) ════════════
+-- fire hydrant
+local function hydrant(x, z)
+	part({ Shape = Enum.PartType.Cylinder, Size = Vector3.new(2.2, 1.1, 1.1),
+		CFrame = CFrame.new(x, 1.1, z) * CFrame.Angles(0, 0, math.rad(90)),
+		Color = Color3.fromRGB(210, 60, 48), Material = Enum.Material.Metal })
+	part({ Shape = Enum.PartType.Ball, Size = Vector3.new(1.1, 1.1, 1.1), Position = Vector3.new(x, 2.3, z),
+		Color = Color3.fromRGB(210, 60, 48), Material = Enum.Material.Metal })
+	part({ Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.7, 0.7, 0.7),
+		CFrame = CFrame.new(x, 1.35, z) * CFrame.Angles(0, math.rad(90), 0),
+		Color = Color3.fromRGB(235, 200, 90), Material = Enum.Material.Metal })
+end
+hydrant(-18, -24)
+hydrant(44, 8)
+
+-- mailbox (rounded-top drop box on legs)
+part({ Size = Vector3.new(2.4, 2.6, 1.8), Position = Vector3.new(24, 2.5, -34),
+	Color = Color3.fromRGB(64, 106, 190), Material = Enum.Material.Metal })
+part({ Shape = Enum.PartType.Cylinder, Size = Vector3.new(2.4, 1.8, 1.8),
+	CFrame = CFrame.new(24, 3.8, -34) * CFrame.Angles(0, 0, math.rad(90)),
+	Color = Color3.fromRGB(64, 106, 190), Material = Enum.Material.Metal })
+for _, lx in { 23.2, 24.8 } do
+	part({ Size = Vector3.new(0.4, 1.2, 0.4), Position = Vector3.new(lx, 0.6, -34),
+		Color = METAL_DK, Material = Enum.Material.Metal })
+end
+
+-- potted street plants
+local function planter(x, z)
+	part({ Shape = Enum.PartType.Cylinder, Size = Vector3.new(2, 2.6, 2.6),
+		CFrame = CFrame.new(x, 1, z) * CFrame.Angles(0, 0, math.rad(90)),
+		Color = Color3.fromRGB(196, 120, 82), Material = Enum.Material.Concrete })
+	part({ Shape = Enum.PartType.Ball, Size = Vector3.new(3, 2.6, 3), Position = Vector3.new(x, 3.2, z),
+		Color = GRASS_DK, Material = Enum.Material.Grass })
+end
+planter(-14, 10)
+planter(6, 26)
+planter(52, -30)
+
+-- traffic cones by the plank pile (someone's mid-repair)
+for _, off in { Vector3.new(4, 0, -3), Vector3.new(7.5, 0, 1), Vector3.new(2, 0, 3.5) } do
+	local c = part({ Size = Vector3.new(1.2, 1.6, 1.2), Position = Vector3.new(14, 0.8, -8) + off,
+		Color = Color3.fromRGB(255, 130, 40), Material = Enum.Material.SmoothPlastic })
+	part({ Size = Vector3.new(1.7, 0.18, 1.7), Position = c.Position - Vector3.new(0, 0.75, 0),
+		Color = Color3.fromRGB(255, 130, 40), Material = Enum.Material.SmoothPlastic })
 end
 
 -- ══ MAIN DECK DRESSING ══════════════════════════════════════════════════════
@@ -582,10 +647,15 @@ local BARRIER_COLORS = {
 	Color3.fromRGB(206, 190, 168), Color3.fromRGB(154, 96, 78),
 }
 local BARRIER_NEONS = { TEAL, MAGENTA, PURPLE }
+local BARRIER_MATS = {
+	Enum.Material.Brick, Enum.Material.Concrete, Enum.Material.Limestone,
+	Enum.Material.Sandstone, Enum.Material.Concrete,
+}
 local function barrier(name, cx, cz, w, d, top, ci)
 	local color = BARRIER_COLORS[(ci - 1) % #BARRIER_COLORS + 1]
 	part({ Name = name, Size = Vector3.new(w, top + 400, d),
-		Position = Vector3.new(cx, (top - 400) / 2, cz), Color = color, Material = Enum.Material.Brick })
+		Position = Vector3.new(cx, (top - 400) / 2, cz), Color = color,
+		Material = BARRIER_MATS[(ci - 1) % #BARRIER_MATS + 1] })
 	-- glowing roofline ring: each skyline tower is outlined in its own neon
 	local pc = BARRIER_NEONS[(ci - 1) % #BARRIER_NEONS + 1]
 	part({ Size = Vector3.new(w, 3, 2), Position = Vector3.new(cx, top + 1.5, cz - d / 2 + 1), Color = pc, Material = Enum.Material.Neon, Transparency = 0.45 })
