@@ -76,9 +76,10 @@ part({ Name = "ShaftDummy", Size = Vector3.new(60, 400, 90), Position = Vector3.
 part({ Size = Vector3.new(56, 0.16, 52), Position = Vector3.new(105, -5.92, -23),
 	Color = GRASS, Material = Enum.Material.Grass })
 
--- Dummy pad (Main.server.luau spawns the training dummy here)
+-- Bot pad (Main.server.luau spawns the training bot here): south edge of
+-- the MAIN deck, centered, facing the basketball court across the deck
 part({ Name = "DummyPad", Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.3, 7, 7),
-	CFrame = CFrame.new(105, -5.8, -30) * CFrame.Angles(0, 0, math.rad(90)),
+	CFrame = CFrame.new(10, 0.15, 33) * CFrame.Angles(0, 0, math.rad(90)),
 	Color = Color3.fromRGB(150, 120, 88), Material = Enum.Material.Ground })
 
 -- Hedges around the lawn (KC's dummy roof has hedge rows)
@@ -267,8 +268,8 @@ local function meshSign(x, y, z, sx, sy, yawDeg, text, textColor, plateName)
 	end
 	-- the generated frame's border eats ~30% of the width: the plate must fit
 	-- the INNER panel or it overhangs the frame (the "not put together" look)
-	local plate = part({ Size = Vector3.new(sx * 0.66, sy * 0.48, 0.3),
-		CFrame = cf * CFrame.new(0, 0, -0.95),
+	local plate = part({ Size = Vector3.new(sx * 0.56, sy * 0.4, 0.3),
+		CFrame = cf * CFrame.new(-sx * 0.055, 0, -0.95),
 		Color = Color3.fromRGB(26, 24, 30), Material = Enum.Material.Metal })
 	if plateName then
 		plate.Name = plateName
@@ -440,7 +441,6 @@ local function hoop(x, z, baseY, faceDir)
 			CanCollide = false, CanQuery = false })
 	end
 end
-hoop(-30, -52, 0, -90)    -- west of the garage, faces south
 hoop(20, -56, 0, -90)     -- east of the garage, faces south
 hoop(95, 5, -6, 90)       -- dummy roof south edge, faces north
 
@@ -637,14 +637,6 @@ patch(-10, 14, 16, 14, GRASS, Enum.Material.Grass)
 patch(12, 0, 12, 46, TILE, Enum.Material.SmoothPlastic)
 patch(28, 6, 26, 10, TILE, Enum.Material.SmoothPlastic)
 
-local function chimney(x, z)
-	part({ Size = Vector3.new(6, 11, 6), Position = Vector3.new(x, 5.5, z),
-		Color = BRICK_DARK, Material = Enum.Material.Brick })
-	part({ Size = Vector3.new(7.4, 1.2, 7.4), Position = Vector3.new(x, 11.6, z),
-		Color = Color3.fromRGB(72, 64, 62), Material = Enum.Material.Concrete })
-end
-chimney(-30, -34)
--- (the drum-corner chimney left with the drum; the west one stays)
 
 -- ══ PROP MESHES (generated with Studio's generate_mesh; original prompts) ══
 -- Same pattern as the towers: geometry from CreateMeshPartAsync, paired
@@ -658,7 +650,6 @@ local PROP_MESHES = {
 	arcade = { mesh = 75784229888285, tex = 123364029334806 },  -- arcade cabinet
 	fridge = { mesh = 133543084994948, tex = 100659634387656 }, -- mint mini fridge
 	table  = { mesh = 96675283363598, tex = 128019790656861 },  -- wooden coffee table
-	lamp   = { mesh = 77967804167230, tex = 96244048720183 },  -- lantern street lamp
 }
 local propCache = {}
 local function prop(kind, size, cf)
@@ -733,30 +724,6 @@ do
 		Color = Color3.fromRGB(255, 214, 130), Material = Enum.Material.SmoothPlastic,
 		Transparency = 0.25, CanCollide = false, CanQuery = false })
 end
-
--- ══ STREET LAMPS (generated lantern posts; warm pools so the decks read) ════
--- Mesh lamp + an invisible emitter part up at the lantern head (a PointLight
--- on the MeshPart itself would shine from the pole's middle).
-local function streetLamp(x, z, baseY, yawDeg)
-	prop("lamp", Vector3.new(6, 15, 2.5),
-		CFrame.new(x, baseY + 7.5, z) * CFrame.Angles(0, math.rad(yawDeg or 0), 0))
-	local head = part({ Size = Vector3.new(0.4, 0.4, 0.4),
-		CFrame = CFrame.new(x, baseY + 13.2, z) * CFrame.Angles(0, math.rad(yawDeg or 0), 0) * CFrame.new(1.6, 0, 0),
-		Transparency = 1, CanCollide = false, CanQuery = false, CastShadow = false })
-	local pl = Instance.new("PointLight")
-	pl.Color = Color3.fromRGB(255, 224, 170)
-	pl.Range = 36
-	pl.Brightness = 2.0
-	pl.Parent = head
-end
-streetLamp(30, -10, 0, 180)
-streetLamp(-15, 12, 0, 0)
-streetLamp(45, -35, 0, -135)
-streetLamp(0, 28, 0, 90)
-streetLamp(-70, -20, 4, 45)   -- queue roof plaza
-streetLamp(-115, -5, 4, -90)
-streetLamp(95, -15, -6, 135)  -- training roof
-streetLamp(120, -55, -6, -45)
 
 -- ══ BARRIER SKYLINE ═════════════════════════════════════════════════════════
 local BARRIER_COLORS = {
