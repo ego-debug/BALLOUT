@@ -17,6 +17,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
 
 local BallConfig = require(ReplicatedStorage.BallConfig)
+local Remotes = require(ReplicatedStorage.Remotes)
 local BallService = require(ServerScriptService.BallService)
 local BotService = require(ServerScriptService.BotService)
 local ArenaMap = require(ServerStorage.Maps.ArenaBlockParty)
@@ -58,6 +59,28 @@ local function updateScore()
 	setScoreboards(("RED %d — %d BLUE"):format(score.Red, score.Blue))
 end
 
+-- HUD sync: every client mirrors match state on-screen (arena scoreboards
+-- stay as the in-world set dressing). `extra` merges into the payload.
+local function announce(extra: { [string]: any }?)
+	local teams: { [string]: string } = {}
+	for plr, team in participants do
+		teams[plr.Name] = team
+	end
+	local payload: { [string]: any } = {
+		state = state,
+		red = score.Red,
+		blue = score.Blue,
+		target = BallConfig.MATCH_TARGET_KOS,
+		teams = teams,
+	}
+	if extra then
+		for k, v in extra do
+			payload[k] = v
+		end
+	end
+	Remotes.MatchState:FireAllClients(payload)
+end
+
 local function lobbyBallSpawn(): Vector3
 	local lobby = Workspace:FindFirstChild("BalloutLobby")
 	local marker = if lobby then lobby:FindFirstChild("BallSpawn") else nil
@@ -89,6 +112,7 @@ local function endMatch(winner: string?)
 	else
 		setScoreboards("MATCH ABANDONED")
 	end
+	announce({ winner = winner })
 	task.delay(if winner then BallConfig.MATCH_END_LINGER else 1, function()
 		-- send players home + strip teams
 		for player, _ in participants do
@@ -107,6 +131,7 @@ local function endMatch(winner: string?)
 		setScoreboards("RED 0 — 0 BLUE")
 		score.Red, score.Blue = 0, 0
 		state = "Idle"
+		announce()
 	end)
 end
 
@@ -126,6 +151,7 @@ local function onKO(f: { character: Model, root: BasePart, isBot: boolean, playe
 	local scorer = if victimTeam == "Red" then "Blue" else "Red"
 	score[scorer] += 1
 	updateScore()
+	announce({ event = "ko", victim = f.character.Name, victimTeam = victimTeam })
 	-- KO'd bot: hop back to its post after a beat (players respawn via Roblox)
 	if f.isBot then
 		for _, bot in matchBots do
@@ -209,6 +235,7 @@ function MatchService.StartMatch(queued: { Player }): boolean
 
 	-- ball to midcourt
 	BallService.MakeFree((arena.BallSpawn :: BasePart).Position)
+	announce({ event = "start" })
 	return true
 end
 
