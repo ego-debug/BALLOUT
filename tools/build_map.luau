@@ -534,6 +534,44 @@ planter(-14, 10)
 planter(6, 26)
 planter(52, -30)
 
+-- COMET DINER: a little rooftop food kiosk against the east parapet —
+-- counter, stools, glowing roof sign. A social landmark, not just a box.
+part({ Size = Vector3.new(12, 0.3, 12), Position = Vector3.new(51, 0.15, 14),
+	Color = Color3.fromRGB(188, 74, 60), Material = Enum.Material.SmoothPlastic }) -- painted floor mat
+part({ Size = Vector3.new(1, 9, 12), Position = Vector3.new(56.5, 4.5, 14),
+	Color = PLASTER, Material = Enum.Material.Limestone }) -- back wall
+part({ Size = Vector3.new(11, 9, 1), Position = Vector3.new(51.5, 4.5, 8.5),
+	Color = PLASTER, Material = Enum.Material.Limestone }) -- side wall
+part({ Size = Vector3.new(11, 9, 1), Position = Vector3.new(51.5, 4.5, 19.5),
+	Color = PLASTER, Material = Enum.Material.Limestone }) -- side wall
+part({ Size = Vector3.new(13, 0.8, 13), Position = Vector3.new(51, 9.4, 14),
+	Color = TEAL, Material = Enum.Material.Metal }) -- flat roof
+local dinerSign = part({ Size = Vector3.new(0.8, 2.6, 11), Position = Vector3.new(45.2, 11.4, 14),
+	Color = Color3.fromRGB(30, 28, 34), Material = Enum.Material.Metal })
+sign(dinerSign, Enum.NormalId.Left, "COMET DINER", MUSTARD, Color3.fromRGB(30, 28, 34))
+part({ Size = Vector3.new(1.4, 3.2, 10), Position = Vector3.new(46, 1.6, 14),
+	Color = Color3.fromRGB(224, 214, 196), Material = Enum.Material.SmoothPlastic }) -- counter
+for _, sz2 in { 10, 14, 18 } do
+	part({ Shape = Enum.PartType.Cylinder, Size = Vector3.new(1.6, 1.7, 1.7),
+		CFrame = CFrame.new(43.6, 1.7, sz2) * CFrame.Angles(0, 0, math.rad(90)),
+		Color = Color3.fromRGB(210, 60, 48), Material = Enum.Material.SmoothPlastic }) -- stools
+	part({ Size = Vector3.new(0.4, 1.4, 0.4), Position = Vector3.new(43.6, 0.7, sz2),
+		Color = METAL_DK, Material = Enum.Material.Metal })
+end
+local dinerGlow = Instance.new("PointLight")
+dinerGlow.Color = Color3.fromRGB(255, 214, 160)
+dinerGlow.Range = 18
+dinerGlow.Brightness = 1.3
+dinerGlow.Parent = dinerSign
+
+-- stair bulkhead (the little rooftop-access shed every real roof has)
+part({ Size = Vector3.new(8, 7, 8), Position = Vector3.new(38, 3.5, -50),
+	Color = BRICK_DARK, Material = Enum.Material.Brick })
+part({ Size = Vector3.new(9, 0.7, 9), Position = Vector3.new(38, 7.35, -50),
+	Color = TAR, Material = Enum.Material.Slate })
+part({ Size = Vector3.new(3.4, 5.4, 0.3), Position = Vector3.new(38, 2.7, -45.9),
+	Color = Color3.fromRGB(70, 96, 110), Material = Enum.Material.Metal }) -- door
+
 -- traffic cones by the plank pile (someone's mid-repair)
 for _, off in { Vector3.new(4, 0, -3), Vector3.new(7.5, 0, 1), Vector3.new(2, 0, 3.5) } do
 	local c = part({ Size = Vector3.new(1.2, 1.6, 1.2), Position = Vector3.new(14, 0.8, -8) + off,
@@ -656,6 +694,42 @@ local function barrier(name, cx, cz, w, d, top, ci)
 	part({ Name = name, Size = Vector3.new(w, top + 400, d),
 		Position = Vector3.new(cx, (top - 400) / 2, cz), Color = color,
 		Material = BARRIER_MATS[(ci - 1) % #BARRIER_MATS + 1] })
+	-- FACADE on the arena-facing side: ribbon window bands per floor (a few
+	-- lit warm — someone's home), plus proud cornice ledges. This is what
+	-- turns "colored slab" into "building".
+	local toX, toZ = 35 - cx, -22 - cz
+	local nx, nz = 0, 0
+	if math.abs(toX) * d > math.abs(toZ) * w then
+		nx = if toX > 0 then 1 else -1
+	else
+		nz = if toZ > 0 then 1 else -1
+	end
+	local faceW = (if nx ~= 0 then d else w) * 0.82
+	local bx = cx + nx * (w / 2 + 0.35)
+	local bz = cz + nz * (d / 2 + 0.35)
+	for floor = 0, 9 do
+		local fy = top - 9 - floor * 11
+		if fy < -75 then
+			break
+		end
+		local lit = (ci * 7 + floor * 3) % 4 == 0
+		part({
+			Size = Vector3.new(if nx ~= 0 then 0.5 else faceW, 4.6, if nx ~= 0 then faceW else 0.5),
+			Position = Vector3.new(bx, fy, bz),
+			Color = if lit then Color3.fromRGB(255, 214, 150) else Color3.fromRGB(58, 68, 84),
+			Material = if lit then Enum.Material.Neon else Enum.Material.Glass,
+			Transparency = if lit then 0.2 else 0.08,
+			CanCollide = false, CanQuery = false, CastShadow = false,
+		})
+	end
+	for _, cy in { top - 28, top - 61 } do
+		part({
+			Size = Vector3.new(if nx ~= 0 then 1.4 else faceW + 6, 1.6, if nx ~= 0 then faceW + 6 else 1.4),
+			Position = Vector3.new(cx + nx * (w / 2 + 0.7), cy, cz + nz * (d / 2 + 0.7)),
+			Color = Color3.new(color.R * 0.75, color.G * 0.75, color.B * 0.75),
+			Material = Enum.Material.Concrete, CanCollide = false,
+		})
+	end
 	-- glowing roofline ring: each skyline tower is outlined in its own neon
 	local pc = BARRIER_NEONS[(ci - 1) % #BARRIER_NEONS + 1]
 	part({ Size = Vector3.new(w, 3, 2), Position = Vector3.new(cx, top + 1.5, cz - d / 2 + 1), Color = pc, Material = Enum.Material.Neon, Transparency = 0.45 })
@@ -674,8 +748,26 @@ barrier("S3", 130, 100, 80, 90, 125, 3)
 barrier("W1", -195, -40, 80, 90, 110, 4)
 barrier("W2", -190, 30, 90, 70, 85, 5)
 
+-- vertical stacked-letter shop signs on the arena-facing tower walls
+-- (original Ballout-world brands — every city needs businesses)
+local function vsign(x, y, z, face, word, color)
+	local h = #word * 4.2 + 2
+	local sz = if face == Enum.NormalId.Left or face == Enum.NormalId.Right
+		then Vector3.new(1, h, 5.5)
+		else Vector3.new(5.5, h, 1)
+	local panel = part({ Size = sz, Position = Vector3.new(x, y, z),
+		Color = Color3.fromRGB(30, 28, 34), Material = Enum.Material.Metal })
+	local stacked = word:gsub("(.)", "%1\n"):gsub("\n$", "")
+	sign(panel, face, stacked, color, Color3.fromRGB(30, 28, 34))
+end
+vsign(-16, 42, -114.2, Enum.NormalId.Back, "MOTEL", MAGENTA)
+vsign(159.6, 34, -44, Enum.NormalId.Left, "BOWL", TEAL)
+vsign(18, 42, 74.6, Enum.NormalId.Front, "DINER", MUSTARD)
+vsign(-144.8, 42, -52, Enum.NormalId.Right, "SUDS", Color3.fromRGB(150, 220, 255))
+
 waterTower(10, -160, 90, 1.4)
 waterTower(-190, 30, 85, 1.1)
+waterTower(130, 100, 125, 0.9)
 local function antenna(x, z, baseY)
 	part({ Size = Vector3.new(0.9, 32, 0.9), Position = Vector3.new(x, baseY + 16, z),
 		Color = METAL_DK, Material = Enum.Material.Metal })
