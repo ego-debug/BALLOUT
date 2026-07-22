@@ -494,7 +494,9 @@ local function queueBank(shellZ, dir, wallColor, wallMat, defs)
 		local cx = QX + def.dx
 		part({ Name = def.name, Size = Vector3.new(12, 0.2, 12), Position = Vector3.new(cx, QTOP + 0.2, shellZ - dir * 3),
 			Color = def.accent, Material = Enum.Material.SmoothPlastic })
-		meshSign(cx, QTOP + 13.5, frontZ - dir * 1.0, 14, 4, if dir == 1 then 180 else 0,
+		-- hang the board fully PROUD of the front face (the 1.6-deep mesh was
+		-- half-buried in the header when centered at the old panel offset)
+		meshSign(cx, QTOP + 13.5, frontZ + dir * 1.2, 14, 4, if dir == 1 then 180 else 0,
 			def.text, def.accent, def.name .. "Sign")
 		local light = Instance.new("PointLight")
 		light.Color = def.accent
