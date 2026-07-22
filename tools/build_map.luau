@@ -159,16 +159,16 @@ end
 -- players walk out with the whole deck panning left (training roof) and
 -- right (radio tower + queue roof). 16-stud ceiling, 20x12 door.
 -- plaster body with brick front trim: the hero building reads distinct
-part({ Size = Vector3.new(40, 16, 1.5), Position = Vector3.new(-5, 8, -58.25),
-	Color = PLASTER, Material = Enum.Material.Limestone }) -- back (north) wall
+part({ Size = Vector3.new(37, 16, 1.5), Position = Vector3.new(-5, 8, -58.25),
+	Color = PLASTER, Material = Enum.Material.Limestone }) -- back wall (butts the side walls: no overlap, no z-fight)
 part({ Size = Vector3.new(1.5, 16, 32), Position = Vector3.new(-24.25, 8, -43),
 	Color = PLASTER, Material = Enum.Material.Limestone }) -- west wall
 part({ Size = Vector3.new(1.5, 16, 32), Position = Vector3.new(14.25, 8, -43),
 	Color = PLASTER, Material = Enum.Material.Limestone }) -- east wall
-part({ Size = Vector3.new(10, 16, 1.5), Position = Vector3.new(-20, 8, -27.75),
-	Color = BRICK_B, Material = Enum.Material.Brick }) -- front side piece
-part({ Size = Vector3.new(10, 16, 1.5), Position = Vector3.new(10, 8, -27.75),
-	Color = BRICK_B, Material = Enum.Material.Brick }) -- front side piece
+part({ Size = Vector3.new(8.5, 16, 1.5), Position = Vector3.new(-19.25, 8, -27.75),
+	Color = BRICK_B, Material = Enum.Material.Brick }) -- front side piece (butts the west wall)
+part({ Size = Vector3.new(8.5, 16, 1.5), Position = Vector3.new(9.25, 8, -27.75),
+	Color = BRICK_B, Material = Enum.Material.Brick }) -- front side piece (butts the east wall)
 part({ Size = Vector3.new(20, 4, 1.5), Position = Vector3.new(-5, 14, -27.75),
 	Color = BRICK_B, Material = Enum.Material.Brick }) -- lintel over the door
 -- striped awning over the door (alternating teal/cream slats, angled out)
@@ -291,9 +291,49 @@ end
 
 -- GARAGE marquee over the door + KO graffiti on the east wall (faces midfield)
 meshSign(-5, 18.3, -26.5, 16, 4.4, 180, "GARAGE", Color3.fromRGB(120, 235, 255))
-local ko = part({ Size = Vector3.new(0.3, 10, 16), Position = Vector3.new(15.15, 8, -43),
-	Color = BRICK_B, Material = Enum.Material.Brick })
-sign(ko, Enum.NormalId.Right, "KO!!", Color3.fromRGB(255, 220, 60), Color3.fromRGB(96, 44, 150))
+-- BALLOUT graffiti tag on the garage's east wall — a collage of tilted
+-- letter plates over spray splats and drips, not a flat font block
+do
+	local wallX = 15.05 -- just proud of the east wall face
+	for _, sp in {
+		{ z = -50, y = 8.2, r = 8, c = PURPLE },
+		{ z = -43, y = 7.2, r = 10, c = Color3.fromRGB(38, 34, 46) },
+		{ z = -36.5, y = 8.8, r = 7, c = MAGENTA },
+	} do
+		part({ Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.12, sp.r, sp.r),
+			CFrame = CFrame.new(wallX, sp.y, sp.z),
+			Color = sp.c, Material = Enum.Material.SmoothPlastic, CanCollide = false, CanQuery = false })
+	end
+	for _, d in { { z = -47, h = 3.2 }, { z = -41.5, h = 4.6 }, { z = -38, h = 2.6 } } do
+		part({ Size = Vector3.new(0.12, d.h, 0.5), Position = Vector3.new(wallX, 4.6 - d.h / 2, d.z),
+			Color = Color3.fromRGB(38, 34, 46), Material = Enum.Material.SmoothPlastic, CanCollide = false, CanQuery = false })
+	end
+	local word = "BALLOUT"
+	local paints = { MAGENTA, TEAL, MUSTARD }
+	for i = 1, #word do
+		local plate = part({ Size = Vector3.new(0.25, 5.6, 3.1),
+			-- viewed from the east (+X), the viewer's LEFT is +Z: letters must
+			-- march toward -Z or the word renders mirrored
+			CFrame = CFrame.new(wallX + 0.15, 8 + (if i % 2 == 0 then -0.7 else 0.5), -29.7 - i * 2.9)
+				* CFrame.Angles(math.rad(if i % 2 == 0 then 9 else -7), 0, 0),
+			Transparency = 1, CanCollide = false, CanQuery = false })
+		local g = Instance.new("SurfaceGui")
+		g.Face = Enum.NormalId.Right
+		g.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+		g.PixelsPerStud = 20
+		g.Parent = plate
+		local l = Instance.new("TextLabel")
+		l.Size = UDim2.fromScale(1, 1)
+		l.BackgroundTransparency = 1
+		l.TextColor3 = paints[(i - 1) % #paints + 1]
+		l.TextStrokeTransparency = 0
+		l.TextStrokeColor3 = Color3.fromRGB(20, 18, 24)
+		l.Font = Enum.Font.FredokaOne
+		l.TextScaled = true
+		l.Text = word:sub(i, i)
+		l.Parent = g
+	end
+end
 
 -- Trophy case (against the back/north wall)
 part({ Size = Vector3.new(18, 10, 1.2), Position = Vector3.new(-5, 5, -56.9),
