@@ -265,7 +265,9 @@ local function meshSign(x, y, z, sx, sy, yawDeg, text, textColor, plateName)
 		board.CFrame = cf
 		board.Parent = map
 	end
-	local plate = part({ Size = Vector3.new(sx * 0.84, sy * 0.62, 0.3),
+	-- the generated frame's border eats ~30% of the width: the plate must fit
+	-- the INNER panel or it overhangs the frame (the "not put together" look)
+	local plate = part({ Size = Vector3.new(sx * 0.66, sy * 0.48, 0.3),
 		CFrame = cf * CFrame.new(0, 0, -0.95),
 		Color = Color3.fromRGB(26, 24, 30), Material = Enum.Material.Metal })
 	if plateName then
@@ -283,7 +285,7 @@ local function hangSign(x, y, z, yawDeg, text, textColor)
 		m.CFrame = cf
 		m.Parent = map
 	end
-	local plate = part({ Size = Vector3.new(5, 2.4, 0.3),
+	local plate = part({ Size = Vector3.new(4.2, 2, 0.3),
 		CFrame = cf * CFrame.new(0, -1.7, -0.6),
 		Color = Color3.fromRGB(26, 24, 30), Material = Enum.Material.Metal })
 	sign(plate, Enum.NormalId.Front, text, textColor, Color3.fromRGB(26, 24, 30))
@@ -393,16 +395,50 @@ launchPad(52, -52, 0)
 launchPad(-32, 32, 0)
 
 -- ══ BASKETBALL HOOPS ════════════════════════════════════════════════════════
+-- Real basketball hoop: the rim is a RING of 10 small segments, so the
+-- ball's sweep raycasts pass clean through the middle (lob one in!) but
+-- bounce off the metal. The old rim was a solid disc you couldn't score on.
 local function hoop(x, z, baseY, faceDir)
-	part({ Size = Vector3.new(0.8, 13, 0.8), Position = Vector3.new(x, baseY + 6.5, z),
-		Color = METAL_DK, Material = Enum.Material.Metal })
-	local bb = part({ Size = Vector3.new(0.5, 4.5, 6.5),
-		CFrame = CFrame.new(x, baseY + 12, z) * CFrame.Angles(0, math.rad(faceDir), 0),
-		Color = Color3.fromRGB(235, 232, 226), Material = Enum.Material.SmoothPlastic })
-	local off = CFrame.new(x, baseY + 10.4, z) * CFrame.Angles(0, math.rad(faceDir), 0) * CFrame.new(2.2, 0, 0)
-	part({ Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.3, 3.4, 3.4),
-		CFrame = CFrame.new(off.Position) * CFrame.Angles(0, 0, math.rad(90)),
-		Color = Color3.fromRGB(255, 120, 40), Material = Enum.Material.Metal })
+	local face = CFrame.new(x, baseY, z) * CFrame.Angles(0, math.rad(faceDir), 0)
+	-- pole with base plate + double brace arms
+	part({ Size = Vector3.new(1.1, 13.5, 1.1), Position = Vector3.new(x, baseY + 6.75, z),
+		Color = Color3.fromRGB(52, 78, 92), Material = Enum.Material.Metal })
+	part({ Size = Vector3.new(2.6, 0.5, 2.6), Position = Vector3.new(x, baseY + 0.25, z),
+		Color = Color3.fromRGB(52, 78, 92), Material = Enum.Material.Metal })
+	for _, dy in { 11.2, 12.4 } do
+		part({ Size = Vector3.new(0.35, 0.35, 1.6), CFrame = face * CFrame.new(0.95, dy, 0) * CFrame.Angles(0, math.rad(90), 0),
+			Color = METAL_DK, Material = Enum.Material.Metal })
+	end
+	-- backboard: white board + mustard shooter square + trim frame
+	part({ Size = Vector3.new(0.5, 4.8, 7),
+		CFrame = face * CFrame.new(1.9, 12.2, 0),
+		Color = Color3.fromRGB(240, 236, 228), Material = Enum.Material.SmoothPlastic })
+	part({ Size = Vector3.new(0.12, 2.2, 3.2),
+		CFrame = face * CFrame.new(2.2, 11.6, 0),
+		Color = MUSTARD, Material = Enum.Material.SmoothPlastic })
+	part({ Size = Vector3.new(0.55, 0.4, 7.2),
+		CFrame = face * CFrame.new(1.9, 14.55, 0),
+		Color = Color3.fromRGB(52, 78, 92), Material = Enum.Material.Metal })
+	-- the rim: 10 segments around a 4.6-stud ring (opening ~3.9 > ball 1.8)
+	local rimC = face * CFrame.new(4.6, 10.4, 0) -- ring center, out from the board
+	local RIM_R = 2.3
+	for i = 0, 9 do
+		local a = i / 10 * math.pi * 2
+		part({ Size = Vector3.new(0.45, 0.35, 1.55),
+			CFrame = rimC * CFrame.new(math.cos(a) * RIM_R, 0, math.sin(a) * RIM_R)
+				* CFrame.Angles(0, -a, 0),
+			Color = Color3.fromRGB(255, 120, 40), Material = Enum.Material.Metal })
+	end
+	-- net: 8 tapered strips hanging from the rim (visual only — no collide,
+	-- no query, so they never eat a made shot)
+	for i = 0, 7 do
+		local a = (i + 0.5) / 8 * math.pi * 2
+		part({ Size = Vector3.new(0.18, 2.6, 0.18),
+			CFrame = rimC * CFrame.new(math.cos(a) * (RIM_R - 0.5), -1.4, math.sin(a) * (RIM_R - 0.5))
+				* CFrame.Angles(math.rad(math.sin(a) * 9), 0, math.rad(math.cos(a) * -9)),
+			Color = Color3.fromRGB(235, 235, 235), Material = Enum.Material.Fabric,
+			CanCollide = false, CanQuery = false })
+	end
 end
 hoop(-30, -52, 0, -90)    -- west of the garage, faces south
 hoop(20, -56, 0, -90)     -- east of the garage, faces south
@@ -622,6 +658,7 @@ local PROP_MESHES = {
 	arcade = { mesh = 75784229888285, tex = 123364029334806 },  -- arcade cabinet
 	fridge = { mesh = 133543084994948, tex = 100659634387656 }, -- mint mini fridge
 	table  = { mesh = 96675283363598, tex = 128019790656861 },  -- wooden coffee table
+	lamp   = { mesh = 77967804167230, tex = 96244048720183 },  -- lantern street lamp
 }
 local propCache = {}
 local function prop(kind, size, cf)
@@ -697,26 +734,29 @@ do
 		Transparency = 0.25, CanCollide = false, CanQuery = false })
 end
 
--- ══ STREET LAMPS (cool light pools so the decks read at night) ══════════════
-local function streetLamp(x, z, baseY)
-	part({ Size = Vector3.new(0.6, 12, 0.6), Position = Vector3.new(x, baseY + 6, z),
-		Color = METAL_DK, Material = Enum.Material.Metal })
-	local head = part({ Size = Vector3.new(2.6, 0.5, 1.2), Position = Vector3.new(x, baseY + 12.2, z),
-		Color = Color3.fromRGB(200, 240, 255), Material = Enum.Material.SmoothPlastic })
+-- ══ STREET LAMPS (generated lantern posts; warm pools so the decks read) ════
+-- Mesh lamp + an invisible emitter part up at the lantern head (a PointLight
+-- on the MeshPart itself would shine from the pole's middle).
+local function streetLamp(x, z, baseY, yawDeg)
+	prop("lamp", Vector3.new(6, 15, 2.5),
+		CFrame.new(x, baseY + 7.5, z) * CFrame.Angles(0, math.rad(yawDeg or 0), 0))
+	local head = part({ Size = Vector3.new(0.4, 0.4, 0.4),
+		CFrame = CFrame.new(x, baseY + 13.2, z) * CFrame.Angles(0, math.rad(yawDeg or 0), 0) * CFrame.new(1.6, 0, 0),
+		Transparency = 1, CanCollide = false, CanQuery = false, CastShadow = false })
 	local pl = Instance.new("PointLight")
-	pl.Color = Color3.fromRGB(190, 225, 255)
+	pl.Color = Color3.fromRGB(255, 224, 170)
 	pl.Range = 36
 	pl.Brightness = 2.0
 	pl.Parent = head
 end
-streetLamp(30, -10, 0)
-streetLamp(-15, 12, 0)
-streetLamp(45, -35, 0)
-streetLamp(0, 28, 0)
-streetLamp(-70, -20, 4)   -- queue roof plaza
-streetLamp(-115, -5, 4)
-streetLamp(95, -15, -6)   -- training roof
-streetLamp(120, -55, -6)
+streetLamp(30, -10, 0, 180)
+streetLamp(-15, 12, 0, 0)
+streetLamp(45, -35, 0, -135)
+streetLamp(0, 28, 0, 90)
+streetLamp(-70, -20, 4, 45)   -- queue roof plaza
+streetLamp(-115, -5, 4, -90)
+streetLamp(95, -15, -6, 135)  -- training roof
+streetLamp(120, -55, -6, -45)
 
 -- ══ BARRIER SKYLINE ═════════════════════════════════════════════════════════
 local BARRIER_COLORS = {
