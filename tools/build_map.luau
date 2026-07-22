@@ -689,67 +689,75 @@ local BARRIER_MATS = {
 	Enum.Material.Brick, Enum.Material.Concrete, Enum.Material.Limestone,
 	Enum.Material.Sandstone, Enum.Material.Concrete,
 }
+-- CUSTOM MESH TOWERS: five building designs generated with Studio's
+-- generate_mesh (original prompts), recreated from their permanent asset IDs
+-- and stretched to each slot's exact footprint. The mesh covers the visible
+-- top 200 studs; a plain shaft in the tower's color continues down into the
+-- cloud fog, so the skyline still sinks into the void like it always did.
+local AssetService = game:GetService("AssetService")
+local TOWER_MESHES = {
+	-- v2 designs: strict floor rhythm (15-18 floors of small windows), sharp
+	-- rectangular massing, crisp edges. Each generated mesh has a PAIRED
+	-- texture asset — CreateMeshPartAsync rebuilds geometry only, so the
+	-- TextureID must be reapplied by hand (it's script-writable; MeshId isn't).
+	{ mesh = 121983418220311, tex = 104497216431792 }, -- terracotta apartment tower
+	{ mesh = 81305040848998, tex = 80622997433818 },   -- dark brick office tower
+	{ mesh = 80231644737854, tex = 103028928850752 },  -- tan art-deco tower
+	{ mesh = 75318671248482, tex = 124411094570172 },  -- sandstone hotel tower
+	{ mesh = 88960819929663, tex = 139192380214504 },  -- brick industrial loft
+}
+local TOWER_MESH_H = 200
+local towerCache = {}
+local function towerMeshFor(ci)
+	local def = TOWER_MESHES[(ci - 1) % #TOWER_MESHES + 1]
+	if towerCache[def.mesh] == nil then
+		local ok, mp = pcall(function()
+			return AssetService:CreateMeshPartAsync(Content.fromAssetId(def.mesh))
+		end)
+		if ok and mp then
+			mp.TextureID = "rbxassetid://" .. def.tex
+			towerCache[def.mesh] = mp
+		else
+			towerCache[def.mesh] = false
+		end
+	end
+	local template = towerCache[def.mesh]
+	return if template then template:Clone() else nil
+end
+
 local function barrier(name, cx, cz, w, d, top, ci)
 	local color = BARRIER_COLORS[(ci - 1) % #BARRIER_COLORS + 1]
-	part({ Name = name, Size = Vector3.new(w, top + 400, d),
-		Position = Vector3.new(cx, (top - 400) / 2, cz), Color = color,
-		Material = BARRIER_MATS[(ci - 1) % #BARRIER_MATS + 1] })
-	-- FACADE on the arena-facing side: ribbon window bands per floor (a few
-	-- lit warm — someone's home), plus proud cornice ledges. This is what
-	-- turns "colored slab" into "building".
+	-- yaw the design's front toward the arena
 	local toX, toZ = 35 - cx, -22 - cz
-	local nx, nz = 0, 0
+	local yaw
 	if math.abs(toX) * d > math.abs(toZ) * w then
-		nx = if toX > 0 then 1 else -1
+		yaw = if toX > 0 then -90 else 90
 	else
-		nz = if toZ > 0 then 1 else -1
+		yaw = if toZ > 0 then 180 else 0
 	end
-	local faceW = (if nx ~= 0 then d else w) * 0.82
-	local bx = cx + nx * (w / 2 + 0.35)
-	local bz = cz + nz * (d / 2 + 0.35)
-	-- WINDOW GRID: individual panes in rows and columns (not ribbon lines).
-	-- Mostly dark glass; a sparse scatter of warm interior-lit panes (plain
-	-- plastic, NOT neon — no bloom, just a lamp left on somewhere).
-	local paneW, paneH, gapX, gapY = 4.6, 4.6, 2.8, 6.4
-	local cols = math.floor((faceW + gapX) / (paneW + gapX))
-	local startO = -((cols - 1) * (paneW + gapX)) / 2
-	for floor = 0, 5 do
-		local fy = top - 10 - floor * (paneH + gapY)
-		if fy < -30 then
-			break
-		end
-		for c = 0, cols - 1 do
-			local o = startO + c * (paneW + gapX)
-			local lit = (ci * 13 + floor * 7 + c * 5) % 9 == 0
-			part({
-				Size = if nx ~= 0 then Vector3.new(0.4, paneH, paneW) else Vector3.new(paneW, paneH, 0.4),
-				Position = Vector3.new(bx + (if nx ~= 0 then 0 else o), fy, bz + (if nx ~= 0 then o else 0)),
-				Color = if lit then Color3.fromRGB(255, 216, 160) else Color3.fromRGB(92, 112, 132),
-				Material = if lit then Enum.Material.SmoothPlastic else Enum.Material.Glass,
-				Transparency = if lit then 0 else 0.15,
-				CanCollide = false, CanQuery = false, CastShadow = false,
-			})
-		end
+	local mesh = towerMeshFor(ci)
+	if mesh then
+		mesh.Name = name
+		-- under a 90° yaw the local axes swap, so swap the stretch too
+		mesh.Size = if yaw == 90 or yaw == -90
+			then Vector3.new(d, TOWER_MESH_H, w)
+			else Vector3.new(w, TOWER_MESH_H, d)
+		mesh.CFrame = CFrame.new(cx, top - TOWER_MESH_H / 2, cz) * CFrame.Angles(0, math.rad(yaw), 0)
+		mesh.Anchored = true
+		mesh.CanCollide = false
+		mesh.CanQuery = false
+		mesh.Parent = map
+		-- shaft below the mesh, sinking into the clouds
+		local baseTop = top - TOWER_MESH_H
+		part({ Name = name .. "Base", Size = Vector3.new(w, baseTop + 400, d),
+			Position = Vector3.new(cx, (baseTop - 400) / 2, cz), Color = color,
+			Material = BARRIER_MATS[(ci - 1) % #BARRIER_MATS + 1] })
+	else
+		-- offline fallback: the old flat slab so the skyline never vanishes
+		part({ Name = name, Size = Vector3.new(w, top + 400, d),
+			Position = Vector3.new(cx, (top - 400) / 2, cz), Color = color,
+			Material = BARRIER_MATS[(ci - 1) % #BARRIER_MATS + 1] })
 	end
-	for _, cy in { top - 28, top - 61 } do
-		part({
-			Size = Vector3.new(if nx ~= 0 then 1.4 else faceW + 6, 1.6, if nx ~= 0 then faceW + 6 else 1.4),
-			Position = Vector3.new(cx + nx * (w / 2 + 0.7), cy, cz + nz * (d / 2 + 0.7)),
-			Color = Color3.new(color.R * 0.75, color.G * 0.75, color.B * 0.75),
-			Material = Enum.Material.Concrete, CanCollide = false,
-		})
-	end
-	-- roofline trim: a THIN accent line, barely-there glow (parapet cap, not
-	-- a light tube) — plus a plain parapet lip so the top reads architectural
-	local pc = BARRIER_NEONS[(ci - 1) % #BARRIER_NEONS + 1]
-	local lip = Color3.new(color.R * 0.7, color.G * 0.7, color.B * 0.7)
-	part({ Size = Vector3.new(w, 2.4, 2), Position = Vector3.new(cx, top + 1.2, cz - d / 2 + 1), Color = lip, Material = Enum.Material.Concrete })
-	part({ Size = Vector3.new(w, 2.4, 2), Position = Vector3.new(cx, top + 1.2, cz + d / 2 - 1), Color = lip, Material = Enum.Material.Concrete })
-	part({ Size = Vector3.new(2, 2.4, d), Position = Vector3.new(cx - w / 2 + 1, top + 1.2, cz), Color = lip, Material = Enum.Material.Concrete })
-	part({ Size = Vector3.new(2, 2.4, d), Position = Vector3.new(cx + w / 2 - 1, top + 1.2, cz), Color = lip, Material = Enum.Material.Concrete })
-	part({ Size = Vector3.new(if nx ~= 0 then 0.6 else w * 0.9, 0.5, if nx ~= 0 then d * 0.9 else 0.6),
-		Position = Vector3.new(cx + nx * (w / 2 + 0.4), top + 2.6, cz + nz * (d / 2 + 0.4)),
-		Color = pc, Material = Enum.Material.Neon, Transparency = 0.65, CanCollide = false, CastShadow = false })
 end
 barrier("N1", -80, -150, 100, 80, 120, 1)
 barrier("N2", 10, -160, 90, 90, 90, 2)
@@ -761,37 +769,6 @@ barrier("S2", 40, 115, 110, 80, 80, 2)
 barrier("S3", 130, 100, 80, 90, 125, 3)
 barrier("W1", -195, -40, 80, 90, 110, 4)
 barrier("W2", -190, 30, 90, 70, 85, 5)
-
--- ══ SECOND-ROW SKYLINE (AI-generated hero meshes) ═══════════════════════════
--- Generated once with Studio's generate_mesh; the permanent asset IDs let the
--- rebuild recreate them from code, so even meshes stay map-as-code. They sit
--- BEHIND the front-row towers and peek over the rooflines — parallax depth
--- that reads from the roofs and the glider.
-local AssetService = game:GetService("AssetService")
-local SKYLINE_MESHES = {
-	{ id = 120013690841017, size = Vector3.new(73.8, 140, 56.9),  -- pastel stepped tower + water tank
-		cf = CFrame.new(60, 75, -238) * CFrame.Angles(0, math.rad(180), 0) },
-	{ id = 115457179080850, size = Vector3.new(40.3, 160, 40.7),  -- brick clock tower
-		cf = CFrame.new(-35, 80, -245) * CFrame.Angles(0, math.rad(180), 0) },
-	{ id = 73320336492570, size = Vector3.new(57.8, 130, 57.9),   -- teal round corner tower
-		cf = CFrame.new(265, 90, -10) * CFrame.Angles(0, math.rad(-90), 0) },
-}
-for i, def in SKYLINE_MESHES do
-	local ok, mp = pcall(function()
-		return AssetService:CreateMeshPartAsync(Content.fromAssetId(def.id))
-	end)
-	if ok and mp then
-		mp.Name = "SkylineMesh" .. i
-		mp.Size = def.size
-		mp.CFrame = def.cf
-		mp.Anchored = true
-		mp.CanCollide = false
-		mp.CanQuery = false
-		mp.Parent = map
-	else
-		warn("[Ballout map] skyline mesh " .. def.id .. " failed: " .. tostring(mp))
-	end
-end
 
 -- vertical stacked-letter shop signs on the arena-facing tower walls
 -- (original Ballout-world brands — every city needs businesses)
