@@ -76,10 +76,10 @@ part({ Name = "ShaftDummy", Size = Vector3.new(60, 400, 90), Position = Vector3.
 part({ Size = Vector3.new(56, 0.16, 52), Position = Vector3.new(105, -5.92, -23),
 	Color = GRASS, Material = Enum.Material.Grass })
 
--- Bot pad (Main.server.luau spawns the training bot here): center of the
--- training lawn, facing the hoop at the roof's north edge
+-- Bot pad (Main.server.luau spawns the training bot here): south end of the
+-- training roof, facing due north — placed exactly where the owner stood
 part({ Name = "DummyPad", Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.3, 7, 7),
-	CFrame = CFrame.new(105, -5.8, -23) * CFrame.Angles(0, 0, math.rad(90)),
+	CFrame = CFrame.new(105.5, -5.8, -69.7) * CFrame.Angles(0, 0, math.rad(90)),
 	Color = Color3.fromRGB(150, 120, 88), Material = Enum.Material.Ground })
 
 -- ══ WINDOW STRIPS down the outward faces ════════════════════════════════════
