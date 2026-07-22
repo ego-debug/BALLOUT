@@ -707,20 +707,29 @@ local function barrier(name, cx, cz, w, d, top, ci)
 	local faceW = (if nx ~= 0 then d else w) * 0.82
 	local bx = cx + nx * (w / 2 + 0.35)
 	local bz = cz + nz * (d / 2 + 0.35)
-	for floor = 0, 9 do
-		local fy = top - 9 - floor * 11
-		if fy < -75 then
+	-- WINDOW GRID: individual panes in rows and columns (not ribbon lines).
+	-- Mostly dark glass; a sparse scatter of warm interior-lit panes (plain
+	-- plastic, NOT neon — no bloom, just a lamp left on somewhere).
+	local paneW, paneH, gapX, gapY = 4.6, 4.6, 2.8, 6.4
+	local cols = math.floor((faceW + gapX) / (paneW + gapX))
+	local startO = -((cols - 1) * (paneW + gapX)) / 2
+	for floor = 0, 5 do
+		local fy = top - 10 - floor * (paneH + gapY)
+		if fy < -30 then
 			break
 		end
-		local lit = (ci * 7 + floor * 3) % 4 == 0
-		part({
-			Size = Vector3.new(if nx ~= 0 then 0.5 else faceW, 4.6, if nx ~= 0 then faceW else 0.5),
-			Position = Vector3.new(bx, fy, bz),
-			Color = if lit then Color3.fromRGB(255, 214, 150) else Color3.fromRGB(58, 68, 84),
-			Material = if lit then Enum.Material.Neon else Enum.Material.Glass,
-			Transparency = if lit then 0.2 else 0.08,
-			CanCollide = false, CanQuery = false, CastShadow = false,
-		})
+		for c = 0, cols - 1 do
+			local o = startO + c * (paneW + gapX)
+			local lit = (ci * 13 + floor * 7 + c * 5) % 9 == 0
+			part({
+				Size = if nx ~= 0 then Vector3.new(0.4, paneH, paneW) else Vector3.new(paneW, paneH, 0.4),
+				Position = Vector3.new(bx + (if nx ~= 0 then 0 else o), fy, bz + (if nx ~= 0 then o else 0)),
+				Color = if lit then Color3.fromRGB(255, 216, 160) else Color3.fromRGB(92, 112, 132),
+				Material = if lit then Enum.Material.SmoothPlastic else Enum.Material.Glass,
+				Transparency = if lit then 0 else 0.15,
+				CanCollide = false, CanQuery = false, CastShadow = false,
+			})
+		end
 	end
 	for _, cy in { top - 28, top - 61 } do
 		part({
@@ -730,12 +739,17 @@ local function barrier(name, cx, cz, w, d, top, ci)
 			Material = Enum.Material.Concrete, CanCollide = false,
 		})
 	end
-	-- glowing roofline ring: each skyline tower is outlined in its own neon
+	-- roofline trim: a THIN accent line, barely-there glow (parapet cap, not
+	-- a light tube) — plus a plain parapet lip so the top reads architectural
 	local pc = BARRIER_NEONS[(ci - 1) % #BARRIER_NEONS + 1]
-	part({ Size = Vector3.new(w, 3, 2), Position = Vector3.new(cx, top + 1.5, cz - d / 2 + 1), Color = pc, Material = Enum.Material.Neon, Transparency = 0.45 })
-	part({ Size = Vector3.new(w, 3, 2), Position = Vector3.new(cx, top + 1.5, cz + d / 2 - 1), Color = pc, Material = Enum.Material.Neon, Transparency = 0.45 })
-	part({ Size = Vector3.new(2, 3, d), Position = Vector3.new(cx - w / 2 + 1, top + 1.5, cz), Color = pc, Material = Enum.Material.Neon, Transparency = 0.45 })
-	part({ Size = Vector3.new(2, 3, d), Position = Vector3.new(cx + w / 2 - 1, top + 1.5, cz), Color = pc, Material = Enum.Material.Neon, Transparency = 0.45 })
+	local lip = Color3.new(color.R * 0.7, color.G * 0.7, color.B * 0.7)
+	part({ Size = Vector3.new(w, 2.4, 2), Position = Vector3.new(cx, top + 1.2, cz - d / 2 + 1), Color = lip, Material = Enum.Material.Concrete })
+	part({ Size = Vector3.new(w, 2.4, 2), Position = Vector3.new(cx, top + 1.2, cz + d / 2 - 1), Color = lip, Material = Enum.Material.Concrete })
+	part({ Size = Vector3.new(2, 2.4, d), Position = Vector3.new(cx - w / 2 + 1, top + 1.2, cz), Color = lip, Material = Enum.Material.Concrete })
+	part({ Size = Vector3.new(2, 2.4, d), Position = Vector3.new(cx + w / 2 - 1, top + 1.2, cz), Color = lip, Material = Enum.Material.Concrete })
+	part({ Size = Vector3.new(if nx ~= 0 then 0.6 else w * 0.9, 0.5, if nx ~= 0 then d * 0.9 else 0.6),
+		Position = Vector3.new(cx + nx * (w / 2 + 0.4), top + 2.6, cz + nz * (d / 2 + 0.4)),
+		Color = pc, Material = Enum.Material.Neon, Transparency = 0.65, CanCollide = false, CastShadow = false })
 end
 barrier("N1", -80, -150, 100, 80, 120, 1)
 barrier("N2", 10, -160, 90, 90, 90, 2)
