@@ -139,6 +139,11 @@ BallConfig.BOT_ALWAYS_CATCH = true  -- perfect-catches every incoming ball (feel
 BallConfig.BOT_HOLD_DELAY = 0.6     -- seconds it holds before throwing back
 BallConfig.BOT_NAME = "TrainingDummy"
 
+-- ── Dash bonk (reckless dodging has consequences) ───────────────────────
+BallConfig.BONK_STUN = 1.4        -- seconds on the floor holding your head
+BallConfig.BONK_WALL_RANGE = 2.4  -- how close to a wall mid-dash counts as a face-plant
+BallConfig.BONK_DASHER_RANGE = 4.5 -- two mid-dash players this close clonk heads
+
 -- ── Queue + match (Team KO) ─────────────────────────────────────────────
 BallConfig.QUEUE_BOT_FALLBACK = 180 -- wait this long for real players before bots fill
 BallConfig.QUEUE_ALL_IN_TIME = 15   -- ...but if EVERYONE in the server is already on

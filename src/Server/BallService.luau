@@ -126,11 +126,7 @@ local wallRayParams = RaycastParams.new()
 wallRayParams.FilterType = Enum.RaycastFilterType.Include
 local wallRoots: { Instance } = {}
 local WALL_ROOT_NAMES = { "BalloutMap", "BalloutLobby", "BalloutArena", "Baseplate" }
-local function sweepWall(from: Vector3, to: Vector3): RaycastResult?
-	local delta = to - from
-	if delta.Magnitude < 1e-4 then
-		return nil
-	end
+local function refreshWallRoots()
 	local stale = #wallRoots == 0
 	for _, root in wallRoots do
 		if root.Parent == nil then
@@ -148,6 +144,14 @@ local function sweepWall(from: Vector3, to: Vector3): RaycastResult?
 		end
 		wallRayParams.FilterDescendantsInstances = wallRoots
 	end
+end
+
+local function sweepWall(from: Vector3, to: Vector3): RaycastResult?
+	local delta = to - from
+	if delta.Magnitude < 1e-4 then
+		return nil
+	end
+	refreshWallRoots()
 	-- Pad by the radius so surfaces stop the ball's skin, not its center.
 	return Workspace:Raycast(from, delta.Unit * (delta.Magnitude + BallConfig.BALL_DIAMETER / 2), wallRayParams)
 end
@@ -544,6 +548,97 @@ local function catchBall(catcher: Fighter, perfect: boolean)
 	end
 end
 
+-- ── Dash bonk ──────────────────────────────────────────────────────────────
+-- Reckless dodging has consequences: face-plant a wall mid-dash (or clonk
+-- heads with another dasher) and you're on the floor for BONK_STUN with
+-- birds circling. Dashing into a STANDING player stays a tackle — only solid
+-- map geometry and mutual dashers bonk.
+local bonkEffects: { { character: Model, parts: { BasePart }, expires: number } } = {}
+
+local function spawnBirds(character: Model)
+	local head = character:FindFirstChild("Head")
+	if not (head and head:IsA("BasePart")) then
+		return
+	end
+	local parts = {}
+	for i = 1, 3 do
+		local b = Instance.new("Part")
+		b.Name = "BonkBird"
+		b.Shape = Enum.PartType.Ball
+		b.Size = Vector3.new(0.55, 0.55, 0.55)
+		b.Color = Color3.fromRGB(255, 220, 90)
+		b.Material = Enum.Material.Neon
+		b.Anchored = true
+		b.CanCollide = false
+		b.CanQuery = false
+		b.CanTouch = false
+		b.CastShadow = false
+		b.Parent = Workspace
+		table.insert(parts, b)
+	end
+	table.insert(bonkEffects, { character = character, parts = parts, expires = now() + BallConfig.BONK_STUN })
+end
+
+local function stepBonkEffects()
+	for i = #bonkEffects, 1, -1 do
+		local fx = bonkEffects[i]
+		local head = if fx.character.Parent then fx.character:FindFirstChild("Head") else nil
+		if now() > fx.expires or not (head and head:IsA("BasePart")) then
+			for _, p in fx.parts do
+				p:Destroy()
+			end
+			table.remove(bonkEffects, i)
+		else
+			-- classic cartoon orbit around the (possibly floored) head
+			local t = now() * 4
+			for k, p in fx.parts do
+				local a = t + (k - 1) * (math.pi * 2 / 3)
+				p.Position = head.Position + Vector3.new(math.cos(a) * 1.7, 0.9, math.sin(a) * 1.7)
+			end
+		end
+	end
+end
+
+local function bonkFighter(f: Fighter)
+	if now() < (stunned[f.character] or 0) then
+		return -- already down (predicted report + server fallback can race)
+	end
+	dashing[f.character] = nil
+	stunned[f.character] = now() + BallConfig.BONK_STUN
+	-- curl up holding the head; the client tips the body onto the floor
+	AnimService.TuckPulse(f.character, BallConfig.BONK_STUN * 0.9)
+	BallformService.PhysicsShell(f.character, BallConfig.BONK_STUN)
+	spawnBirds(f.character)
+	feedback(f, "Bonk", { duration = BallConfig.BONK_STUN })
+end
+
+local function stepDashBonks()
+	refreshWallRoots()
+	local active: { Fighter } = {}
+	for _, f in fighters do
+		local dash = dashing[f.character]
+		if dash and now() < dash.expires and dash.dir.Magnitude > 0.01
+			and f.character.Parent and f.root.Parent then
+			-- face-plant: a proper WALL dead ahead (steep normal only, so
+			-- dashing up ramps never counts)
+			local hit = Workspace:Raycast(f.root.Position, dash.dir * BallConfig.BONK_WALL_RANGE, wallRayParams)
+			if hit and math.abs(hit.Normal.Y) < 0.5 then
+				bonkFighter(f)
+			else
+				table.insert(active, f)
+			end
+		end
+	end
+	for i = 1, #active do
+		for j = i + 1, #active do
+			if (active[i].root.Position - active[j].root.Position).Magnitude <= BallConfig.BONK_DASHER_RANGE then
+				bonkFighter(active[i])
+				bonkFighter(active[j])
+			end
+		end
+	end
+end
+
 local function koFighter(f: Fighter)
 	hits[f.character] = 0
 	overcharge[f.character] = 0
@@ -777,6 +872,8 @@ end
 
 -- ── Per-frame update ───────────────────────────────────────────────────────
 local function onHeartbeat(dt: number)
+	stepDashBonks()
+	stepBonkEffects()
 	-- Comic-book pulse: the aura breathes while charged.
 	if auraOn then
 		local pulse = 0.5 + 0.5 * math.sin(now() * 8)
@@ -1247,6 +1344,30 @@ function BallService.Start()
 					applyCarry(f)
 				end
 			end)
+		end
+	end)
+
+	-- Client-predicted wall bonk: the dash moves on the client, so the wall
+	-- is felt there first (zero-delay tip-over). We validate — actually mid-
+	-- dash, wall plausibly ahead of the (replication-lagged) root — then make
+	-- it official: authoritative stun, birds, and the Bonk echo for status.
+	Remotes.BonkReport.OnServerEvent:Connect(function(player)
+		local char = player.Character
+		local f = char and fighterFor(char)
+		if not f then
+			return
+		end
+		if now() < (stunned[char] or 0) then
+			return
+		end
+		local dash = dashing[char]
+		if not dash or now() > dash.lockUntil + 0.35 then
+			return -- not dashing (or long past it): ignore the report
+		end
+		refreshWallRoots()
+		local hit = Workspace:Raycast(f.root.Position, dash.dir * (BallConfig.BONK_WALL_RANGE + 6), wallRayParams)
+		if hit and math.abs(hit.Normal.Y) < 0.5 then
+			bonkFighter(f)
 		end
 	end)
 

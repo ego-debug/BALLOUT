@@ -126,6 +126,64 @@ local function setFootsteps(on: boolean)
 end
 local stickY = 0 -- gamepad thumbstick Y (X is tracked further down)
 
+-- ── Dash bonk (client-predicted) ────────────────────────────────────────────
+-- The dash MOVES on the client, so the wall is felt HERE first — the bonk
+-- applies the same frame contact happens, then the server validates via
+-- BonkReport and makes the stun official (birds, action locks, everyone
+-- sees it). The echoed "Bonk" feedback skips physics we already applied.
+local bonkAppliedUntil = 0
+
+local bonkParams = RaycastParams.new()
+bonkParams.FilterType = Enum.RaycastFilterType.Include
+local bonkRoots: { Instance } = {}
+local function probeDashWall(root: BasePart): boolean
+	local stale = #bonkRoots == 0
+	for _, r in bonkRoots do
+		if r.Parent == nil then
+			stale = true
+			break
+		end
+	end
+	if stale then
+		table.clear(bonkRoots)
+		for _, name in { "BalloutMap", "BalloutLobby", "BalloutArena" } do
+			local inst = Workspace:FindFirstChild(name)
+			if inst then
+				table.insert(bonkRoots, inst)
+			end
+		end
+		bonkParams.FilterDescendantsInstances = bonkRoots
+	end
+	local hit = Workspace:Raycast(root.Position, dashDir * BallConfig.BONK_WALL_RANGE, bonkParams)
+	-- steep surfaces only: ramps are dashable, walls are face-plantable
+	return hit ~= nil and math.abs(hit.Normal.Y) < 0.5
+end
+
+local function applyBonk(dur: number)
+	bonkAppliedUntil = os.clock() + dur
+	stunnedUntil = os.clock() + dur
+	dashEndsAt = 0
+	dashRollEndsAt = 0
+	dashRecovered = true -- the stand-up branch must NOT fire; we get up from the floor
+	local char = player.Character
+	local root = char and char:FindFirstChild("HumanoidRootPart")
+	local hum = char and char:FindFirstChildOfClass("Humanoid")
+	if hum and root and root:IsA("BasePart") then
+		hum.PlatformStand = true
+		-- bounce off the wall and tip over
+		root.AssemblyLinearVelocity = Vector3.new(-dashDir.X * 9, 7, -dashDir.Z * 9)
+		root.AssemblyAngularVelocity = Vector3.new(dashDir.Z, 0, -dashDir.X) * 7
+		task.delay(dur - 0.15, function()
+			local h = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
+			if h then
+				h.PlatformStand = false
+				h:ChangeState(Enum.HumanoidStateType.GettingUp)
+			end
+		end)
+	end
+	setFootsteps(false)
+end
+
 -- Steering input for the roll, read straight from keys/stick and rotated by
 -- the camera. (Humanoid.MoveDirection can't be used: the Physics state the
 -- ball rides in clears it every physics step.)
@@ -514,6 +572,13 @@ RunService:BindToRenderStep("BalloutLockedCamera", Enum.RenderPriority.Camera.Va
 	-- Dash: full-speed dive, then a fast decaying landing roll. Physics
 	-- state the whole way — no walking, no input, no leg animation.
 	if nowT < dashRollEndsAt then
+		-- INSTANT face-plant: contact is detected here, the same frame it
+		-- happens — not after a server round-trip (that read as "late").
+		if nowT < dashEndsAt and probeDashWall(root) then
+			applyBonk(BallConfig.BONK_STUN)
+			Remotes.BonkReport:FireServer()
+			return
+		end
 		if not ballformOn and humanoid:GetState() ~= Enum.HumanoidStateType.Physics then
 			humanoid:ChangeState(Enum.HumanoidStateType.Physics)
 		end
@@ -1085,6 +1150,17 @@ Remotes.Feedback.OnClientEvent:Connect(function(kind: string, data: any?)
 		stunnedUntil = os.clock() + BallConfig.WHIFF_STUN
 		catchRootEndsAt = os.clock() + BallConfig.WHIFF_STUN
 		setStatus("WHIFFED — vulnerable!", Color3.fromRGB(255, 160, 70))
+	elseif kind == "Bonk" then
+		-- Server made it official. If the client already predicted this bonk
+		-- (wall face-plant), the physics ran the instant of contact — only
+		-- sync the stun clock. Unpredicted bonks (head-clonk with another
+		-- dasher — server-detected) tip over right here.
+		local dur = (data and data.duration) or BallConfig.BONK_STUN
+		stunnedUntil = os.clock() + dur
+		if os.clock() > bonkAppliedUntil then
+			applyBonk(dur)
+		end
+		setStatus("BONKED! watch where you dash", Color3.fromRGB(255, 200, 80))
 	elseif kind == "PopUp" then
 		setStatus("BASH! ball popped up", Color3.fromRGB(150, 230, 150))
 	elseif kind == "Fake" then
