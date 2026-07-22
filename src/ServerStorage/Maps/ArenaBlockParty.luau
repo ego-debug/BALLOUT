@@ -79,13 +79,13 @@ function Arena.Build(): Model
 	mk(model, "WallW", Vector3.new(1.5, WALL_H, D + 3), CENTER + Vector3.new(-W / 2, WALL_H / 2, 0), BRICK_DK, Enum.Material.Brick)
 	mk(model, "WallE", Vector3.new(1.5, WALL_H, D + 3), CENTER + Vector3.new(W / 2, WALL_H / 2, 0), BRICK_DK, Enum.Material.Brick)
 	-- neon rim along every wall top (cyberpunk roofline outline)
-	local rim = mk(model, "RimN", Vector3.new(W + 3.6, 0.6, 0.6), CENTER + Vector3.new(0, WALL_H + 0.3, -D / 2), CYAN, Enum.Material.Neon)
+	local rim = mk(model, "RimN", Vector3.new(W + 3.6, 0.6, 0.6), CENTER + Vector3.new(0, WALL_H + 0.3, -D / 2), CYAN, Enum.Material.SmoothPlastic)
 	rim.Transparency = 0.25
-	rim = mk(model, "RimS", Vector3.new(W + 3.6, 0.6, 0.6), CENTER + Vector3.new(0, WALL_H + 0.3, D / 2), CYAN, Enum.Material.Neon)
+	rim = mk(model, "RimS", Vector3.new(W + 3.6, 0.6, 0.6), CENTER + Vector3.new(0, WALL_H + 0.3, D / 2), CYAN, Enum.Material.SmoothPlastic)
 	rim.Transparency = 0.25
-	rim = mk(model, "RimW", Vector3.new(0.6, 0.6, D + 3.6), CENTER + Vector3.new(-W / 2, WALL_H + 0.3, 0), CYAN, Enum.Material.Neon)
+	rim = mk(model, "RimW", Vector3.new(0.6, 0.6, D + 3.6), CENTER + Vector3.new(-W / 2, WALL_H + 0.3, 0), CYAN, Enum.Material.SmoothPlastic)
 	rim.Transparency = 0.25
-	rim = mk(model, "RimE", Vector3.new(0.6, 0.6, D + 3.6), CENTER + Vector3.new(W / 2, WALL_H + 0.3, 0), CYAN, Enum.Material.Neon)
+	rim = mk(model, "RimE", Vector3.new(0.6, 0.6, D + 3.6), CENTER + Vector3.new(W / 2, WALL_H + 0.3, 0), CYAN, Enum.Material.SmoothPlastic)
 	rim.Transparency = 0.25
 	-- skyline: stepped building silhouettes on the rim (pure vibe)
 	local heights = { 8, 14, 6, 18, 10, 15, 7, 12 }
@@ -106,7 +106,7 @@ function Arena.Build(): Model
 		-- inner-edge parapet so roof fights have a lip (low: hop over to drop in)
 		mk(model, team .. "Parapet", Vector3.new(1, 2.5, 58), Vector3.new(bx - side * 12.5, 14.25, cz), BRICK_DK, Enum.Material.Brick)
 		-- team neon strip along the building face
-		mk(model, team .. "Strip", Vector3.new(0.4, 1.2, 50), Vector3.new(bx - side * 12.3, 10, cz), accent, Enum.Material.Neon)
+		mk(model, team .. "Strip", Vector3.new(0.4, 1.2, 50), Vector3.new(bx - side * 12.3, 10, cz), accent, Enum.Material.SmoothPlastic)
 		-- two ramps up: from the alleys at both z ends onto the roof
 		for _, zEnd in { -1, 1 } do
 			local rampLen = 26
@@ -130,7 +130,7 @@ function Arena.Build(): Model
 
 	-- ── Center stage (raised, 4 ramps, ball on top) ──────────────────────
 	mk(model, "Stage", Vector3.new(30, 5, 30), CENTER + Vector3.new(0, 2.5, 0), PAVE, Enum.Material.Concrete)
-	mk(model, "StageTrim", Vector3.new(31, 0.5, 31), CENTER + Vector3.new(0, 5.25, 0), NEON_W, Enum.Material.Neon)
+	mk(model, "StageTrim", Vector3.new(31, 0.5, 31), CENTER + Vector3.new(0, 5.25, 0), NEON_W, Enum.Material.SmoothPlastic)
 	for _, side in { -1, 1 } do
 		mk(model, "StageRampX", Vector3.new(12, 5, 14),
 			CFrame.new(cx + side * 22, 2.5, cz) * CFrame.Angles(0, math.rad(if side == 1 then -90 else 90), 0),
@@ -176,7 +176,7 @@ function Arena.Build(): Model
 		for _, sz in { -1, 1 } do
 			local lx, lz = cx + sx * 30, cz + sz * 22
 			mk(model, "LampPole", Vector3.new(0.6, 10, 0.6), Vector3.new(lx, 5, lz), METAL, Enum.Material.Metal)
-			local bulb = mk(model, "LampBulb", Vector3.new(1.4, 1.4, 1.4), Vector3.new(lx, 10.6, lz), Color3.fromRGB(255, 214, 120), Enum.Material.Neon)
+			local bulb = mk(model, "LampBulb", Vector3.new(1.4, 1.4, 1.4), Vector3.new(lx, 10.6, lz), Color3.fromRGB(255, 214, 120), Enum.Material.SmoothPlastic)
 			local light = Instance.new("PointLight")
 			light.Color = Color3.fromRGB(255, 214, 160)
 			light.Range = 22
