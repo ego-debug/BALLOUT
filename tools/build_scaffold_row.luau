@@ -199,16 +199,16 @@ local swing = mkCF("SwingZoneMark", Vector3.new(14, 0.25, 100),
 	Color3.fromRGB(190, 150, 150))
 label(swing, "SWING PATH (diagonal, toward/away from the core)")
 -- ══ NORTH LANE: SECOND CRANE (opposite lane from crane 1's southern arc) ════
--- East corridor of the north flank: arc LOW at z -100 (past the north pit),
+-- WEST corridor of the north flank: arc LOW at z -100 (past the north pit),
 -- endpoints at the pit flank (z ~-35) and the map edge (z ~-140). The MAST
 -- stands OUTSIDE the playable bounds — only the arm reaches in.
-mk("CraneMast2", Vector3.new(6, 48, 6), Vector3.new(34, 24, -152))
-mk("CraneArm2", Vector3.new(4, 3, 90), Vector3.new(34, 46, -110))
-mk("WreckChain2", Vector3.new(1, 26, 1), Vector3.new(34, 33, -100))
-local ball2 = mk("WreckBall2", Vector3.new(20, 20, 20), Vector3.new(34, 16, -100), GREY_DK)
+mk("CraneMast2", Vector3.new(6, 48, 6), Vector3.new(-34, 24, -152))
+mk("CraneArm2", Vector3.new(4, 3, 90), Vector3.new(-34, 46, -110))
+mk("WreckChain2", Vector3.new(1, 26, 1), Vector3.new(-34, 33, -100))
+local ball2 = mk("WreckBall2", Vector3.new(20, 20, 20), Vector3.new(-34, 16, -100), GREY_DK)
 ball2.Shape = Enum.PartType.Ball
 label(ball2, "WRECKING BALL 2 — shown at the arc's LOW point")
-local swing2 = mk("SwingZoneMark2", Vector3.new(14, 0.25, 105), Vector3.new(34, 1.2, -87.5), Color3.fromRGB(190, 150, 150))
+local swing2 = mk("SwingZoneMark2", Vector3.new(14, 0.25, 105), Vector3.new(-34, 1.2, -87.5), Color3.fromRGB(190, 150, 150))
 label(swing2, "SWING PATH 2 — low at center, max height at both ends")
 
 -- ══ NE + SW: SPAWN YARDS (diagonal axis) ════════════════════════════════════
