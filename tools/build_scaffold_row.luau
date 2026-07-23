@@ -186,18 +186,18 @@ local blueS = mk("ContainerBlueS", Vector3.new(10, 8, 26), Vector3.new(9, 41, 50
 label(blueS, "CONTAINER D — south pit, shown HIGH (anti-phase)")
 
 -- ══ SE: WRECKING BALL YARD (diagonal arc toward the core) ═══════════════════
-mk("CraneMast", Vector3.new(6, 48, 6), Vector3.new(120, 24, 105))
+mk("CraneMast", Vector3.new(6, 80, 6), Vector3.new(120, 40, 105)) -- tall crane: longer chain, wider swing
 -- SINGLE-POINT pendulum (owner's sketch): the arm ENDS at the pivot; the
 -- chain+ball swing about that tip like a real wrecking ball. Dress-time
 -- script: rotate the chain+ball assembly about the tip in the arm's plane.
 mkCF("CraneArm", Vector3.new(4, 3, 72),
-	CFrame.new(Vector3.new(93, 46, 81.5) + Vector3.new(CX, 0, CZ)) * CFrame.Angles(0, math.rad(45), 0))
-mkCF("WreckChain", Vector3.new(1, 15.5, 1),
-	CFrame.new(Vector3.new(66, 36.75, 58) + Vector3.new(CX, 0, CZ)))
+	CFrame.new(Vector3.new(93, 78, 81.5) + Vector3.new(CX, 0, CZ)) * CFrame.Angles(0, math.rad(45), 0))
+mkCF("WreckChain", Vector3.new(1, 47.5, 1),
+	CFrame.new(Vector3.new(66, 52.75, 58) + Vector3.new(CX, 0, CZ)))
 local ball = mk("WreckBall", Vector3.new(26, 26, 26), Vector3.new(66, 16, 58), GREY_DK)
 ball.Shape = Enum.PartType.Ball
 label(ball, "WRECKING BALL — pendulum from the arm TIP (single pivot)")
-local swing = mkCF("SwingZoneMark", Vector3.new(20, 0.25, 56),
+local swing = mkCF("SwingZoneMark", Vector3.new(20, 0.25, 78), -- ±40°: stops 3.6 clear of the core pillar
 	CFrame.new(Vector3.new(66, 1.2, 58) + Vector3.new(CX, 0, CZ)) * CFrame.Angles(0, math.rad(45), 0),
 	Color3.fromRGB(190, 150, 150))
 label(swing, "SWING PATH (diagonal, toward/away from the core)")
@@ -205,13 +205,13 @@ label(swing, "SWING PATH (diagonal, toward/away from the core)")
 -- WEST corridor of the north flank: arc LOW at z -100 (past the north pit),
 -- endpoints at the pit flank (z ~-35) and the map edge (z ~-140). The MAST
 -- stands OUTSIDE the playable bounds — only the arm reaches in.
-mk("CraneMast2", Vector3.new(6, 48, 6), Vector3.new(-40, 24, -152))
-mk("CraneArm2", Vector3.new(4, 3, 52), Vector3.new(-40, 46, -126)) -- mast -> tip
-mk("WreckChain2", Vector3.new(1, 15.5, 1), Vector3.new(-40, 36.75, -100))
+mk("CraneMast2", Vector3.new(6, 80, 6), Vector3.new(-40, 40, -152))
+mk("CraneArm2", Vector3.new(4, 3, 52), Vector3.new(-40, 78, -126)) -- mast -> tip
+mk("WreckChain2", Vector3.new(1, 47.5, 1), Vector3.new(-40, 52.75, -100))
 local ball2 = mk("WreckBall2", Vector3.new(26, 26, 26), Vector3.new(-40, 16, -100), GREY_DK)
 ball2.Shape = Enum.PartType.Ball
 label(ball2, "WRECKING BALL 2 — pendulum from the arm TIP (single pivot)")
-local swing2 = mk("SwingZoneMark2", Vector3.new(20, 0.25, 56), Vector3.new(-40, 1.2, -100), Color3.fromRGB(190, 150, 150))
+local swing2 = mk("SwingZoneMark2", Vector3.new(20, 0.25, 84), Vector3.new(-40, 1.2, -100), Color3.fromRGB(190, 150, 150)) -- ±42 clears the podium
 label(swing2, "SWING PATH 2 — low at center, max height at both ends")
 
 -- ══ E + W: SPAWN YARDS (edge centers) ═══════════════════════════════════════
