@@ -139,7 +139,9 @@ mk("TowerWallW", Vector3.new(2, 14, 21), Vector3.new(-24, 7, 12))
 mk("TowerWallS", Vector3.new(21, 14, 2), Vector3.new(-12, 7, 24))
 mk("ScafW", Vector3.new(6, 0.6, 40), Vector3.new(-29.2, 14, -12))
 mk("ScafN", Vector3.new(62, 0.6, 6), Vector3.new(-2, 14, -29.2))
-mk("ScafE", Vector3.new(6, 0.6, 56), Vector3.new(29.2, 14, 0))
+-- east walkway STOPS at the roof-strip line (z ~1.5): the bare SE pillar
+-- region and the ball's diagonal approach have NO scaffold
+mk("ScafE", Vector3.new(6, 0.6, 30), Vector3.new(29.2, 14, -13))
 do
 	local ANG = math.rad(29)
 	local function bracket(cf: CFrame)
@@ -158,12 +160,11 @@ do
 	for _, bz in { -26, -12, 2 } do
 		bracket(CFrame.new(Vector3.new(-28.6, 11.4, bz) + Vector3.new(CX, 0, CZ)) * CFrame.Angles(0, math.rad(90), 0) * CFrame.Angles(ANG, 0, 0))
 	end
-	for _, bz in { -22, 0, 22 } do
+	for _, bz in { -22, 0 } do
 		bracket(CFrame.new(Vector3.new(28.6, 11.4, bz) + Vector3.new(CX, 0, CZ)) * CFrame.Angles(0, math.rad(90), 0) * CFrame.Angles(-ANG, 0, 0))
 	end
 end
 wedge("ScafRamp", Vector3.new(8, 14, 22), Vector3.new(-46, 7, -29.5), 90)
-wedge("ScafRamp", Vector3.new(8, 14, 22), Vector3.new(29.5, 7, 41), 180)
 for _, cdef in { { 46, 10 }, { -6, 48 }, { 48, -34 }, { -44, 44 } } do
 	mk("PlazaCrate", Vector3.new(6, 4.5, 5), Vector3.new(cdef[1], 3.25, cdef[2]))
 end
