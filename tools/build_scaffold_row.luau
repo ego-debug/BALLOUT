@@ -138,7 +138,6 @@ mk("TowerFloor3", Vector3.new(51, 1, 21.5), Vector3.new(0, 28.5, -14.75))
 -- stays bare — unfinished right where the ball swings past.
 mk("TowerFloor3", Vector3.new(27, 1, 29.5), Vector3.new(-12, 28.5, 10.75))
 mk("TowerFloor3", Vector3.new(3, 1, 5.5), Vector3.new(24, 28.5, -1.25))
-label(mk("TowerTopBeam", Vector3.new(28, 1.5, 4), Vector3.new(-14, 29, 24)), "TOWER")
 -- first-floor walls ON the pillar lines (owner-drawn path)
 local wn = mk("TowerWallN", Vector3.new(21, 14, 2), Vector3.new(-12, 7, -24))
 label(wn, "FIRST-FLOOR WALLS — on the pillar lines")
@@ -288,10 +287,7 @@ label(ball, "WRECKING BALL 20st — swings tower bay <-> colonnade")
 local swing = mk("SwingZoneMark", Vector3.new(14, 0.25, 92), Vector3.new(12, 1.2, 52), Color3.fromRGB(190, 150, 150))
 label(swing, "SWING PATH (N <-> S)")
 
--- ══ HIGH ROUTE (west) + blockers + cross-cuts + bounds ══════════════════════
-mk("HighBeam", Vector3.new(120, 1.5, 5), Vector3.new(-90, 28, 24))
-label(mk("WestPerch", Vector3.new(20, 1, 20), Vector3.new(-150, 28, 24)), "HIGH PERCH (exposed)")
-mk("PerchLadderMark", Vector3.new(3, 28, 3), Vector3.new(-158, 14, 30), GREY_LT)
+-- ══ BLOCKERS + cross-cuts + bounds ══════════════════════════════════════════
 local towers = { { 115, -100 }, { -115, -100 }, { 115, 105 } }
 for i, t in towers do
 	local tower = mk("BlockerTower" .. i, Vector3.new(34, 46, 34), Vector3.new(t[1], 23.5, t[2]), Color3.fromRGB(145, 143, 148))
