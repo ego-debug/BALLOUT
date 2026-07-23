@@ -189,26 +189,26 @@ label(blueS, "CONTAINER D — south pit, shown HIGH (anti-phase)")
 mk("CraneMast", Vector3.new(6, 48, 6), Vector3.new(120, 24, 105))
 mkCF("CraneArm", Vector3.new(4, 3, 130),
 	CFrame.new(Vector3.new(74, 46, 66) + Vector3.new(CX, 0, CZ)) * CFrame.Angles(0, math.rad(45), 0))
-mkCF("WreckChain", Vector3.new(1, 26, 1),
-	CFrame.new(Vector3.new(60, 33, 52) + Vector3.new(CX, 0, CZ)))
-local ball = mk("WreckBall", Vector3.new(20, 20, 20), Vector3.new(54, 16, 46), GREY_DK)
+mkCF("WreckChain", Vector3.new(1, 15.5, 1),
+	CFrame.new(Vector3.new(58, 36.75, 50) + Vector3.new(CX, 0, CZ)))
+local ball = mk("WreckBall", Vector3.new(26, 26, 26), Vector3.new(58, 16, 50), GREY_DK)
 ball.Shape = Enum.PartType.Ball
 label(ball, "WRECKING BALL — arcs along the diagonal toward the core corner")
-local swing = mkCF("SwingZoneMark", Vector3.new(14, 0.25, 100),
-	CFrame.new(Vector3.new(72, 1.2, 64) + Vector3.new(CX, 0, CZ)) * CFrame.Angles(0, math.rad(45), 0),
+local swing = mkCF("SwingZoneMark", Vector3.new(20, 0.25, 100),
+	CFrame.new(Vector3.new(76, 1.2, 68) + Vector3.new(CX, 0, CZ)) * CFrame.Angles(0, math.rad(45), 0),
 	Color3.fromRGB(190, 150, 150))
 label(swing, "SWING PATH (diagonal, toward/away from the core)")
 -- ══ NORTH LANE: SECOND CRANE (opposite lane from crane 1's southern arc) ════
 -- WEST corridor of the north flank: arc LOW at z -100 (past the north pit),
 -- endpoints at the pit flank (z ~-35) and the map edge (z ~-140). The MAST
 -- stands OUTSIDE the playable bounds — only the arm reaches in.
-mk("CraneMast2", Vector3.new(6, 48, 6), Vector3.new(-34, 24, -152))
-mk("CraneArm2", Vector3.new(4, 3, 90), Vector3.new(-34, 46, -110))
-mk("WreckChain2", Vector3.new(1, 26, 1), Vector3.new(-34, 33, -100))
-local ball2 = mk("WreckBall2", Vector3.new(20, 20, 20), Vector3.new(-34, 16, -100), GREY_DK)
+mk("CraneMast2", Vector3.new(6, 48, 6), Vector3.new(-40, 24, -152))
+mk("CraneArm2", Vector3.new(4, 3, 90), Vector3.new(-40, 46, -110))
+mk("WreckChain2", Vector3.new(1, 15.5, 1), Vector3.new(-40, 36.75, -100))
+local ball2 = mk("WreckBall2", Vector3.new(26, 26, 26), Vector3.new(-40, 16, -100), GREY_DK)
 ball2.Shape = Enum.PartType.Ball
 label(ball2, "WRECKING BALL 2 — shown at the arc's LOW point")
-local swing2 = mk("SwingZoneMark2", Vector3.new(14, 0.25, 105), Vector3.new(-34, 1.2, -87.5), Color3.fromRGB(190, 150, 150))
+local swing2 = mk("SwingZoneMark2", Vector3.new(20, 0.25, 105), Vector3.new(-40, 1.2, -87.5), Color3.fromRGB(190, 150, 150))
 label(swing2, "SWING PATH 2 — low at center, max height at both ends")
 
 -- ══ E + W: SPAWN YARDS (edge centers) ═══════════════════════════════════════
@@ -259,9 +259,10 @@ do
 	end
 	mk("NB_Roof", Vector3.new(48, 1, 50), Vector3.new(0, 34.5, TZ)) -- flush, no overhang
 	mk("NB_TowerTop", Vector3.new(48, 29, 50), Vector3.new(0, 49.5, TZ)) -- solid tower mass to y64
-	for _, sgn in { -1, 1 } do
-		wedge("NB_Ramp", Vector3.new(12, 4, 12), Vector3.new(sgn * 30, 2, TZ), -sgn * 90, GREY_LT)
-	end
+	-- east ramp at the hall's middle; WEST ramp slides north out of ball 2's
+	-- low-arc zone (the 26-stud ball dips to y3 near z -100..-113)
+	wedge("NB_Ramp", Vector3.new(12, 4, 12), Vector3.new(30, 2, TZ), -90, GREY_LT)
+	wedge("NB_Ramp", Vector3.new(12, 4, 12), Vector3.new(-30, 2, -126), 90, GREY_LT)
 end
 
 -- ══ SOUTH PERCH TOWER: solid base flush with the pit, open post-deck top ════
