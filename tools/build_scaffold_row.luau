@@ -127,13 +127,13 @@ for ix = -1, 1 do
 		mk("TowerPillar", Vector3.new(3, 28, 3), Vector3.new(ix * 24, 14, iz * 24))
 	end
 end
--- slabs stop INSIDE the wall line (x/z ±24.5): overhanging the walls hid
--- the scaffold gap from above
-mk("TowerFloor2", Vector3.new(49, 1, 28.5), Vector3.new(0, 14.5, -10.25))
+-- slabs run flush with the PILLAR OUTER FACES (±25.5): full pillar width,
+-- never past it — the scaffold gap (planks at 26.2+) stays visible
+mk("TowerFloor2", Vector3.new(51, 1, 29.5), Vector3.new(0, 14.5, -10.75))
 -- y28 roof is an L (north band + west band): the wrecking ball's swing
 -- plane (x 2..22, z 0..98) stays COMPLETELY clear of geometry
-mk("TowerFloor3", Vector3.new(49, 1, 20.5), Vector3.new(0, 28.5, -14.25))
-mk("TowerFloor3", Vector3.new(24.5, 1, 28.5), Vector3.new(-12.25, 28.5, 10.25))
+mk("TowerFloor3", Vector3.new(51, 1, 21.5), Vector3.new(0, 28.5, -14.75))
+mk("TowerFloor3", Vector3.new(25.5, 1, 29.5), Vector3.new(-12.75, 28.5, 10.75))
 label(mk("TowerTopBeam", Vector3.new(28, 1.5, 4), Vector3.new(-14, 29, 24)), "TOWER")
 -- first-floor walls ON the pillar lines (owner-drawn path)
 local wn = mk("TowerWallN", Vector3.new(21, 14, 2), Vector3.new(-12, 7, -24))
