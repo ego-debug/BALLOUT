@@ -205,13 +205,16 @@ label(swing, "SWING PATH (diagonal, toward/away from the core)")
 -- WEST corridor of the north flank: arc LOW at z -100 (past the north pit),
 -- endpoints at the pit flank (z ~-35) and the map edge (z ~-140). The MAST
 -- stands OUTSIDE the playable bounds — only the arm reaches in.
-mk("CraneMast2", Vector3.new(6, 80, 6), Vector3.new(-40, 40, -152))
-mk("CraneArm2", Vector3.new(4, 3, 52), Vector3.new(-40, 78, -126)) -- mast -> tip
-mk("WreckChain2", Vector3.new(1, 47.5, 1), Vector3.new(-40, 52.75, -100))
+mk("CraneMast2", Vector3.new(6, 110, 6), Vector3.new(-40, 55, -152)) -- extra-tall: arc runs the void's full length
+mk("CraneArm2", Vector3.new(4, 3, 52), Vector3.new(-40, 108, -126)) -- mast -> tip
+mk("WreckChain2", Vector3.new(1, 77.5, 1), Vector3.new(-40, 67.75, -100))
 local ball2 = mk("WreckBall2", Vector3.new(26, 26, 26), Vector3.new(-40, 16, -100), GREY_DK)
 ball2.Shape = Enum.PartType.Ball
 label(ball2, "WRECKING BALL 2 — pendulum from the arm TIP (single pivot)")
-local swing2 = mk("SwingZoneMark2", Vector3.new(20, 0.25, 84), Vector3.new(-40, 1.2, -100), Color3.fromRGB(190, 150, 150)) -- ±42 clears the podium
+-- pendulum reach ~±75 (chain 77.5): ground-contact z -153..-47, then the
+-- ball rides at container-jumper height across the pit to its far edge —
+-- bailing off a ride threads the swing window
+local swing2 = mk("SwingZoneMark2", Vector3.new(20, 0.25, 135), Vector3.new(-40, 1.2, -92.5), Color3.fromRGB(190, 150, 150))
 label(swing2, "SWING PATH 2 — low at center, max height at both ends")
 
 -- ══ E + W: SPAWN YARDS (edge centers) ═══════════════════════════════════════
