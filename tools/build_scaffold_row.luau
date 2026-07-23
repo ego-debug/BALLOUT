@@ -6,8 +6,9 @@
 -- ORIGINAL composition (owner-approved divergence pass): dense central core
 -- with X-shaped circulation — corner spawns, hazards on opposing DIAGONALS.
 --   CORE (center): tower frame, bay walls, floors 14/28, hugging scaffold
---   NW:   floorless VOID CANYON touching the core lip; pavilion overlook on
---         its north rim; TWO vertical container ferries cross it
+--   N:    the original VOID pit north of the core (scaffold floats over
+--         its south end); two anti-phase container rides cross it
+--   NW:   pavilion building on the north rim road
 --   SE:   WRECKING BALL YARD — crane in the corner, ball arcs diagonally
 --         toward the core between two gallery stubs (timed cover)
 --   NE/SW: raised spawn yards (diagonal spawn axis)
@@ -89,15 +90,15 @@ local function label(part: BasePart, text: string)
 	bb.Parent = part
 end
 
--- ══ GROUND with the CANYON hole (x -160..-30, z -110..-40) ══════════════════
-mk("Dirt", Vector3.new(400, 1, 30), Vector3.new(0, 0.5, -125), GREY_DK)
-mk("Dirt", Vector3.new(400, 1, 180), Vector3.new(0, 0.5, 50), GREY_DK)
-mk("Dirt", Vector3.new(40, 1, 70), Vector3.new(-180, 0.5, -75), GREY_DK)
-mk("Dirt", Vector3.new(230, 1, 70), Vector3.new(85, 0.5, -75), GREY_DK)
-mk("PitWallN", Vector3.new(130, 30, 1), Vector3.new(-95, -14, -110.5), DARK)
-mk("PitWallS", Vector3.new(130, 30, 1), Vector3.new(-95, -14, -39.5), DARK)
-mk("PitWallW", Vector3.new(1, 30, 70), Vector3.new(-160.5, -14, -75), DARK)
-mk("PitWallE", Vector3.new(1, 30, 70), Vector3.new(-29.5, -14, -75), DARK)
+-- ══ GROUND with the original VOID pit (x -24..24, z -82..-25) ═══════════════
+mk("Dirt", Vector3.new(400, 1, 58), Vector3.new(0, 0.5, -111), GREY_DK)
+mk("Dirt", Vector3.new(400, 1, 165), Vector3.new(0, 0.5, 57.5), GREY_DK)
+mk("Dirt", Vector3.new(176, 1, 57), Vector3.new(-112, 0.5, -53.5), GREY_DK)
+mk("Dirt", Vector3.new(176, 1, 57), Vector3.new(112, 0.5, -53.5), GREY_DK)
+mk("PitWallN", Vector3.new(48, 30, 1), Vector3.new(0, -14, -82.5), DARK)
+mk("PitWallS", Vector3.new(48, 30, 1), Vector3.new(0, -14, -25.5), DARK)
+mk("PitWallW", Vector3.new(1, 30, 57), Vector3.new(-24.5, -14, -53.5), DARK)
+mk("PitWallE", Vector3.new(1, 30, 57), Vector3.new(24.5, -14, -53.5), DARK)
 do -- yard floor: repunch to the canyon (world x -160..-30, z -760..-690)
 	for _, c in zone:GetChildren() do
 		if c.Name == "BuildFloor" then
@@ -114,10 +115,10 @@ do -- yard floor: repunch to the canyon (world x -160..-30, z -760..-690)
 		p.Anchored = true
 		p.Parent = zone
 	end
-	slab(Vector3.new(520, 4, 80), Vector3.new(0, -2, -800))
-	slab(Vector3.new(520, 4, 230), Vector3.new(0, -2, -575))
-	slab(Vector3.new(100, 4, 70), Vector3.new(-210, -2, -725))
-	slab(Vector3.new(290, 4, 70), Vector3.new(115, -2, -725))
+	slab(Vector3.new(520, 4, 108), Vector3.new(0, -2, -786))
+	slab(Vector3.new(520, 4, 215), Vector3.new(0, -2, -567.5))
+	slab(Vector3.new(236, 4, 57), Vector3.new(-142, -2, -703.5))
+	slab(Vector3.new(236, 4, 57), Vector3.new(142, -2, -703.5))
 end
 
 -- ══ CORE: the tower exactly as evolved (center 0,0) ═════════════════════════
@@ -171,7 +172,7 @@ end
 do
 	local PX, PZ = -95, -125
 	local f2 = mk("NorthFloor2", Vector3.new(70, 1, 26), Vector3.new(PX, 14, PZ))
-	label(f2, "PAVILION — overlooks the canyon; ramps both ends")
+	label(f2, "PAVILION — ramps both ends")
 	mk("NorthStoryWall", Vector3.new(70, 14, 1.5), Vector3.new(PX, 7, PZ + 12.5))
 	mk("NorthStoryWall", Vector3.new(70, 14, 1.5), Vector3.new(PX, 7, PZ - 12.5))
 	mk("NorthStoryWall", Vector3.new(1.5, 14, 24), Vector3.new(PX - 34.25, 7, PZ))
@@ -186,16 +187,12 @@ do
 	wedge("NorthRamp", Vector3.new(12, 14, 28), Vector3.new(PX + 49, 7, PZ), -90)
 end
 
--- ══ CANYON FERRIES: two vertical container crossings ════════════════════════
--- (cycle spec: anti-phase, LOW top just under ground, HIGH top y 45)
-local red = mk("ContainerRed", Vector3.new(26, 8, 10), Vector3.new(-48, -6, -55), Color3.fromRGB(140, 90, 90))
-label(red, "FERRY A (core end) — shown LOW. Ride up, drop onto the scaffold/roof")
-local blue = mk("ContainerBlue", Vector3.new(26, 8, 10), Vector3.new(-48, 41, -80), Color3.fromRGB(90, 110, 140))
-label(blue, "FERRY A2 — shown HIGH. Anti-phase with A; crest clears the tower roof")
-local red2 = mk("ContainerRed2", Vector3.new(26, 8, 10), Vector3.new(-135, -6, -80), Color3.fromRGB(140, 90, 90))
-label(red2, "FERRY B (west end) — SW rotation shortcut")
-local blue2 = mk("ContainerBlue2", Vector3.new(26, 8, 10), Vector3.new(-135, 41, -55), Color3.fromRGB(90, 110, 140))
-label(blue2, "FERRY B2 — anti-phase pair")
+-- ══ CONTAINERS over the pit (original spot; anti-phase cycle spec:
+-- LOW top just under ground, HIGH top y 45, crossing mid-travel) ═════════════
+local red = mk("ContainerRed", Vector3.new(10, 8, 26), Vector3.new(-9, -6, -56), Color3.fromRGB(140, 90, 90))
+label(red, "CONTAINER A — shown LOW: sunk into the void, top just under ground")
+local blue = mk("ContainerBlue", Vector3.new(10, 8, 26), Vector3.new(9, 41, -50), Color3.fromRGB(90, 110, 140))
+label(blue, "CONTAINER B — shown HIGH: anti-phase, crossing mid-travel")
 
 -- ══ SE: WRECKING BALL YARD (diagonal arc toward the core) ═══════════════════
 mk("CraneMast", Vector3.new(6, 48, 6), Vector3.new(120, 24, 105))
