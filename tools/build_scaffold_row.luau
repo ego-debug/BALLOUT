@@ -211,14 +211,14 @@ label(ball2, "WRECKING BALL 2 — shown at the arc's LOW point")
 local swing2 = mk("SwingZoneMark2", Vector3.new(14, 0.25, 105), Vector3.new(-34, 1.2, -87.5), Color3.fromRGB(190, 150, 150))
 label(swing2, "SWING PATH 2 — low at center, max height at both ends")
 
--- ══ NE + SW: SPAWN YARDS (diagonal axis) ════════════════════════════════════
-for _, sp in { { x = 155, z = -95, name = "TEAM A SPAWN (NE)" }, { x = -155, z = 95, name = "TEAM B SPAWN (SW)" } } do
+-- ══ E + W: SPAWN YARDS (edge centers) ═══════════════════════════════════════
+for _, sp in { { x = 155, name = "TEAM A SPAWN (E)" }, { x = -155, name = "TEAM B SPAWN (W)" } } do
 	local sgn = if sp.x > 0 then 1 else -1
-	local deck = mk("SpawnDeck", Vector3.new(50, 2, 50), Vector3.new(sp.x, 2, sp.z), GREY_LT)
+	local deck = mk("SpawnDeck", Vector3.new(50, 2, 50), Vector3.new(sp.x, 2, 0), GREY_LT)
 	label(deck, sp.name)
-	mk("SpawnLip", Vector3.new(2, 5, 30), Vector3.new(sp.x - sgn * 26, 4.5, sp.z - sgn * 8))
-	wedge("SpawnRamp", Vector3.new(12, 2, 10), Vector3.new(sp.x - sgn * 22, 2, sp.z + sgn * 16), sgn * 90, GREY_LT)
-	wedge("SpawnRamp", Vector3.new(12, 2, 10), Vector3.new(sp.x + sgn * 8, 2, sp.z - sgn * 28), if sgn > 0 then 180 else 0, GREY_LT)
+	mk("SpawnLip", Vector3.new(2, 5, 26), Vector3.new(sp.x - sgn * 26, 4.5, 0))
+	wedge("SpawnRamp", Vector3.new(12, 2, 10), Vector3.new(sp.x, 2, -30), 0, GREY_LT)
+	wedge("SpawnRamp", Vector3.new(12, 2, 10), Vector3.new(sp.x, 2, 30), 180, GREY_LT)
 end
 
 -- ══ EDGE ROADS: cover rhythm + three blocker towers ═════════════════════════
