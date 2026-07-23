@@ -221,29 +221,41 @@ for _, sx in { -1, 1 } do
 	pipe.Shape = Enum.PartType.Cylinder
 end
 
--- ══ NORTH: ground lane + middle-only two-story (container access only) ══════
-label(mk("NorthLaneMark", Vector3.new(320, 0.2, 44), Vector3.new(0, 1.15, -100), Color3.fromRGB(150, 150, 154)), "NORTH LANE (ground)")
+-- ══ NORTH: sealed ground story + tall second story (ramps both ends) ═══════
+-- Ground cover lives in the lane strips around the building (the two piles
+-- that sat inside the old open colonnade moved to the north strip).
 for i = -3, 3 do
 	if i ~= 0 then
+		local zPos = if math.abs(i * 44) < 70 then -130 else -100 + (if i % 3 == 0 then 8 else -8)
 		if i % 2 == 0 then
-			mk("Pallets", Vector3.new(8, 4, 6), Vector3.new(i * 44, 3, -100 + (if i % 3 == 0 then 8 else -8)))
+			mk("Pallets", Vector3.new(8, 4, 6), Vector3.new(i * 44, 3, zPos))
 		else
-			local pipe = mk("PipePile", Vector3.new(12, 3.4, 3.4), Vector3.new(i * 44, 2.7, -100 + (if i % 3 == 0 then -8 else 8)))
+			local pipe = mk("PipePile", Vector3.new(12, 3.4, 3.4), Vector3.new(i * 44, 2.7, zPos))
 			pipe.Shape = Enum.PartType.Cylinder
 		end
 	end
 end
 local nFloor2 = mk("NorthFloor2", Vector3.new(140, 1, 44), Vector3.new(0, 14, -100))
-label(nFloor2, "NORTH FLOOR 2 — container-jump access ONLY")
-mk("NorthRoof", Vector3.new(150, 1, 48), Vector3.new(0, 26, -100))
+label(nFloor2, "NORTH FLOOR 2 — ramps both ends; containers cross high above")
+-- sealed ground story: walls on all four sides, nobody walks under
+mk("NorthStoryWall", Vector3.new(140, 14, 1.5), Vector3.new(0, 7, -79.25))
+mk("NorthStoryWall", Vector3.new(140, 14, 1.5), Vector3.new(0, 7, -120.75))
+mk("NorthStoryWall", Vector3.new(1.5, 14, 43), Vector3.new(-69.25, 7, -100))
+mk("NorthStoryWall", Vector3.new(1.5, 14, 43), Vector3.new(69.25, 7, -100))
+-- WAY taller second story: posts 14->44, roof at 44 (container crest 45
+-- just clears the roof line)
+mk("NorthRoof", Vector3.new(150, 1, 48), Vector3.new(0, 44, -100))
 for _, px in { -70, -35, 0, 35, 70 } do
-	mk("NorthPost", Vector3.new(2, 12, 2), Vector3.new(px, 20, -79))
-	mk("NorthPostBack", Vector3.new(2, 26, 2), Vector3.new(px, 13, -121))
+	mk("NorthPost", Vector3.new(2, 30, 2), Vector3.new(px, 29, -79))
+	mk("NorthPostBack", Vector3.new(2, 30, 2), Vector3.new(px, 29, -121))
 end
 mk("NorthFloor2Rail", Vector3.new(140, 2.5, 1), Vector3.new(0, 15.75, -78.5))
 for _, cx2 in { -45, 5, 50 } do
 	mk("Floor2Crates", Vector3.new(6, 4, 5), Vector3.new(cx2, 16.5, -104))
 end
+-- Floor 2 access ramps at both ends
+wedge("NorthRamp", Vector3.new(12, 14, 28), Vector3.new(-84, 7, -100), 90)
+wedge("NorthRamp", Vector3.new(12, 14, 28), Vector3.new(84, 7, -100), -90)
 
 -- ══ CONTAINERS over the void (vertical cycle scripted at dress time) ════════
 -- CYCLE SPEC (for dress-time scripting): anti-phase vertical travel —
