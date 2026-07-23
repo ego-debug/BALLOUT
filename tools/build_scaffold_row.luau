@@ -241,14 +241,18 @@ for i, t in towers do
 end
 
 -- ══ COMPASS LETTERS (outside the bounds — for markup screenshots) ═══════════
-for _, d in { { "N", Vector3.new(0, 1, -160) }, { "S", Vector3.new(0, 1, 160) },
-	{ "E", Vector3.new(200, 1, 0) }, { "W", Vector3.new(-200, 1, 0) } } do
-	local p = mk("Compass" .. d[1], Vector3.new(26, 0.4, 26), d[2], Color3.fromRGB(60, 60, 66))
+-- 40-stud panels; PixelsPerStud 2.5 because TextScaled caps at 100px (a
+-- bigger canvas renders a tiny glyph). Yaws make each glyph's top point
+-- AWAY from the map center (glyph top at yaw 0 points -X on a Top face).
+for _, d in { { "N", Vector3.new(0, 1, -168), -90 }, { "S", Vector3.new(0, 1, 168), 90 },
+	{ "E", Vector3.new(208, 1, 0), 180 }, { "W", Vector3.new(-208, 1, 0), 0 } } do
+	local p = mk("Compass" .. d[1], Vector3.new(40, 0.4, 40), d[2], Color3.fromRGB(60, 60, 66))
+	p.CFrame = p.CFrame * CFrame.Angles(0, math.rad(d[3]), 0)
 	p.CanCollide = false
 	local gui = Instance.new("SurfaceGui")
 	gui.Face = Enum.NormalId.Top
 	gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
-	gui.PixelsPerStud = 20
+	gui.PixelsPerStud = 2.5
 	gui.Parent = p
 	local t = Instance.new("TextLabel")
 	t.Size = UDim2.fromScale(1, 1)
