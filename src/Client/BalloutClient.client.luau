@@ -6,6 +6,7 @@
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
+local CollectionService = game:GetService("CollectionService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local BallConfig = require(ReplicatedStorage.BallConfig)
@@ -260,8 +261,9 @@ local function computeLandingPoint(camera: Camera): Vector3
 	end
 	local exclude = {}
 	if character then table.insert(exclude, character) end
-	local ballPart = Workspace:FindFirstChild("Dodgeball")
-	if ballPart then table.insert(exclude, ballPart) end
+	for _, ballPart in CollectionService:GetTagged("BalloutBall") do
+		table.insert(exclude, ballPart)
+	end
 	local ret = Workspace:FindFirstChild("BalloutReticle")
 	if ret then table.insert(exclude, ret) end
 	landingRayParams.FilterDescendantsInstances = exclude
@@ -364,11 +366,11 @@ RunService:BindToRenderStep("BalloutLockedCamera", Enum.RenderPriority.Camera.Va
 	-- Are we holding the ball? (used by the charge slow here AND the
 	-- landing reticle below)
 	local holdingBall = false
-	do
-		local ballPart = Workspace:FindFirstChild("Dodgeball")
-		if ballPart then
-			local weld = ballPart:FindFirstChildOfClass("WeldConstraint")
-			holdingBall = weld ~= nil and weld.Part0 ~= nil and weld.Part0:IsDescendantOf(character)
+	for _, ballPart in CollectionService:GetTagged("BalloutBall") do
+		local weld = ballPart:FindFirstChildOfClass("WeldConstraint")
+		if weld ~= nil and weld.Part0 ~= nil and weld.Part0:IsDescendantOf(character) then
+			holdingBall = true
+			break
 		end
 	end
 	local chargingHeld = charging and holdingBall
@@ -947,31 +949,20 @@ end
 -- sync on the client (visible gap at flight speeds). Snap them onto the ball
 -- locally every render frame — frame-perfect on screen. While HELD the ball
 -- is unanchored and the server's welds carry them; don't touch.
-local decorBall: BasePart? = nil
-local decorStripe: BasePart? = nil
-local decorShell: BasePart? = nil
-
 local function snapBallDecor()
-	if not (decorBall and decorBall.Parent) then
-		decorBall = Workspace:FindFirstChild("Dodgeball") :: BasePart?
-		decorStripe = nil
-		decorShell = nil
-	end
-	local b = decorBall
-	if not b or not b.Anchored then
-		return
-	end
-	if not (decorStripe and decorStripe.Parent) then
-		decorStripe = b:FindFirstChild("Stripe") :: BasePart?
-	end
-	if not (decorShell and decorShell.Parent) then
-		decorShell = b:FindFirstChild("ChargeAura") :: BasePart?
-	end
-	if decorStripe then
-		decorStripe.CFrame = b.CFrame * CFrame.Angles(0, 0, math.rad(90))
-	end
-	if decorShell then
-		decorShell.CFrame = b.CFrame
+	-- MULTI-BALL: every tagged ball snaps its own stripe + aura shell while
+	-- it's server-driven (anchored); held balls ride the server welds.
+	for _, b in CollectionService:GetTagged("BalloutBall") do
+		if b:IsA("BasePart") and b.Parent and b.Anchored then
+			local stripe = b:FindFirstChild("Stripe")
+			local shell = b:FindFirstChild("ChargeAura")
+			if stripe and stripe:IsA("BasePart") then
+				stripe.CFrame = b.CFrame * CFrame.Angles(0, 0, math.rad(90))
+			end
+			if shell and shell:IsA("BasePart") then
+				shell.CFrame = b.CFrame
+			end
+		end
 	end
 end
 

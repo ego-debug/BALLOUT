@@ -142,6 +142,8 @@ BallConfig.BOT_NAME = "TrainingDummy"
 -- the ball until a player stands in the circle, then winds up and fires.
 BallConfig.BOT_DRILL_CHARGE = 2.5 -- seconds of visible windup before the drill throw
 BallConfig.DRILL_RADIUS = 4.5     -- stand within this of the circle center to trigger
+BallConfig.DRILL_REFILL_WAIT = 5  -- circle empty this long -> the bot's ball snaps back
+BallConfig.DRILL_LOST_RANGE = 90  -- unheld drill ball further than this = lost, refill now
 
 -- ── Dash bonk (reckless dodging has consequences) ───────────────────────
 BallConfig.BONK_STUN = 0.6        -- seconds on the floor holding your head

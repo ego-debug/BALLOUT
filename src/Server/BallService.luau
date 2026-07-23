@@ -9,6 +9,7 @@
 -- Catching: timed window; perfect timing -> Overcharge tiers. 2 hits = KO.
 
 local RunService = game:GetService("RunService")
+local CollectionService = game:GetService("CollectionService")
 local Workspace = game:GetService("Workspace")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
@@ -35,26 +36,57 @@ local BallService = {}
 BallService.OnKO = nil :: ((Fighter) -> ())?
 
 -- ── State ────────────────────────────────────────────────────────────────
-local ball: BasePart
-local holdWeld: WeldConstraint? = nil
-local state: string = "Free" -- "Free" | "Held" | "Flight"
-local holder: Fighter? = nil
-
-local flight = {
-	target = nil :: Fighter?,
-	origin = Vector3.zero,
-	sideOffset = Vector3.zero, -- curve bow
-	arcHeight = 0,             -- vertical bow
-	controlT = 0.5,            -- where the bow's control point sits along the path
-	duration = 1,
-	s = 0,                     -- 0..1 progress
-	locked = true,             -- aimed (homing) vs blind straight throw
-	velocity = Vector3.zero,   -- used by blind throws & pop-ups
-	thrower = nil :: Model?,
-	isPass = false,            -- teammate pass: auto-caught, charges the ball
-	spiralDir = 0,             -- curveballs corkscrew: -1/1 = spiral direction
-	targetPoint = nil :: Vector3?, -- unlocked throws land AT this point
+-- MULTI-BALL: every ball is a self-contained state machine. The primary
+-- ball serves the lobby and matches; the drill ball belongs to the training
+-- bot (it refills — see stepDrillRefill). Fighters hold at most ONE ball;
+-- catching with full hands pops the held ball loose (catchBall).
+type Flight = {
+	target: Fighter?,
+	origin: Vector3,
+	sideOffset: Vector3,
+	arcHeight: number,
+	controlT: number,
+	duration: number,
+	s: number,
+	locked: boolean,
+	velocity: Vector3,
+	thrower: Model?,
+	isPass: boolean,
+	spiralDir: number,
+	targetPoint: Vector3?,
 }
+type Ball = {
+	part: BasePart,
+	holdWeld: WeldConstraint?,
+	state: string, -- "Free" | "Held" | "Flight" | "Loose"
+	holder: Fighter?,
+	flight: Flight,
+	botHoldStart: number?,
+	chargeStart: number?,   -- windup began (drives pose + flame)
+	chargeFull: boolean,
+	chargeRunSince: number?,
+	auraOn: boolean,
+	auraShell: BasePart?,
+	auraFlame: ParticleEmitter?,
+	auraLight: PointLight?,
+	stripe: BasePart?,
+	decorWelds: { WeldConstraint },
+	spawnPos: Vector3, -- fall-off-the-world respawn spot
+	isDrill: boolean,
+}
+
+local balls: { Ball } = {}
+local primaryBall: Ball
+local drillBall: Ball
+
+local function heldBy(f: Fighter): Ball?
+	for _, b in balls do
+		if b.holder == f then
+			return b
+		end
+	end
+	return nil
+end
 
 -- Fighters currently mid-dash (shoulder bash); bashing a loose ball pops it up.
 -- `expires` is the bash window; `lockUntil` covers the WHOLE dive + landing
@@ -69,13 +101,9 @@ end
 
 local fighters: { Fighter } = {}
 local overcharge: { [Model]: number } = {}
-local chargeRunSince: number? = nil -- how long the holder has been running charged
-local chargeStart: number? = nil -- when the holder began winding up a throw
-local chargeFull = false -- wound up to FULL: this throw counts as +1 Overcharge tier
 local stunned: { [Model]: number } = {} -- hit stun: no actions until expiry
 local hits: { [Model]: number } = {}
 local catching: { [Model]: { pressedAt: number, expires: number } } = {}
-local botHoldStart: number? = nil
 
 -- Catch commitment: arms-out is a bet, same as the dodge. While the catch
 -- window is open NOTHING else works — you can't dash/flip/ball-up your way
@@ -110,9 +138,11 @@ end
 local floorRayParams = RaycastParams.new()
 floorRayParams.FilterType = Enum.RaycastFilterType.Exclude
 local function floorYBelow(pos: Vector3): number?
-	if ball then
-		floorRayParams.FilterDescendantsInstances = { ball }
+	local exclude = {}
+	for _, b in balls do
+		table.insert(exclude, b.part)
 	end
+	floorRayParams.FilterDescendantsInstances = exclude
 	local hit = Workspace:Raycast(pos + Vector3.new(0, 2, 0), Vector3.new(0, -500, 0), floorRayParams)
 	return if hit then hit.Position.Y else nil
 end
@@ -250,7 +280,8 @@ end
 local sprintState: { [Model]: boolean } = {}
 
 local function applyCarry(f: Fighter)
-	if chargeStart and holder == f then
+	local held = heldBy(f)
+	if held and held.chargeStart then
 		-- Mid-windup: the throw arm stays cocked no matter what tries to
 		-- restore a carry pose (sprint toggles, flips, glider, dash).
 		AnimService.Windup(f.character)
@@ -275,27 +306,18 @@ local function handOf(f: Fighter): BasePart?
 	return nil
 end
 
--- Ball decor (declared early: hold/release must keep them in sync).
-local auraOn = false
-local auraShell: BasePart? = nil
-local auraFlame: ParticleEmitter? = nil
-local auraLight: PointLight? = nil
-local ballStripe: BasePart? = nil
-
 -- Stripe/aura must mirror the ball's anchored state. Writing a CFrame to an
 -- UNANCHORED welded part makes the solver fight the weld and catapult the
 -- whole assembly (the boot "runaway ball" bug). And WeldConstraints keep
 -- STALE offsets across anchored teleports (the "black puck" bug). So: decor
 -- is anchored + hard-snapped while the ball is server-driven, and gets a
 -- FRESH weld (created at the correct pose) only while the ball is held.
-local decorWelds: { WeldConstraint } = {}
-
-local function syncBallDecor()
-	for _, w in decorWelds do
+local function syncBallDecor(b: Ball)
+	for _, w in b.decorWelds do
 		w:Destroy()
 	end
-	table.clear(decorWelds)
-	local anchored = ball.Anchored
+	table.clear(b.decorWelds)
+	local anchored = b.part.Anchored
 	local function place(part: BasePart?, cf: CFrame)
 		if not part then
 			return
@@ -305,35 +327,69 @@ local function syncBallDecor()
 		if not anchored then
 			part.Anchored = false
 			local w = Instance.new("WeldConstraint")
-			w.Part0 = ball
+			w.Part0 = b.part
 			w.Part1 = part
 			w.Parent = part
-			table.insert(decorWelds, w)
+			table.insert(b.decorWelds, w)
 		end
 	end
-	place(ballStripe, ball.CFrame * CFrame.Angles(0, 0, math.rad(90)))
-	place(auraShell, ball.CFrame)
+	place(b.stripe, b.part.CFrame * CFrame.Angles(0, 0, math.rad(90)))
+	place(b.auraShell, b.part.CFrame)
 end
 
 -- ── Hold / release (weld-based) ────────────────────────────────────────────
-local function releaseHold()
-	if holdWeld then
-		holdWeld:Destroy()
-		holdWeld = nil
+local function releaseHold(b: Ball)
+	if b.holdWeld then
+		b.holdWeld:Destroy()
+		b.holdWeld = nil
 	end
-	chargeStart = nil -- ball left the hand: any windup ends with it
-	ball.Anchored = true
-	syncBallDecor()
+	b.chargeStart = nil -- ball left the hand: any windup ends with it
+	b.part.Anchored = true
+	syncBallDecor(b)
 end
 
-local function holdBall(f: Fighter)
-	releaseHold()
-	state = "Held"
-	holder = f
-	flight.target = nil
-	chargeRunSince = nil -- fresh hold, fresh run-fade clock
-	chargeStart = nil
-	chargeFull = false
+-- ── Charge aura ────────────────────────────────────────────────────────────
+-- The ball STAYS orange; the charge shows as a pulsating purple flame aura:
+-- particles + a neon shell + a point light (comic-book style).
+local function setCharged(b: Ball, on: boolean)
+	b.auraOn = on
+	if b.auraFlame then
+		b.auraFlame.Enabled = on
+	end
+	if b.auraLight then
+		b.auraLight.Enabled = on
+	end
+	if b.auraShell then
+		b.auraShell.Transparency = if on then 0.55 else 1
+	end
+end
+
+-- Bounce/roll like a real dodgeball until it settles (state "Loose").
+local function goLoose(b: Ball, vel: Vector3)
+	releaseHold(b)
+	b.state = "Loose"
+	b.holder = nil
+	b.flight.target = nil
+	b.flight.velocity = vel
+	setCharged(b, false)
+end
+
+local function holdBall(b: Ball, f: Fighter)
+	-- ONE ball per pair of hands: catching (or scooping) with a ball already
+	-- held pops the old one out of the hand and into the air.
+	local already = heldBy(f)
+	if already and already ~= b then
+		local look = f.root.CFrame.LookVector
+		goLoose(already, Vector3.new(look.X * 4, 22, look.Z * 4))
+	end
+
+	releaseHold(b)
+	b.state = "Held"
+	b.holder = f
+	b.flight.target = nil
+	b.chargeRunSince = nil -- fresh hold, fresh run-fade clock
+	b.chargeStart = nil
+	b.chargeFull = false
 
 	local hand = handOf(f)
 	local anchorPart: BasePart = hand or f.root
@@ -341,53 +397,42 @@ local function holdBall(f: Fighter)
 		-- Ball sits just past the PALM (hand-space -Y = out past the
 		-- fingers). With the raised football-L carry the fingers point up,
 		-- so the ball rests on top of the open hand — never on the forearm.
-		ball.CFrame = hand.CFrame * CFrame.new(0, -(hand.Size.Y / 2 + BallConfig.BALL_DIAMETER / 2 - 0.15), 0)
+		b.part.CFrame = hand.CFrame * CFrame.new(0, -(hand.Size.Y / 2 + BallConfig.BALL_DIAMETER / 2 - 0.15), 0)
 	else
-		ball.CFrame = CFrame.new(f.root.CFrame:PointToWorldSpace(BallConfig.HOLD_OFFSET))
+		b.part.CFrame = CFrame.new(f.root.CFrame:PointToWorldSpace(BallConfig.HOLD_OFFSET))
 	end
 
-	ball.Anchored = false
-	syncBallDecor() -- unanchor stripe/aura WITH the ball so the welds carry them
+	b.part.Anchored = false
+	syncBallDecor(b) -- unanchor stripe/aura WITH the ball so the welds carry them
 	local weld = Instance.new("WeldConstraint")
 	weld.Part0 = anchorPart
-	weld.Part1 = ball
-	weld.Parent = ball
-	holdWeld = weld
+	weld.Part1 = b.part
+	weld.Parent = b.part
+	b.holdWeld = weld
 
 	if f.isBot then
-		botHoldStart = now()
+		b.botHoldStart = now()
 	end
 	applyCarry(f)
 end
 
--- ── Charge aura ────────────────────────────────────────────────────────────
--- The ball STAYS orange; the charge shows as a pulsating purple flame aura:
--- particles + a neon shell + a point light (comic-book style).
-local function setCharged(on: boolean)
-	auraOn = on
-	if auraFlame then
-		auraFlame.Enabled = on
-	end
-	if auraLight then
-		auraLight.Enabled = on
-	end
-	if auraShell then
-		auraShell.Transparency = if on then 0.55 else 1
-	end
-end
-
 -- ── Ball lifecycle ─────────────────────────────────────────────────────────
-function BallService.MakeFree(position: Vector3)
+local function makeFreeBall(b: Ball, position: Vector3)
 	-- Free balls settle on the ground (kinematic, no physics drop).
-	releaseHold()
-	state = "Free"
-	holder = nil
-	botHoldStart = nil
-	flight.target = nil
+	releaseHold(b)
+	b.state = "Free"
+	b.holder = nil
+	b.botHoldStart = nil
+	b.flight.target = nil
 	-- Rest on whatever roof is under this point (roofs vary in height).
 	local fy = floorYBelow(Vector3.new(position.X, math.max(position.Y, groundY) + 4, position.Z)) or groundY
-	ball.Position = Vector3.new(position.X, fy + BallConfig.BALL_DIAMETER / 2, position.Z)
-	setCharged(false)
+	b.part.Position = Vector3.new(position.X, fy + BallConfig.BALL_DIAMETER / 2, position.Z)
+	setCharged(b, false)
+end
+
+-- Public API: the primary (lobby/match) ball — existing callers keep working.
+function BallService.MakeFree(position: Vector3)
+	makeFreeBall(primaryBall, position)
 end
 
 local function computeThrowSpeed(tier: number, chargeFrac: number): number
@@ -397,23 +442,10 @@ local function computeThrowSpeed(tier: number, chargeFrac: number): number
 	return lerp(BallConfig.LIGHT_SPEED, BallConfig.CHARGED_SPEED, math.clamp(chargeFrac, 0, 1))
 end
 
--- Bounce/roll like a real dodgeball until it settles (state "Loose").
-local function goLoose(vel: Vector3)
-	releaseHold()
-	state = "Loose"
-	holder = nil
-	flight.target = nil
-	flight.velocity = vel
-	setCharged(false)
-end
-
 -- curveDir: -1..1 (spin direction), isLob: flip lob, aimDir: the thrower's
 -- CAMERA look direction — used for the lock check and blind throws, because
 -- the character model itself may be mid-spin when the throw releases.
-function BallService.Throw(f: Fighter, chargeFrac: number, curveDir: number, isLob: boolean, aimDir: Vector3?, aimPoint: Vector3?)
-	if state ~= "Held" or holder ~= f then
-		return
-	end
+local function throwBall(b: Ball, f: Fighter, chargeFrac: number, curveDir: number, isLob: boolean, aimDir: Vector3?, aimPoint: Vector3?)
 	if BallformService.IsBalled(f.character) then
 		return
 	end
@@ -428,7 +460,7 @@ function BallService.Throw(f: Fighter, chargeFrac: number, curveDir: number, isL
 		return
 	end
 
-	local origin = ball.Position
+	local origin = b.part.Position
 	local targetPos = enemy.root.Position
 	local delta = targetPos - origin
 	local dist = delta.Magnitude
@@ -439,10 +471,10 @@ function BallService.Throw(f: Fighter, chargeFrac: number, curveDir: number, isL
 	-- A FULL windup counts as one Overcharge tier ("charge = one purple
 	-- catch"): stacks on caught overcharge, capped at MAX_TIER.
 	local tier = overcharge[f.character] or 0
-	if chargeFull and not f.isBot then
+	if b.chargeFull and not f.isBot then
 		tier = math.min(tier + 1, BallConfig.MAX_TIER)
 	end
-	chargeFull = false
+	b.chargeFull = false
 	local speed = computeThrowSpeed(tier, chargeFrac)
 	if isLob then
 		speed *= BallConfig.LOB_SPEED_MULT
@@ -472,11 +504,12 @@ function BallService.Throw(f: Fighter, chargeFrac: number, curveDir: number, isL
 		dist = math.max((pointTarget - origin).Magnitude, 1)
 	end
 
-	releaseHold()
-	state = "Flight"
-	holder = nil
-	botHoldStart = nil
+	releaseHold(b)
+	b.state = "Flight"
+	b.holder = nil
+	b.botHoldStart = nil
 	overcharge[f.character] = 0 -- consumed
+	local flight = b.flight
 	flight.locked = locked
 	flight.thrower = f.character
 	flight.isPass = false
@@ -513,9 +546,18 @@ function BallService.Throw(f: Fighter, chargeFrac: number, curveDir: number, isL
 	})
 end
 
+-- Public: throw whichever ball the fighter is holding.
+function BallService.Throw(f: Fighter, chargeFrac: number, curveDir: number, isLob: boolean, aimDir: Vector3?, aimPoint: Vector3?)
+	local b = heldBy(f)
+	if b then
+		throwBall(b, f, chargeFrac, curveDir, isLob, aimDir, aimPoint)
+	end
+end
+
 -- Pass: a soft homing throw to a TEAMMATE; arrives as a charged catch.
 function BallService.Pass(f: Fighter)
-	if state ~= "Held" or holder ~= f then
+	local b = heldBy(f)
+	if not b then
 		return
 	end
 	if now() < (stunned[f.character] or 0) then
@@ -526,15 +568,16 @@ function BallService.Pass(f: Fighter)
 		feedback(f, "NoPass", nil)
 		return
 	end
-	local origin = ball.Position
+	local origin = b.part.Position
 	local dist = (mate.root.Position - origin).Magnitude
 	if dist < 2 then
 		return
 	end
-	releaseHold()
-	state = "Flight"
-	holder = nil
-	botHoldStart = nil
+	releaseHold(b)
+	b.state = "Flight"
+	b.holder = nil
+	b.botHoldStart = nil
+	local flight = b.flight
 	flight.locked = true
 	flight.isPass = true
 	flight.thrower = f.character
@@ -550,13 +593,13 @@ function BallService.Pass(f: Fighter)
 	feedback(f, "Pass", nil)
 end
 
-local function catchBall(catcher: Fighter, perfect: boolean)
+local function catchBall(b: Ball, catcher: Fighter, perfect: boolean)
 	catching[catcher.character] = nil
-	holdBall(catcher)
+	holdBall(b, catcher) -- pops any already-held ball loose (full hands rule)
 	-- Arms snap closed on contact, then ease back into the carry.
 	AnimService.CatchClose(catcher.character)
 	task.delay(0.25, function()
-		if holder == catcher then
+		if b.holder == catcher then
 			applyCarry(catcher)
 		end
 	end)
@@ -564,11 +607,11 @@ local function catchBall(catcher: Fighter, perfect: boolean)
 	if perfect then
 		local tier = math.min((overcharge[catcher.character] or 0) + 1, BallConfig.MAX_TIER)
 		overcharge[catcher.character] = tier
-		setCharged(true) -- purple flame aura, ball stays orange
+		setCharged(b, true) -- purple flame aura, ball stays orange
 		feedback(catcher, "PerfectCatch", { tier = tier })
 	else
 		overcharge[catcher.character] = 0
-		setCharged(false)
+		setCharged(b, false)
 		feedback(catcher, "Catch", nil)
 	end
 end
@@ -681,7 +724,7 @@ local function koFighter(f: Fighter)
 	end
 end
 
-local function hitFighter(f: Fighter)
+local function hitFighter(b: Ball, f: Fighter)
 	-- In the lobby safe zone nothing counts toward a KO; everywhere else
 	-- hits accumulate as normal.
 	local safe = inSafeZone(f.root.Position)
@@ -689,6 +732,7 @@ local function hitFighter(f: Fighter)
 		hits[f.character] = (hits[f.character] or 0) + 1
 	end
 	local count = hits[f.character] or 0
+	local flight = b.flight
 	-- Push direction = the ball's actual travel direction, so the shove is
 	-- exactly opposite the incoming throw from EVERY angle.
 	local travel
@@ -710,14 +754,15 @@ local function hitFighter(f: Fighter)
 		koFighter(f)
 	end
 	-- Ball ricochets back the way it came — up and away, never caught.
-	goLoose(-pushDir * 11 + Vector3.new(0, 14, 0))
+	goLoose(b, -pushDir * 11 + Vector3.new(0, 14, 0))
 end
 
-local function resolveArrival(target: Fighter)
+local function resolveArrival(b: Ball, target: Fighter)
+	local flight = b.flight
 	if flight.isPass then
 		-- Passes are auto-caught and arrive CHARGED (instant purple).
 		flight.isPass = false
-		catchBall(target, true)
+		catchBall(b, target, true)
 		return
 	end
 	if target.isBot then
@@ -728,7 +773,7 @@ local function resolveArrival(target: Fighter)
 			chance = if BallConfig.BOT_ALWAYS_CATCH then 1 else 0
 		end
 		if math.random() < chance then
-			catchBall(target, true)
+			catchBall(b, target, true)
 			return
 		end
 		-- no catch: falls through to the normal arrival path (a hit)
@@ -745,12 +790,12 @@ local function resolveArrival(target: Fighter)
 		end
 		if facingBall then
 			local perfect = (now() - c.pressedAt) <= BallConfig.PERFECT_WINDOW
-			catchBall(target, perfect)
+			catchBall(b, target, perfect)
 		else
-			hitFighter(target)
+			hitFighter(b, target)
 		end
 	else
-		hitFighter(target)
+		hitFighter(b, target)
 	end
 end
 
@@ -783,7 +828,8 @@ function BallService.RegisterCatch(character: Model)
 			-- whiff tell — then the arms drop.
 			AnimService.CatchClose(character)
 			task.delay(0.25, function()
-				if not (holder and holder.character == character) then
+				local f2 = fighterFor(character)
+				if not (f2 and heldBy(f2)) then
 					AnimService.Reset(character)
 				end
 			end)
@@ -805,26 +851,38 @@ function BallService.DebugLocks(character: Model)
 	return { dash = dashLocked(character), catch = catchLocked(character), stunned = now() < (stunned[character] or 0) }
 end
 
--- Dev hook: dump the ball state machine for diagnosis.
+-- Dev hook: dump the ball state machines. Top-level fields mirror the
+-- PRIMARY ball (existing test scripts keep working); `balls` has them all.
 function BallService.DebugState()
 	local hitCounts = {}
 	for m, c in hits do
 		hitCounts[m.Name] = c
 	end
+	local ballDump = {}
+	for _, b in balls do
+		table.insert(ballDump, {
+			name = b.part.Name,
+			state = b.state,
+			holderName = b.holder and b.holder.character.Name or "nil",
+			charging = b.chargeStart ~= nil,
+			pos = tostring(b.part.Position),
+		})
+	end
 	return {
 		hits = hitCounts,
-		state = state,
-		holderName = holder and holder.character.Name or "nil",
-		target = flight.target and flight.target.character.Name or "nil",
-		targetPoint = flight.targetPoint and tostring(flight.targetPoint) or "nil",
-		origin = tostring(flight.origin),
-		duration = flight.duration,
-		s = flight.s,
-		velocity = tostring(flight.velocity),
-		locked = flight.locked,
-		isPass = flight.isPass,
-		charging = chargeStart ~= nil,
-		chargeFull = chargeFull,
+		state = primaryBall.state,
+		holderName = primaryBall.holder and primaryBall.holder.character.Name or "nil",
+		target = primaryBall.flight.target and primaryBall.flight.target.character.Name or "nil",
+		targetPoint = primaryBall.flight.targetPoint and tostring(primaryBall.flight.targetPoint) or "nil",
+		origin = tostring(primaryBall.flight.origin),
+		duration = primaryBall.flight.duration,
+		s = primaryBall.flight.s,
+		velocity = tostring(primaryBall.flight.velocity),
+		locked = primaryBall.flight.locked,
+		isPass = primaryBall.flight.isPass,
+		charging = primaryBall.chargeStart ~= nil,
+		chargeFull = primaryBall.chargeFull,
+		balls = ballDump,
 	}
 end
 
@@ -854,16 +912,18 @@ function BallService.UnregisterFighter(character: Model)
 	catching[character] = nil
 	dashing[character] = nil
 	sprintState[character] = nil
-	if holder and holder.character == character then
-		BallService.MakeFree(ball.Position)
-	end
-	if flight.target and flight.target.character == character then
-		BallService.MakeFree(ball.Position)
+	for _, b in balls do
+		if b.holder and b.holder.character == character then
+			makeFreeBall(b, b.part.Position)
+		end
+		if b.flight.target and b.flight.target.character == character then
+			makeFreeBall(b, b.part.Position)
+		end
 	end
 end
 
 -- Shared by Free and Loose states: grab the ball, or bash it skyward mid-dash.
-local function checkPickupAndBash()
+local function checkPickupAndBash(b: Ball)
 	local t = now()
 	for _, f in fighters do
 		if f.character.Parent and f.root.Parent and not BallformService.IsBalled(f.character) then
@@ -875,40 +935,79 @@ local function checkPickupAndBash()
 			if hum and hum.Health <= 0 then
 				continue
 			end
-			local d = (ball.Position - f.root.Position).Magnitude
+			local d = (b.part.Position - f.root.Position).Magnitude
 			local dash = dashing[f.character]
 			if dash and t < dash.expires then
 				-- Shoulder bash: pop the ball straight up.
 				if d <= BallConfig.DASH_BALL_RANGE then
-					state = "Loose"
-					flight.velocity = Vector3.new(dash.dir.X * 10, BallConfig.POP_UP_SPEED, dash.dir.Z * 10)
+					b.state = "Loose"
+					b.flight.velocity = Vector3.new(dash.dir.X * 10, BallConfig.POP_UP_SPEED, dash.dir.Z * 10)
 					feedback(f, "PopUp", nil)
 					break
 				end
 				-- Mid-dash fighters bash; they don't scoop.
-			elseif d <= BallConfig.PICKUP_RADIUS then
-				holdBall(f)
-				setCharged(false)
+			elseif d <= BallConfig.PICKUP_RADIUS and heldBy(f) == nil then
+				-- full hands don't scoop a second ball off the floor
+				holdBall(b, f)
+				setCharged(b, false)
 				break
 			end
 		end
 	end
 end
 
--- ── Per-frame update ───────────────────────────────────────────────────────
-local function onHeartbeat(dt: number)
-	stepDashBonks()
-	stepBonkEffects()
-	-- Comic-book pulse: the aura breathes while charged.
-	if auraOn then
-		local pulse = 0.5 + 0.5 * math.sin(now() * 8)
-		if auraShell then
-			auraShell.Transparency = 0.4 + pulse * 0.35
-		end
-		if auraLight then
-			auraLight.Brightness = 0.8 + pulse * 1.4
+-- ── Drill refill ───────────────────────────────────────────────────────────
+-- The training bot never runs dry: when he's empty-handed and his ball is
+-- unheld, it snaps back into his hand once the circle has been empty for
+-- DRILL_REFILL_WAIT — or immediately if the ball got lost (fell off / far).
+local drillLastOccupiedAt = 0
+
+local function trainingBot(): Fighter?
+	for _, f in fighters do
+		if f.isBot and f.character.Name == BallConfig.BOT_NAME and f.character.Parent and f.root.Parent then
+			return f
 		end
 	end
+	return nil
+end
+
+local function stepDrillRefill()
+	if drillTarget() then
+		drillLastOccupiedAt = now()
+	end
+	local bot = trainingBot()
+	if not bot or heldBy(bot) then
+		return
+	end
+	local b = drillBall
+	if b.holder ~= nil or b.state == "Flight" then
+		return -- someone's playing with it / it's mid-air: leave it alone
+	end
+	local lost = (b.part.Position - bot.root.Position).Magnitude > BallConfig.DRILL_LOST_RANGE
+	local circleQuiet = (now() - drillLastOccupiedAt) >= BallConfig.DRILL_REFILL_WAIT
+	if lost or circleQuiet then
+		holdBall(b, bot)
+		setCharged(b, false)
+	end
+end
+
+-- ── Per-frame update ───────────────────────────────────────────────────
+local function stepBall(b: Ball, dt: number)
+	-- Comic-book pulse: the aura breathes while charged.
+	if b.auraOn then
+		local pulse = 0.5 + 0.5 * math.sin(now() * 8)
+		if b.auraShell then
+			b.auraShell.Transparency = 0.4 + pulse * 0.35
+		end
+		if b.auraLight then
+			b.auraLight.Brightness = 0.8 + pulse * 1.4
+		end
+	end
+
+	local state = b.state
+	local holder = b.holder
+	local flight = b.flight
+	local ball = b.part
 
 	if state == "Held" and holder then
 		-- Weld keeps the ball glued to the hand; only bot logic runs here.
@@ -921,47 +1020,49 @@ local function onHeartbeat(dt: number)
 				if drillTarget() then
 					if botDrillChargeAt == nil then
 						botDrillChargeAt = now()
-						chargeStart = now()
-						chargeFull = false
+						b.chargeStart = now()
+						b.chargeFull = false
 						AnimService.Windup(holder.character)
 					elseif now() - botDrillChargeAt >= BallConfig.BOT_DRILL_CHARGE then
 						botDrillChargeAt = nil
-						chargeStart = nil
-						BallService.Throw(holder, 1.0, 0, false)
+						b.chargeStart = nil
+						throwBall(b, holder, 1.0, 0, false)
+						return
 					end
 				elseif botDrillChargeAt then
 					botDrillChargeAt = nil
-					chargeStart = nil
-					setCharged(false)
+					b.chargeStart = nil
+					setCharged(b, false)
 					applyCarry(holder) -- wind-down: the circle emptied
 				end
-			elseif botHoldStart and (now() - botHoldStart) >= BallConfig.BOT_HOLD_DELAY then
+			elseif b.botHoldStart and (now() - b.botHoldStart) >= BallConfig.BOT_HOLD_DELAY then
 				-- match bots: quick catch-and-return, as before
-				botHoldStart = nil
-				BallService.Throw(holder, 1.0, 0, false)
+				b.botHoldStart = nil
+				throwBall(b, holder, 1.0, 0, false)
+				return
 			end
 		end
 		-- Full windup reached: purple flame ignites — this throw will fly
 		-- like an Overcharge tier ("charge = one purple catch").
-		if chargeStart and not chargeFull and (now() - chargeStart) >= BallConfig.FULL_CHARGE_TIME then
-			chargeFull = true
-			setCharged(true)
+		if b.chargeStart and not b.chargeFull and (now() - b.chargeStart) >= BallConfig.FULL_CHARGE_TIME then
+			b.chargeFull = true
+			setCharged(b, true)
 		end
 		-- Purple fades only if you RUN with it — hold your ground, keep it.
-		if holder and not holder.isBot and (overcharge[holder.character] or 0) > 0 then
+		if not holder.isBot and (overcharge[holder.character] or 0) > 0 then
 			local v = holder.root.AssemblyLinearVelocity
 			local moving = Vector3.new(v.X, 0, v.Z).Magnitude > BallConfig.CHARGE_RUN_SPEED
 			if moving then
-				if not chargeRunSince then
-					chargeRunSince = now()
-				elseif now() - chargeRunSince > BallConfig.CHARGE_RUN_GRACE then
+				if not b.chargeRunSince then
+					b.chargeRunSince = now()
+				elseif now() - b.chargeRunSince > BallConfig.CHARGE_RUN_GRACE then
 					overcharge[holder.character] = 0
-					chargeRunSince = nil
-					setCharged(false)
+					b.chargeRunSince = nil
+					setCharged(b, false)
 					feedback(holder, "ChargeFaded", nil)
 				end
 			else
-				chargeRunSince = nil
+				b.chargeRunSince = nil
 			end
 		end
 
@@ -970,7 +1071,7 @@ local function onHeartbeat(dt: number)
 		local targetPos
 		if target then
 			if not (target.character.Parent and target.root.Parent) then
-				BallService.MakeFree(ball.Position)
+				makeFreeBall(b, ball.Position)
 				return
 			end
 			targetPos = target.root.Position
@@ -979,15 +1080,15 @@ local function onHeartbeat(dt: number)
 		end
 
 		flight.s = math.min(flight.s + dt / flight.duration, 1)
-		local s = flight.s
+		local sProg = flight.s
 
 		-- Quadratic bezier from origin to the target's live position, bowed
 		-- sideways for curves and upward for arcs/lobs. controlT < 0.5 pushes
 		-- the bow toward the thrower: out wide early, hook in late.
 		local mid = flight.origin:Lerp(targetPos, flight.controlT) + flight.sideOffset + Vector3.new(0, flight.arcHeight, 0)
-		local a = flight.origin:Lerp(mid, s)
-		local b = mid:Lerp(targetPos, s)
-		local pos = a:Lerp(b, s)
+		local pa = flight.origin:Lerp(mid, sProg)
+		local pb = mid:Lerp(targetPos, sProg)
+		local pos = pa:Lerp(pb, sProg)
 
 		-- Curveball corkscrew: a helical offset around the flight path that
 		-- peaks mid-flight and tapers to ZERO at the target (clean arrival).
@@ -995,8 +1096,8 @@ local function onHeartbeat(dt: number)
 			local path = Vector3.new(targetPos.X - flight.origin.X, 0, targetPos.Z - flight.origin.Z)
 			if path.Magnitude > 0.1 then
 				local rightV = path.Unit:Cross(Vector3.yAxis)
-				local theta = s * BallConfig.CURVE_SPIRAL_TURNS * math.pi * 2 * flight.spiralDir
-				local radius = BallConfig.CURVE_SPIRAL_RADIUS * math.sin(math.pi * s)
+				local theta = sProg * BallConfig.CURVE_SPIRAL_TURNS * math.pi * 2 * flight.spiralDir
+				local radius = BallConfig.CURVE_SPIRAL_RADIUS * math.sin(math.pi * sProg)
 				pos += (rightV * math.cos(theta) + Vector3.yAxis * math.sin(theta)) * radius
 			end
 		end
@@ -1008,33 +1109,33 @@ local function onHeartbeat(dt: number)
 			local n = wallHit.Normal
 			local reflected = travelV - 2 * travelV:Dot(n) * n
 			ball.Position = wallHit.Position + n * (BallConfig.BALL_DIAMETER / 2)
-			goLoose(reflected * BallConfig.FLIGHT_WALL_KEEP)
+			goLoose(b, reflected * BallConfig.FLIGHT_WALL_KEEP)
 			return
 		end
 		ball.Position = pos
 
 		if target then
-			if s >= 1 or (ball.Position - targetPos).Magnitude <= BallConfig.CATCH_RADIUS * 0.5 then
-				resolveArrival(target)
+			if sProg >= 1 or (ball.Position - targetPos).Magnitude <= BallConfig.CATCH_RADIUS * 0.5 then
+				resolveArrival(b, target)
 			end
 		else
 			-- Point throw: anyone in the path can still catch/eat it.
 			for _, f in fighters do
 				if f.character ~= flight.thrower and f.character.Parent and f.root.Parent then
 					if (ball.Position - f.root.Position).Magnitude <= BallConfig.CATCH_RADIUS * 0.6 then
-						resolveArrival(f)
+						resolveArrival(b, f)
 						return
 					end
 				end
 			end
-			if s >= 1 then
+			if sProg >= 1 then
 				-- Arrives at the marker CARRYING its momentum: a buoyant
 				-- skip-bounce onward, not a dead stop (Loose physics then
 				-- bounces and rolls it out).
 				local dir = Vector3.new(targetPos.X - flight.origin.X, 0, targetPos.Z - flight.origin.Z)
 				dir = if dir.Magnitude > 0.1 then dir.Unit else Vector3.zero
 				local arriveSpeed = (targetPos - flight.origin).Magnitude / math.max(flight.duration, 0.05)
-				goLoose(dir * math.max(arriveSpeed * 0.35, 12) + Vector3.new(0, 10, 0))
+				goLoose(b, dir * math.max(arriveSpeed * 0.35, 12) + Vector3.new(0, 10, 0))
 			end
 		end
 
@@ -1056,12 +1157,12 @@ local function onHeartbeat(dt: number)
 		end
 		-- The floor is whatever roof is under the ball (raycast — roofs sit
 		-- at different heights). Off the edge there is no floor: the ball
-		-- falls into the clouds and respawns at midfield.
+		-- falls into the clouds and respawns at its home spot.
 		local floorFound = floorYBelow(newPos)
 		local overFloor = floorFound ~= nil
 		local floorY = (floorFound or -1e9) + BallConfig.BALL_DIAMETER / 2
 		if newPos.Y < groundY - 80 then
-			BallService.MakeFree(BALL_SPAWN)
+			makeFreeBall(b, b.spawnPos)
 			return
 		end
 		if newPos.Y <= floorY and overFloor then
@@ -1081,15 +1182,24 @@ local function onHeartbeat(dt: number)
 			local decay = math.max(0, 1 - BallConfig.ROLL_DRAG * dt)
 			flight.velocity = Vector3.new(flight.velocity.X * decay, 0, flight.velocity.Z * decay)
 			if flight.velocity.Magnitude <= BallConfig.SETTLE_SPEED then
-				BallService.MakeFree(newPos)
+				makeFreeBall(b, newPos)
 				return
 			end
 		end
 		ball.Position = newPos
-		checkPickupAndBash()
+		checkPickupAndBash(b)
 
 	elseif state == "Free" then
-		checkPickupAndBash()
+		checkPickupAndBash(b)
+	end
+end
+
+local function onHeartbeat(dt: number)
+	stepDashBonks()
+	stepBonkEffects()
+	stepDrillRefill()
+	for _, b in balls do
+		stepBall(b, dt)
 	end
 end
 
@@ -1100,92 +1210,127 @@ function BallService.Start()
 		groundY = baseplate.Position.Y + baseplate.Size.Y / 2
 	end
 
-	ball = Instance.new("Part")
-	ball.Name = "Dodgeball"
-	ball.Shape = Enum.PartType.Ball
-	ball.Size = Vector3.one * BallConfig.BALL_DIAMETER
-	ball.Color = BallConfig.BALL_COLOR
-	ball.Material = Enum.Material.SmoothPlastic
-	ball.Anchored = true
-	ball.CanCollide = false
-	ball.CanTouch = false
-	ball.CanQuery = false
-	ball.Massless = true
-	ball.TopSurface = Enum.SurfaceType.Smooth
-	ball.BottomSurface = Enum.SurfaceType.Smooth
-	ball.Parent = Workspace
+	local function newBall(name: string, spawnPos: Vector3, isDrill: boolean): Ball
+		local part = Instance.new("Part")
+		part.Name = name
+		part.Shape = Enum.PartType.Ball
+		part.Size = Vector3.one * BallConfig.BALL_DIAMETER
+		part.Color = BallConfig.BALL_COLOR
+		part.Material = Enum.Material.SmoothPlastic
+		part.Anchored = true
+		part.CanCollide = false
+		part.CanTouch = false
+		part.CanQuery = false
+		part.Massless = true
+		part.TopSurface = Enum.SurfaceType.Smooth
+		part.BottomSurface = Enum.SurfaceType.Smooth
+		CollectionService:AddTag(part, "BalloutBall") -- client decor snap key
+		part.Parent = Workspace
 
-	-- Single black stripe around the equator.
-	local stripe = Instance.new("Part")
-	stripe.Name = "Stripe"
-	stripe.Shape = Enum.PartType.Cylinder
-	stripe.Size = Vector3.new(0.3, BallConfig.BALL_DIAMETER * 1.02, BallConfig.BALL_DIAMETER * 1.02)
-	stripe.Color = Color3.fromRGB(25, 25, 28)
-	stripe.Material = Enum.Material.SmoothPlastic
-	stripe.Anchored = true -- born anchored like the ball; syncBallDecor keeps them matched
-	stripe.Massless = true
-	stripe.CanCollide = false
-	stripe.CanQuery = false
-	stripe.CanTouch = false
-	stripe.CFrame = ball.CFrame * CFrame.Angles(0, 0, math.rad(90))
-	stripe.Parent = ball
-	-- No weld here: syncBallDecor creates a fresh weld only while held.
-	ballStripe = stripe
+		-- Single black stripe around the equator.
+		local stripe = Instance.new("Part")
+		stripe.Name = "Stripe"
+		stripe.Shape = Enum.PartType.Cylinder
+		stripe.Size = Vector3.new(0.3, BallConfig.BALL_DIAMETER * 1.02, BallConfig.BALL_DIAMETER * 1.02)
+		stripe.Color = Color3.fromRGB(25, 25, 28)
+		stripe.Material = Enum.Material.SmoothPlastic
+		stripe.Anchored = true -- born anchored like the ball; syncBallDecor keeps them matched
+		stripe.Massless = true
+		stripe.CanCollide = false
+		stripe.CanQuery = false
+		stripe.CanTouch = false
+		stripe.CFrame = part.CFrame * CFrame.Angles(0, 0, math.rad(90))
+		stripe.Parent = part
+		-- No weld here: syncBallDecor creates a fresh weld only while held.
 
-	-- Charge aura: purple flame particles + pulsing neon shell + glow.
-	local shell = Instance.new("Part")
-	shell.Name = "ChargeAura"
-	shell.Shape = Enum.PartType.Ball
-	shell.Size = Vector3.one * (BallConfig.BALL_DIAMETER + 0.5)
-	shell.Color = Color3.fromRGB(170, 80, 255)
-	shell.Material = Enum.Material.Neon
-	shell.Transparency = 1
-	shell.Anchored = true -- born anchored like the ball; syncBallDecor keeps them matched
-	shell.Massless = true
-	shell.CanCollide = false
-	shell.CanQuery = false
-	shell.CanTouch = false
-	shell.CFrame = ball.CFrame
-	shell.Parent = ball
-	auraShell = shell
+		-- Charge aura: purple flame particles + pulsing neon shell + glow.
+		local shell = Instance.new("Part")
+		shell.Name = "ChargeAura"
+		shell.Shape = Enum.PartType.Ball
+		shell.Size = Vector3.one * (BallConfig.BALL_DIAMETER + 0.5)
+		shell.Color = Color3.fromRGB(170, 80, 255)
+		shell.Material = Enum.Material.Neon
+		shell.Transparency = 1
+		shell.Anchored = true -- born anchored like the ball; syncBallDecor keeps them matched
+		shell.Massless = true
+		shell.CanCollide = false
+		shell.CanQuery = false
+		shell.CanTouch = false
+		shell.CFrame = part.CFrame
+		shell.Parent = part
 
-	local auraAtt = Instance.new("Attachment")
-	auraAtt.Parent = ball
-	local flame = Instance.new("ParticleEmitter")
-	flame.Color = ColorSequence.new(Color3.fromRGB(210, 120, 255), Color3.fromRGB(120, 40, 220))
-	flame.LightEmission = 1
-	flame.Lifetime = NumberRange.new(0.25, 0.45)
-	flame.Rate = 45
-	flame.Speed = NumberRange.new(2, 5)
-	flame.SpreadAngle = Vector2.new(180, 180)
-	flame.Acceleration = Vector3.new(0, 7, 0)
-	flame.Size = NumberSequence.new({
-		NumberSequenceKeypoint.new(0, 0.9),
-		NumberSequenceKeypoint.new(1, 0),
-	})
-	flame.Transparency = NumberSequence.new({
-		NumberSequenceKeypoint.new(0, 0.2),
-		NumberSequenceKeypoint.new(1, 1),
-	})
-	flame.Enabled = false
-	flame.Parent = auraAtt
-	auraFlame = flame
+		local auraAtt = Instance.new("Attachment")
+		auraAtt.Parent = part
+		local flame = Instance.new("ParticleEmitter")
+		flame.Color = ColorSequence.new(Color3.fromRGB(210, 120, 255), Color3.fromRGB(120, 40, 220))
+		flame.LightEmission = 1
+		flame.Lifetime = NumberRange.new(0.25, 0.45)
+		flame.Rate = 45
+		flame.Speed = NumberRange.new(2, 5)
+		flame.SpreadAngle = Vector2.new(180, 180)
+		flame.Acceleration = Vector3.new(0, 7, 0)
+		flame.Size = NumberSequence.new({
+			NumberSequenceKeypoint.new(0, 0.9),
+			NumberSequenceKeypoint.new(1, 0),
+		})
+		flame.Transparency = NumberSequence.new({
+			NumberSequenceKeypoint.new(0, 0.2),
+			NumberSequenceKeypoint.new(1, 1),
+		})
+		flame.Enabled = false
+		flame.Parent = auraAtt
 
-	local glow = Instance.new("PointLight")
-	glow.Color = Color3.fromRGB(180, 90, 255)
-	glow.Range = 9
-	glow.Brightness = 1.2
-	glow.Enabled = false
-	glow.Parent = ball
-	auraLight = glow
+		local glow = Instance.new("PointLight")
+		glow.Color = Color3.fromRGB(180, 90, 255)
+		glow.Range = 9
+		glow.Brightness = 1.2
+		glow.Enabled = false
+		glow.Parent = part
 
-	local trail = Instance.new("Trail")
-	local a0 = Instance.new("Attachment"); a0.Position = Vector3.new(0, 0.4, 0); a0.Parent = ball
-	local a1 = Instance.new("Attachment"); a1.Position = Vector3.new(0, -0.4, 0); a1.Parent = ball
-	trail.Attachment0 = a0
-	trail.Attachment1 = a1
-	trail.Lifetime = 0.25
-	trail.Parent = ball
+		local trail = Instance.new("Trail")
+		local a0 = Instance.new("Attachment"); a0.Position = Vector3.new(0, 0.4, 0); a0.Parent = part
+		local a1 = Instance.new("Attachment"); a1.Position = Vector3.new(0, -0.4, 0); a1.Parent = part
+		trail.Attachment0 = a0
+		trail.Attachment1 = a1
+		trail.Lifetime = 0.25
+		trail.Parent = part
+
+		local b: Ball = {
+			part = part,
+			holdWeld = nil,
+			state = "Free",
+			holder = nil,
+			flight = {
+				target = nil,
+				origin = Vector3.zero,
+				sideOffset = Vector3.zero,
+				arcHeight = 0,
+				controlT = 0.5,
+				duration = 1,
+				s = 0,
+				locked = true,
+				velocity = Vector3.zero,
+				thrower = nil,
+				isPass = false,
+				spiralDir = 0,
+				targetPoint = nil,
+			},
+			botHoldStart = nil,
+			chargeStart = nil,
+			chargeFull = false,
+			chargeRunSince = nil,
+			auraOn = false,
+			auraShell = shell,
+			auraFlame = flame,
+			auraLight = glow,
+			stripe = stripe,
+			decorWelds = {},
+			spawnPos = spawnPos,
+			isDrill = isDrill,
+		}
+		table.insert(balls, b)
+		return b
+	end
 
 	-- The lobby (if built) owns the hangout ball; fall back to HQ midfield.
 	local lobby = Workspace:FindFirstChild("BalloutLobby")
@@ -1193,7 +1338,16 @@ function BallService.Start()
 	if marker and marker:IsA("BasePart") then
 		BALL_SPAWN = marker.Position
 	end
-	BallService.MakeFree(BALL_SPAWN)
+	primaryBall = newBall("Dodgeball", BALL_SPAWN, false)
+	makeFreeBall(primaryBall, BALL_SPAWN)
+
+	-- The training bot's practice ball spawns at his pad; stepDrillRefill
+	-- hands it to him as soon as he registers.
+	local hqMap = Workspace:FindFirstChild("BalloutMap")
+	local pad = if hqMap then hqMap:FindFirstChild("DummyPad") else nil
+	local drillSpawn = if pad and pad:IsA("BasePart") then pad.Position + Vector3.new(4, 2, 0) else BALL_SPAWN
+	drillBall = newBall("DrillBall", drillSpawn, true)
+	makeFreeBall(drillBall, drillSpawn)
 
 	RunService.Heartbeat:Connect(onHeartbeat)
 	-- No per-frame decor snap here: while the ball is server-driven the
@@ -1212,10 +1366,11 @@ function BallService.Start()
 		if not f then return end
 
 		if phase == "start" then
-			if state == "Held" and holder == f and not actionLocked(char) then
+			local b = heldBy(f)
+			if b and not actionLocked(char) then
 				AnimService.Windup(char)
-				chargeStart = now()
-				chargeFull = false
+				b.chargeStart = now()
+				b.chargeFull = false
 			end
 		elseif phase == "release" then
 			local aim = if typeof(aimDir) == "Vector3" then aimDir else nil
@@ -1243,7 +1398,7 @@ function BallService.Start()
 			AnimService.TuckPulse(char, BallConfig.FLIP_TIME)
 			-- Holding the ball? The carry pose comes right back after.
 			task.delay(BallConfig.FLIP_TIME + 0.05, function()
-				if holder == f then
+				if heldBy(f) then
 					applyCarry(f)
 				end
 			end)
@@ -1264,10 +1419,11 @@ function BallService.Start()
 			end
 			GliderService.Disable(char) -- can't glide as a ball
 			-- You can't be a ball AND hold a ball: drop it first.
-			if state == "Held" and holder == f then
+			local held = heldBy(f)
+			if held then
 				AnimService.Reset(char)
 				local look = f.root.CFrame.LookVector
-				BallService.MakeFree(f.root.Position + Vector3.new(look.X, 0, look.Z) * 4)
+				makeFreeBall(held, f.root.Position + Vector3.new(look.X, 0, look.Z) * 4)
 			end
 			if BallformService.Enable(char) then
 				feedback(f, "Ballform", { on = true })
@@ -1283,10 +1439,11 @@ function BallService.Start()
 	Remotes.DropRequest.OnServerEvent:Connect(function(player)
 		local char = player.Character
 		local f = char and fighterFor(char)
-		if f and state == "Held" and holder == f and not actionLocked(char) then
+		local held = if f then heldBy(f) else nil
+		if f and held and not actionLocked(char) then
 			AnimService.Reset(f.character)
 			local look = f.root.CFrame.LookVector
-			BallService.MakeFree(f.root.Position + Vector3.new(look.X, 0, look.Z) * 5)
+			makeFreeBall(held, f.root.Position + Vector3.new(look.X, 0, look.Z) * 5)
 		end
 	end)
 
@@ -1305,7 +1462,7 @@ function BallService.Start()
 			AnimService.GlideFlare(char, extra == true)
 		elseif on == true then
 			GliderService.Enable(char)
-			if holder == f then
+			if heldBy(f) then
 				applyCarry(f) -- right arm: ball
 				AnimService.GlidePose(char, false) -- left hand: bar
 			else
@@ -1314,7 +1471,7 @@ function BallService.Start()
 		else
 			GliderService.Disable(char)
 			AnimService.Reset(char)
-			if holder == f then
+			if heldBy(f) then
 				applyCarry(f)
 			end
 		end
@@ -1330,11 +1487,11 @@ function BallService.Start()
 		if actionLocked(char) then
 			return -- committed (dodge or catch): no passing out of it
 		end
-		if state == "Held" and holder == f then
+		if heldBy(f) then
 			BallService.Pass(f)
 		else
 			local mate = teammateOf(f)
-			if mate and holder == mate then
+			if mate and heldBy(mate) then
 				feedback(mate, "PassPing", nil)
 				feedback(f, "PassAsked", nil)
 			else
@@ -1351,7 +1508,7 @@ function BallService.Start()
 			return
 		end
 		sprintState[char] = on == true
-		if holder == f and not actionLocked(char) then
+		if heldBy(f) and not actionLocked(char) then
 			applyCarry(f) -- mid-commitment the committed pose owns the body
 		end
 	end)
@@ -1427,15 +1584,16 @@ function BallService.Start()
 	Remotes.FakeRequest.OnServerEvent:Connect(function(player, curveDir, isLob)
 		local char = player.Character
 		local f = char and fighterFor(char)
-		if f and state == "Held" and holder == f and not actionLocked(char) then
+		local held = if f then heldBy(f) else nil
+		if f and held and not actionLocked(char) then
 			-- The fake cancels the windup: the aura falls back to whatever
 			-- the ACTUAL caught-overcharge state is.
-			chargeStart = nil
-			chargeFull = false
-			setCharged((overcharge[f.character] or 0) > 0)
+			held.chargeStart = nil
+			held.chargeFull = false
+			setCharged(held, (overcharge[f.character] or 0) > 0)
 			AnimService.Swing(f.character)
 			task.delay(0.35, function()
-				if holder == f then
+				if heldBy(f) then
 					applyCarry(f)
 				end
 			end)
