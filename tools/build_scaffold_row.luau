@@ -253,7 +253,8 @@ do
 			mk("NB_Post", Vector3.new(3, 9, 3), Vector3.new(sx, 29.5, sz))
 		end
 	end
-	mk("NB_Roof", Vector3.new(50, 1, 52), Vector3.new(0, 34.5, TZ))
+	mk("NB_Roof", Vector3.new(48, 1, 50), Vector3.new(0, 34.5, TZ)) -- flush, no overhang
+	mk("NB_TowerTop", Vector3.new(48, 29, 50), Vector3.new(0, 49.5, TZ)) -- solid tower mass to y64
 	for _, sgn in { -1, 1 } do
 		wedge("NB_Ramp", Vector3.new(12, 4, 12), Vector3.new(sgn * 30, 2, TZ), -sgn * 90, GREY_LT)
 	end
@@ -273,7 +274,8 @@ do
 			mk("RoomPost", Vector3.new(3, 10, 3), Vector3.new(sx, 22, sz))
 		end
 	end
-	mk("RoomRoof", Vector3.new(50, 1, 52), Vector3.new(0, 27.5, 107))
+	mk("RoomRoof", Vector3.new(48, 1, 50), Vector3.new(0, 27.5, 107)) -- flush, no overhang
+	mk("RoomTowerTop", Vector3.new(48, 36, 50), Vector3.new(0, 46, 107)) -- solid tower mass to y64
 	-- mirrored entry chains: east AND west faces
 	for _, sgn in { 1, -1 } do
 		local crate = mk("EntryCrate", Vector3.new(4, 4, 4), Vector3.new(sgn * 30, 2, 88))
