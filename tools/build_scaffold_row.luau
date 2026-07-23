@@ -234,31 +234,25 @@ for i = -3, 3 do
 		end
 	end
 end
-local nFloor2 = mk("NorthFloor2", Vector3.new(140, 1, 44), Vector3.new(0, 14, -100))
+-- COMPACT pavilion: just the two interior bays (x -35..35), thick pillars,
+-- open second story (no walls), tall roof, ramps tucked at the ends
+local nFloor2 = mk("NorthFloor2", Vector3.new(70, 1, 44), Vector3.new(0, 14, -100))
 label(nFloor2, "NORTH FLOOR 2 — ramps both ends; containers cross high above")
--- sealed ground story: walls on all four sides, nobody walks under
-mk("NorthStoryWall", Vector3.new(140, 14, 1.5), Vector3.new(0, 7, -79.25))
-mk("NorthStoryWall", Vector3.new(140, 14, 1.5), Vector3.new(0, 7, -120.75))
-mk("NorthStoryWall", Vector3.new(1.5, 14, 43), Vector3.new(-69.25, 7, -100))
-mk("NorthStoryWall", Vector3.new(1.5, 14, 43), Vector3.new(69.25, 7, -100))
--- WAY taller second story: posts 14->44, roof at 44 (container crest 45
--- just clears the roof line)
-mk("NorthRoof", Vector3.new(150, 1, 48), Vector3.new(0, 44, -100))
--- open second story with back-face walls in the OUTER two bays only
-for _, side in { -1, 1 } do
-	mk("NorthBackWall", Vector3.new(33, 30, 1.5), Vector3.new(side * 52.5, 29, -120.75))
+mk("NorthStoryWall", Vector3.new(70, 14, 1.5), Vector3.new(0, 7, -79.25))
+mk("NorthStoryWall", Vector3.new(70, 14, 1.5), Vector3.new(0, 7, -120.75))
+mk("NorthStoryWall", Vector3.new(1.5, 14, 43), Vector3.new(-34.25, 7, -100))
+mk("NorthStoryWall", Vector3.new(1.5, 14, 43), Vector3.new(34.25, 7, -100))
+mk("NorthRoof", Vector3.new(80, 1, 48), Vector3.new(0, 44, -100))
+for _, px in { -35, 0, 35 } do
+	mk("NorthPost", Vector3.new(4, 30, 4), Vector3.new(px, 29, -79))
+	mk("NorthPostBack", Vector3.new(4, 30, 4), Vector3.new(px, 29, -121))
 end
-for _, px in { -70, -35, 0, 35, 70 } do
-	mk("NorthPost", Vector3.new(2, 30, 2), Vector3.new(px, 29, -79))
-	mk("NorthPostBack", Vector3.new(2, 30, 2), Vector3.new(px, 29, -121))
-end
-mk("NorthFloor2Rail", Vector3.new(140, 2.5, 1), Vector3.new(0, 15.75, -78.5))
-for _, cx2 in { -45, 5, 50 } do
+mk("NorthFloor2Rail", Vector3.new(70, 2.5, 1), Vector3.new(0, 15.75, -78.5))
+for _, cx2 in { -22, 4, 24 } do
 	mk("Floor2Crates", Vector3.new(6, 4, 5), Vector3.new(cx2, 16.5, -104))
 end
--- Floor 2 access ramps at both ends
-wedge("NorthRamp", Vector3.new(12, 14, 28), Vector3.new(-84, 7, -100), 90)
-wedge("NorthRamp", Vector3.new(12, 14, 28), Vector3.new(84, 7, -100), -90)
+wedge("NorthRamp", Vector3.new(12, 14, 28), Vector3.new(-49, 7, -100), 90)
+wedge("NorthRamp", Vector3.new(12, 14, 28), Vector3.new(49, 7, -100), -90)
 
 -- ══ CONTAINERS over the void (vertical cycle scripted at dress time) ════════
 -- CYCLE SPEC (for dress-time scripting): anti-phase vertical travel —
