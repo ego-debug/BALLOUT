@@ -246,18 +246,21 @@ label(nb, "SOLID BLOCK — seals the column; only the containers cross the pit")
 -- porch(16) -> deck; every hop <= jump 7, none skippable.
 do
 	mk("RoomBase", Vector3.new(48, 16, 50), Vector3.new(0, 8, 107))
-	local deck = mk("RoomFloor", Vector3.new(34, 1, 34), Vector3.new(0, 16.5, 115))
-	label(deck, "PERCH DECK — crate -> container -> porch -> deck")
-	for _, sx in { -14.5, 14.5 } do
-		for _, sz in { -14.5, 14.5 } do
-			mk("RoomPost", Vector3.new(3, 10, 3), Vector3.new(sx, 22, 115 + sz))
+	local deck = mk("RoomFloor", Vector3.new(48, 1, 50), Vector3.new(0, 16.5, 107))
+	label(deck, "PERCH DECK — full footprint; climb from either side")
+	for _, sx in { -22.5, 22.5 } do
+		for _, sz in { 85.5, 128.5 } do
+			mk("RoomPost", Vector3.new(3, 10, 3), Vector3.new(sx, 22, sz))
 		end
 	end
-	mk("RoomRoof", Vector3.new(36, 1, 36), Vector3.new(0, 27.5, 115))
-	local crate = mk("EntryCrate", Vector3.new(4, 4, 4), Vector3.new(30, 2, 88))
-	label(crate, "HOP 1 (top y4)")
-	local cont = mk("EntryContainer", Vector3.new(10, 10, 8), Vector3.new(29, 5, 96), Color3.fromRGB(140, 90, 90))
-	label(cont, "HOP 2 (top y10) -> porch (y16)")
+	mk("RoomRoof", Vector3.new(50, 1, 52), Vector3.new(0, 27.5, 107))
+	-- mirrored entry chains: east AND west faces
+	for _, sgn in { 1, -1 } do
+		local crate = mk("EntryCrate", Vector3.new(4, 4, 4), Vector3.new(sgn * 30, 2, 88))
+		label(crate, "HOP 1 (top y4)")
+		local cont = mk("EntryContainer", Vector3.new(10, 10, 8), Vector3.new(sgn * 29, 5, 96), Color3.fromRGB(140, 90, 90))
+		label(cont, "HOP 2 (top y10) -> deck")
+	end
 end
 
 -- ══ COMPASS LETTERS (outside the bounds — for markup screenshots) ═══════════
