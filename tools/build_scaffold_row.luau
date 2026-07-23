@@ -141,16 +141,37 @@ mk("TowerWallE", Vector3.new(2, 14, 21), Vector3.new(24, 7, -12))
 mk("TowerWallW", Vector3.new(2, 14, 21), Vector3.new(-24, 7, 12))
 mk("TowerWallS", Vector3.new(21, 14, 2), Vector3.new(-12, 7, 24))
 
--- ══ SCAFFOLDING (hugs the tower's N+W faces — never the swing side) ═════════
--- North walkway floats over the void; both sit almost flush to the walls
--- like real scaffolding clamped to the building being built.
+-- ══ SCAFFOLDING (cantilevered, owner's sketch): west-north-east wrap with a
+-- GAP on the south/SW; no ground poles — diagonal brackets tie each walkway
+-- back to the tower walls. North run floats over the void.
+mk("ScafW", Vector3.new(8, 1, 40), Vector3.new(-29.5, 14, -12))
 mk("ScafN", Vector3.new(62, 1, 8), Vector3.new(-2, 14, -29.5))
-mk("ScafW", Vector3.new(8, 1, 64), Vector3.new(-29.5, 14, -1))
-for _, pp in { { -31, -32 }, { 27, -32 }, { -32, 28 }, { -32, -2 } } do
-	mk("ScafPole", Vector3.new(1.5, 14, 1.5), Vector3.new(pp[1], 7, pp[2]))
+mk("ScafE", Vector3.new(8, 1, 56), Vector3.new(29.5, 14, 0))
+do
+	local BROWN = Color3.fromRGB(150, 105, 65)
+	local ANG = math.rad(32)
+	local function bracket(cf: CFrame)
+		local b = Instance.new("Part")
+		b.Name = "ScafBracket"
+		b.Size = Vector3.new(1, 1, 9.5)
+		b.Color = BROWN
+		b.Material = Enum.Material.SmoothPlastic
+		b.Anchored = true
+		b.CFrame = cf
+		b.Parent = m
+	end
+	for _, bx in { -26, -2, 22 } do
+		bracket(CFrame.new(Vector3.new(bx, 11.2, -29.2) + Vector3.new(CX, 0, CZ)) * CFrame.Angles(ANG, 0, 0))
+	end
+	for _, bz in { -26, -12, 2 } do
+		bracket(CFrame.new(Vector3.new(-29.2, 11.2, bz) + Vector3.new(CX, 0, CZ)) * CFrame.Angles(0, math.rad(90), 0) * CFrame.Angles(-ANG, 0, 0))
+	end
+	for _, bz in { -22, 0, 22 } do
+		bracket(CFrame.new(Vector3.new(29.2, 11.2, bz) + Vector3.new(CX, 0, CZ)) * CFrame.Angles(0, math.rad(90), 0) * CFrame.Angles(ANG, 0, 0))
+	end
 end
 wedge("ScafRamp", Vector3.new(8, 14, 22), Vector3.new(-46, 7, -29.5), 90)
-wedge("ScafRamp", Vector3.new(8, 14, 22), Vector3.new(-29.5, 7, 43), 180)
+wedge("ScafRamp", Vector3.new(8, 14, 22), Vector3.new(29.5, 7, 41), 180)
 
 -- ══ SOUTH: colonnade halves + breezeway + facing divot ramps ════════════════
 label(mk("SouthColonnadeFloor", Vector3.new(58, 1, 44), Vector3.new(-41, 8, 100)), "COLONNADE WEST (elevated)")
