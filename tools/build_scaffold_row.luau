@@ -96,9 +96,19 @@ mk("Dirt", Vector3.new(400, 1, 50), Vector3.new(0, 0.5, 0), GREY_DK)
 mk("Dirt", Vector3.new(400, 1, 58), Vector3.new(0, 0.5, 111), GREY_DK)
 for _, sx in { -1, 1 } do
 	for _, sz in { -1, 1 } do
-		mk("Dirt", Vector3.new(176, 1, 57), Vector3.new(sx * 112, 0.5, sz * 53.5), GREY_DK)
+		if not (sx == -1 and sz == 1) then
+			mk("Dirt", Vector3.new(176, 1, 57), Vector3.new(sx * 112, 0.5, sz * 53.5), GREY_DK)
+		end
 	end
 end
+-- W-south flank carries the SW finger void (x -152..-128, z 62..82):
+mk("Dirt", Vector3.new(48, 1, 57), Vector3.new(-176, 0.5, 53.5), GREY_DK)
+mk("Dirt", Vector3.new(104, 1, 57), Vector3.new(-76, 0.5, 53.5), GREY_DK)
+mk("Dirt", Vector3.new(24, 1, 37), Vector3.new(-140, 0.5, 43.5), GREY_DK)
+mk("PitWall", Vector3.new(24, 30, 1), Vector3.new(-140, -14, 62.5), DARK)
+mk("PitWall", Vector3.new(24, 30, 1), Vector3.new(-140, -14, 81.5), DARK)
+mk("PitWall", Vector3.new(1, 30, 20), Vector3.new(-152.5, -14, 72), DARK)
+mk("PitWall", Vector3.new(1, 30, 20), Vector3.new(-127.5, -14, 72), DARK)
 for _, sz in { -1, 1 } do
 	mk("PitWall", Vector3.new(48, 30, 1), Vector3.new(0, -14, sz * 82.5), DARK)
 	mk("PitWall", Vector3.new(48, 30, 1), Vector3.new(0, -14, sz * 25.5), DARK)
@@ -126,7 +136,9 @@ do -- yard floor: repunch to the canyon (world x -160..-30, z -760..-690)
 	slab(Vector3.new(520, 4, 108), Vector3.new(0, -2, -514))
 	slab(Vector3.new(236, 4, 57), Vector3.new(-142, -2, -703.5))
 	slab(Vector3.new(236, 4, 57), Vector3.new(142, -2, -703.5))
-	slab(Vector3.new(236, 4, 57), Vector3.new(-142, -2, -596.5))
+	slab(Vector3.new(108, 4, 57), Vector3.new(-206, -2, -596.5))
+	slab(Vector3.new(104, 4, 57), Vector3.new(-76, -2, -596.5))
+	slab(Vector3.new(24, 4, 37), Vector3.new(-140, -2, -606.5))
 	slab(Vector3.new(236, 4, 57), Vector3.new(142, -2, -596.5))
 end
 
@@ -272,6 +284,10 @@ for i, def in corner do
 		label(blk, "CORNER BUILDINGS — solid, out of bounds")
 	end
 end
+-- SW finger void railing (hop it and drop) + the back divot filled flush
+local rail = mk("VoidRail", Vector3.new(26, 2.5, 1), Vector3.new(-140, 2.25, 61.5))
+label(rail, "RAIL VOID — hop the rail and you drop")
+mk("CornerMass", Vector3.new(18, 40, 8), Vector3.new(-101, 20, 122), GREY_BLD)
 
 -- ══ COMPASS LETTERS (outside the bounds — for markup screenshots) ═══════════
 -- 40-stud panels; PixelsPerStud 2.5 because TextScaled caps at 100px (a
