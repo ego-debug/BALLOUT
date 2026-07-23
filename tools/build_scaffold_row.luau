@@ -246,7 +246,10 @@ do
 	local hall = mk("NB_WallN", Vector3.new(48, 20, 1.5), Vector3.new(0, 14, -131.25))
 	label(hall, "NORTH HALL — tall floor 1, open to the void: board the containers from here")
 	-- (no south wall: the hall's void side is OPEN — floor 1 doubles as the
-	-- container boarding platform)
+	-- container boarding platform; corner pillars carry floor 2's south edge)
+	for _, sx in { -22.5, 22.5 } do
+		mk("NB_HallPillar", Vector3.new(3, 20, 3), Vector3.new(sx, 14, -84))
+	end
 	local f2 = mk("NB_Floor2", Vector3.new(48, 1, 50), Vector3.new(0, 24.5, TZ))
 	label(f2, "FLOOR 2 — jump off the containers mid-ride to land here")
 	for _, sx in { -22.5, 22.5 } do
