@@ -246,10 +246,16 @@ for _, cx2 in { -45, 5, 50 } do
 end
 
 -- ══ CONTAINERS over the void (vertical cycle scripted at dress time) ════════
-local red = mk("ContainerRed", Vector3.new(10, 8, 26), Vector3.new(-9, 5, -56), Color3.fromRGB(140, 90, 90))
-label(red, "CONTAINER A (low) — first hop, rides over the void")
-local blue = mk("ContainerBlue", Vector3.new(10, 8, 26), Vector3.new(9, 9.5, -50), Color3.fromRGB(90, 110, 140))
-label(blue, "CONTAINER B — rises to just under the scaffold lip")
+-- CYCLE SPEC (for dress-time scripting): anti-phase vertical travel —
+-- one rises while the other falls, crossing at mid-travel (~y 17.5).
+--   LOW extreme:  container top a touch UNDER ground level (top y -2,
+--                 sunk into the void — you drop on or wait)
+--   HIGH extreme: top slightly under the crane top (top y 45 vs crane 48)
+-- Placeholders posed at the two extremes:
+local red = mk("ContainerRed", Vector3.new(10, 8, 26), Vector3.new(-9, -6, -56), Color3.fromRGB(140, 90, 90))
+label(red, "CONTAINER A — shown at LOW: sunk into the void, top just under ground")
+local blue = mk("ContainerBlue", Vector3.new(10, 8, 26), Vector3.new(9, 41, -50), Color3.fromRGB(90, 110, 140))
+label(blue, "CONTAINER B — shown at HIGH: top slightly under the crane top. They cycle in OPPOSITE directions, crossing mid-travel")
 
 -- ══ WRECKING BALL (crane south, swings N<->S through the breezeway) ═════════
 mk("CraneMast", Vector3.new(6, 48, 6), Vector3.new(12, 24, 122))
