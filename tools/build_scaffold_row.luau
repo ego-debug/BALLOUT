@@ -244,20 +244,12 @@ mk("NorthStoryWall", Vector3.new(1.5, 14, 43), Vector3.new(69.25, 7, -100))
 -- WAY taller second story: posts 14->44, roof at 44 (container crest 45
 -- just clears the roof line)
 mk("NorthRoof", Vector3.new(150, 1, 48), Vector3.new(0, 44, -100))
--- second story enclosed: solid back, front walls EITHER SIDE of the central
--- container jump-in opening (x -24..24); ramp ends stay fully open. No
--- middle front pillar - it would stand in the jump-in.
-mk("NorthUpperWall", Vector3.new(140, 30, 1.5), Vector3.new(0, 29, -120.75))
-mk("NorthUpperWall", Vector3.new(46, 30, 1.5), Vector3.new(-47, 29, -79.25))
-mk("NorthUpperWall", Vector3.new(46, 30, 1.5), Vector3.new(47, 29, -79.25))
-for _, px in { -70, -35, 35, 70 } do
-	mk("NorthPost", Vector3.new(2, 30, 2), Vector3.new(px, 29, -79))
-end
+-- open second story (owner reverted the walled version)
 for _, px in { -70, -35, 0, 35, 70 } do
+	mk("NorthPost", Vector3.new(2, 30, 2), Vector3.new(px, 29, -79))
 	mk("NorthPostBack", Vector3.new(2, 30, 2), Vector3.new(px, 29, -121))
 end
--- jump-in lip spans the opening only
-mk("NorthFloor2Rail", Vector3.new(48, 2.5, 1), Vector3.new(0, 15.75, -78.5))
+mk("NorthFloor2Rail", Vector3.new(140, 2.5, 1), Vector3.new(0, 15.75, -78.5))
 for _, cx2 in { -45, 5, 50 } do
 	mk("Floor2Crates", Vector3.new(6, 4, 5), Vector3.new(cx2, 16.5, -104))
 end
@@ -288,7 +280,7 @@ local swing = mk("SwingZoneMark", Vector3.new(14, 0.25, 92), Vector3.new(12, 1.2
 label(swing, "SWING PATH (N <-> S)")
 
 -- ══ BLOCKERS + cross-cuts + bounds ══════════════════════════════════════════
-local towers = { { 115, -100 }, { -115, -100 }, { 115, 105 } }
+local towers = { { 115, -100 }, { -115, -100 }, { -115, 105 } }
 for i, t in towers do
 	local tower = mk("BlockerTower" .. i, Vector3.new(34, 46, 34), Vector3.new(t[1], 23.5, t[2]), Color3.fromRGB(145, 143, 148))
 	if i == 1 then
