@@ -238,8 +238,16 @@ for i = -3, 3 do
 end
 mk("Pallets", Vector3.new(8, 4, 6), Vector3.new(178, 3, 30))
 mk("Pallets", Vector3.new(8, 4, 6), Vector3.new(-178, 3, -10))
-local eTower = mk("BlockerTower3", Vector3.new(34, 46, 34), Vector3.new(178, 23.5, 75), Color3.fromRGB(145, 143, 148))
-label(eTower, "SOLID TOWER — no entry")
+-- OUT-OF-BOUNDS corner masses: four tall solid buildings fill the corner
+-- quadrants so play condenses into the lanes + center. Clearances: spawn
+-- exit bands (z ±60) open, ball-2 line (x -40) clear, SE mass starts at
+-- x 130 (the SE arc end reaches x ~126).
+local GREY_BLD = Color3.fromRGB(150, 148, 152)
+local ne = mk("CornerMass", Vector3.new(85, 40, 66), Vector3.new(132.5, 20, -93), GREY_BLD)
+label(ne, "CORNER BUILDINGS — solid, out of bounds")
+mk("CornerMass", Vector3.new(85, 40, 66), Vector3.new(-132.5, 20, -93), GREY_BLD)
+mk("CornerMass", Vector3.new(85, 40, 66), Vector3.new(-132.5, 20, 93), GREY_BLD)
+mk("CornerMass", Vector3.new(50, 40, 62), Vector3.new(155, 20, 95), GREY_BLD)
 -- NORTH column building (flush with the void at z -82; column stays sealed
 -- by the N+S hall walls):
 --   FLOOR 1: raised podium (top y4), tall 20-stud hall, walls N+S, OPEN
