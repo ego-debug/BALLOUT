@@ -65,8 +65,14 @@ this before the habit stuck.
 
 ## Architecture notes (hard-won — don't relearn these)
 
-- **Server-authoritative kinematic ball.** States: `Free` / `Held` / `Flight` /
-  `Loose`. Flights are quadratic béziers (`controlT` shapes curve vs. lob).
+- **Server-authoritative kinematic balls — PLURAL (2026-07-19).** BallService
+  runs a list of `Ball` objects, each its own state machine: `Free` / `Held` /
+  `Flight` / `Loose`. Flights are quadratic béziers (`controlT` shapes curve
+  vs. lob). Two balls exist: `primaryBall` ("Dodgeball" — lobby + matches;
+  `MakeFree` targets it) and `drillBall` (the training bot's — auto-refills
+  via `stepDrillRefill`). Fighters hold at most one ball (`heldBy`); catching
+  with full hands POPS the held ball loose; full hands can't scoop. Client
+  decor/holding checks iterate the `BalloutBall` CollectionService tag.
 - **Held = unanchored + welded** to the hand so it moves as one assembly.
   Anchored the rest of the time and moved by script.
 - **Never CFrame-write an unanchored welded part** — the solver fights the weld
