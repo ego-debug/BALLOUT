@@ -242,75 +242,34 @@ mk("Pallets", Vector3.new(8, 4, 6), Vector3.new(-178, 3, -10))
 -- quadrants so play condenses into the lanes + center. Clearances: spawn
 -- exit bands (z ±60) open, ball-2 line (x -40) clear, SE mass starts at
 -- x 130 (the SE arc end reaches x ~126).
--- Shapes follow the owner's drawn silhouettes (multi-block clusters):
+-- Corner clusters: the owner's drawn silhouettes as varied-height lobes
+-- (32-48 tall). Footprints keep every clearance: spawn bands z ±60 open,
+-- ball-2 line clear, SE bite = the ball-arc zone (x128..156, z60..90).
 local GREY_BLD = Color3.fromRGB(150, 148, 152)
--- SE: big + notched (the inner bite at x128..156, z60..90 is the ball-arc zone)
-local se = mk("CornerMass", Vector3.new(52, 40, 36), Vector3.new(154, 20, 108), GREY_BLD)
-label(se, "CORNER BUILDINGS — solid, out of bounds")
-mk("CornerMass", Vector3.new(24, 40, 30), Vector3.new(168, 20, 75), GREY_BLD)
--- SW: wide slab + two fingers toward the field
-mk("CornerMass", Vector3.new(85, 40, 42), Vector3.new(-137.5, 20, 105), GREY_BLD)
-mk("CornerMass", Vector3.new(20, 40, 24), Vector3.new(-165, 20, 72), GREY_BLD)
-mk("CornerMass", Vector3.new(20, 40, 24), Vector3.new(-115, 20, 72), GREY_BLD)
--- NE: long road-hugging slab + inner step
-mk("CornerMass", Vector3.new(85, 40, 40), Vector3.new(137.5, 20, -106), GREY_BLD)
-mk("CornerMass", Vector3.new(40, 40, 26), Vector3.new(115, 20, -73), GREY_BLD)
--- NW: compact main + shoulder
-mk("CornerMass", Vector3.new(54, 40, 50), Vector3.new(-148, 20, -97), GREY_BLD)
-mk("CornerMass", Vector3.new(24, 40, 26), Vector3.new(-112, 20, -86), GREY_BLD)
--- NORTH column building (flush with the void at z -82; column stays sealed
--- by the N+S hall walls):
---   FLOOR 1: raised podium (top y4), tall 20-stud hall, walls N+S, OPEN
---            east/west with walk-up ramps
---   FLOOR 2: slab at y24 — reachable ONLY by jumping off the pit
---            containers mid-ride; corner posts + roof above
-do
-	local TZ = -107
-	mk("NB_Podium", Vector3.new(48, 4, 50), Vector3.new(0, 2, TZ))
-	local hall = mk("NB_WallN", Vector3.new(48, 20, 1.5), Vector3.new(0, 14, -131.25))
-	label(hall, "NORTH HALL — tall floor 1, open to the void: board the containers from here")
-	-- (no south wall: the hall's void side is OPEN — floor 1 doubles as the
-	-- container boarding platform; corner pillars carry floor 2's south edge)
-	for _, sx in { -22.5, 22.5 } do
-		mk("NB_HallPillar", Vector3.new(3, 20, 3), Vector3.new(sx, 14, -84))
-	end
-	local f2 = mk("NB_Floor2", Vector3.new(48, 1, 50), Vector3.new(0, 24.5, TZ))
-	label(f2, "FLOOR 2 — jump off the containers mid-ride to land here")
-	for _, sx in { -22.5, 22.5 } do
-		for _, sz in { -130.5, -83.5 } do
-			mk("NB_Post", Vector3.new(3, 9, 3), Vector3.new(sx, 29.5, sz))
-		end
-	end
-	mk("NB_Roof", Vector3.new(48, 1, 50), Vector3.new(0, 34.5, TZ)) -- flush, no overhang
-	mk("NB_TowerTop", Vector3.new(48, 29, 50), Vector3.new(0, 49.5, TZ)) -- solid tower mass to y64
-	-- east ramp at the hall's middle; WEST ramp slides north out of ball 2's
-	-- low-arc zone (the 26-stud ball dips to y3 near z -100..-113)
-	wedge("NB_Ramp", Vector3.new(12, 4, 12), Vector3.new(30, 2, TZ), -90, GREY_LT)
-	wedge("NB_Ramp", Vector3.new(12, 4, 12), Vector3.new(-30, 2, -126), 90, GREY_LT)
-end
-
--- ══ SOUTH PERCH TOWER: solid base flush with the pit, open post-deck top ════
--- Base 48 wide x z 82..132 (seals the south column — no walkway past the
--- void). Deck + 4 posts + roof on top; base-top "porch" ring around the
--- deck. Entry chain on the east face: crate(4) -> container(10) ->
--- porch(16) -> deck; every hop <= jump 7, none skippable.
-do
-	mk("RoomBase", Vector3.new(48, 16, 50), Vector3.new(0, 8, 107))
-	local deck = mk("RoomFloor", Vector3.new(48, 1, 50), Vector3.new(0, 16.5, 107))
-	label(deck, "PERCH DECK — full footprint; climb from either side")
-	for _, sx in { -22.5, 22.5 } do
-		for _, sz in { 85.5, 128.5 } do
-			mk("RoomPost", Vector3.new(3, 10, 3), Vector3.new(sx, 22, sz))
-		end
-	end
-	mk("RoomRoof", Vector3.new(48, 1, 50), Vector3.new(0, 27.5, 107)) -- flush, no overhang
-	mk("RoomTowerTop", Vector3.new(48, 36, 50), Vector3.new(0, 46, 107)) -- solid tower mass to y64
-	-- mirrored entry chains: east AND west faces
-	for _, sgn in { 1, -1 } do
-		local crate = mk("EntryCrate", Vector3.new(4, 4, 4), Vector3.new(sgn * 30, 2, 88))
-		label(crate, "HOP 1 (top y4)")
-		local cont = mk("EntryContainer", Vector3.new(10, 10, 8), Vector3.new(sgn * 29, 5, 96), Color3.fromRGB(140, 90, 90))
-		label(cont, "HOP 2 (top y10) -> deck")
+local corner = {
+	-- SE (big + notch)
+	{ Vector3.new(30, 48, 36), Vector3.new(165, 24, 108) },
+	{ Vector3.new(24, 36, 36), Vector3.new(140, 18, 108) },
+	{ Vector3.new(24, 42, 30), Vector3.new(168, 21, 75) },
+	-- SW (wide + two fingers)
+	{ Vector3.new(38, 46, 42), Vector3.new(-161, 23, 105) },
+	{ Vector3.new(30, 34, 42), Vector3.new(-127, 17, 105) },
+	{ Vector3.new(18, 40, 34), Vector3.new(-101, 20, 101) },
+	{ Vector3.new(20, 28, 24), Vector3.new(-165, 14, 72) },
+	{ Vector3.new(20, 32, 24), Vector3.new(-115, 16, 72) },
+	-- NE (long + step)
+	{ Vector3.new(45, 44, 40), Vector3.new(157.5, 22, -106) },
+	{ Vector3.new(40, 34, 40), Vector3.new(115, 17, -106) },
+	{ Vector3.new(40, 26, 26), Vector3.new(115, 13, -73) },
+	-- NW (compact + shoulder)
+	{ Vector3.new(34, 42, 50), Vector3.new(-158, 21, -97) },
+	{ Vector3.new(20, 32, 40), Vector3.new(-131, 16, -92) },
+	{ Vector3.new(24, 24, 26), Vector3.new(-112, 12, -86) },
+}
+for i, def in corner do
+	local blk = mk("CornerMass", def[1], def[2], GREY_BLD)
+	if i == 1 then
+		label(blk, "CORNER BUILDINGS — solid, out of bounds")
 	end
 end
 
