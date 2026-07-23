@@ -232,33 +232,32 @@ for i = -3, 3 do
 end
 mk("Pallets", Vector3.new(8, 4, 6), Vector3.new(178, 3, 30))
 mk("Pallets", Vector3.new(8, 4, 6), Vector3.new(-178, 3, -10))
-local towers = { { 0, 115 }, { 178, 75 } }
-for i, t in towers do
-	local tower = mk("BlockerTower" .. (i + 1), Vector3.new(34, 46, 34), Vector3.new(t[1], 23.5, t[2]), Color3.fromRGB(145, 143, 148))
-	if i == 1 then
-		label(tower, "SOLID TOWERS — no entry, break the road sightlines")
-	end
-end
+local eTower = mk("BlockerTower3", Vector3.new(34, 46, 34), Vector3.new(178, 23.5, 75), Color3.fromRGB(145, 143, 148))
+label(eTower, "SOLID TOWER — no entry")
+-- NORTH column: solid blocker widened to the pit span and flush with the
+-- void edge (z -132..-82) — no ground walkway past the pit
+local nb = mk("BlockerTowerN", Vector3.new(48, 46, 50), Vector3.new(0, 23.5, -107), Color3.fromRGB(145, 143, 148))
+label(nb, "SOLID BLOCK — seals the column; only the containers cross the pit")
 
--- ══ NORTH PERCH TOWER (was blocker 1): solid base, OPEN post-deck top ═══════
--- Solid block to y16 (no underpass), deck on top with only 4 corner posts
--- holding the roof. Entry chain crate(4) -> container(10) -> deck(16.5+):
--- each hop <= jump 7, none skippable, no route from flat ground.
+-- ══ SOUTH PERCH TOWER: solid base flush with the pit, open post-deck top ════
+-- Base 48 wide x z 82..132 (seals the south column — no walkway past the
+-- void). Deck + 4 posts + roof on top; base-top "porch" ring around the
+-- deck. Entry chain on the east face: crate(4) -> container(10) ->
+-- porch(16) -> deck; every hop <= jump 7, none skippable.
 do
-	local TX, TZ = 0, -115
-	mk("RoomBase", Vector3.new(34, 16, 34), Vector3.new(TX, 8, TZ))
-	local floor2 = mk("RoomFloor", Vector3.new(34, 1, 34), Vector3.new(TX, 16.5, TZ))
-	label(floor2, "PERCH DECK — crate -> container -> up. No direct jump")
+	mk("RoomBase", Vector3.new(48, 16, 50), Vector3.new(0, 8, 107))
+	local deck = mk("RoomFloor", Vector3.new(34, 1, 34), Vector3.new(0, 16.5, 115))
+	label(deck, "PERCH DECK — crate -> container -> porch -> deck")
 	for _, sx in { -14.5, 14.5 } do
 		for _, sz in { -14.5, 14.5 } do
-			mk("RoomPost", Vector3.new(3, 10, 3), Vector3.new(TX + sx, 22, TZ + sz))
+			mk("RoomPost", Vector3.new(3, 10, 3), Vector3.new(sx, 22, 115 + sz))
 		end
 	end
-	mk("RoomRoof", Vector3.new(36, 1, 36), Vector3.new(TX, 27.5, TZ))
-	local crate = mk("EntryCrate", Vector3.new(4, 4, 4), Vector3.new(TX + 18, 2, TZ + 19))
+	mk("RoomRoof", Vector3.new(36, 1, 36), Vector3.new(0, 27.5, 115))
+	local crate = mk("EntryCrate", Vector3.new(4, 4, 4), Vector3.new(30, 2, 88))
 	label(crate, "HOP 1 (top y4)")
-	local cont = mk("EntryContainer", Vector3.new(10, 10, 8), Vector3.new(TX + 8, 5, TZ + 13), Color3.fromRGB(140, 90, 90))
-	label(cont, "HOP 2 (top y10) -> deck (16.5)")
+	local cont = mk("EntryContainer", Vector3.new(10, 10, 8), Vector3.new(29, 5, 96), Color3.fromRGB(140, 90, 90))
+	label(cont, "HOP 2 (top y10) -> porch (y16)")
 end
 
 -- ══ COMPASS LETTERS (outside the bounds — for markup screenshots) ═══════════
