@@ -146,7 +146,6 @@ mk("TowerWallN", Vector3.new(21, 14, 2), Vector3.new(12, 7, -24))
 mk("TowerWallE", Vector3.new(2, 14, 21), Vector3.new(24, 7, -12))
 mk("TowerWallW", Vector3.new(2, 14, 21), Vector3.new(-24, 7, 12))
 mk("TowerWallS", Vector3.new(21, 14, 2), Vector3.new(-12, 7, 24))
-mk("ScafW", Vector3.new(6, 0.6, 40), Vector3.new(-29.2, 14, -12))
 mk("ScafN", Vector3.new(62, 0.6, 6), Vector3.new(-2, 14, -29.2))
 -- east walkway STOPS at the roof-strip line (z ~1.5): the bare SE pillar
 -- region and the ball's diagonal approach have NO scaffold
@@ -165,9 +164,6 @@ do
 	end
 	for _, bx in { -26, -2, 22 } do
 		bracket(CFrame.new(Vector3.new(bx, 11.4, -28.6) + Vector3.new(CX, 0, CZ)) * CFrame.Angles(ANG, 0, 0))
-	end
-	for _, bz in { -26, -12, 2 } do
-		bracket(CFrame.new(Vector3.new(-28.6, 11.4, bz) + Vector3.new(CX, 0, CZ)) * CFrame.Angles(0, math.rad(90), 0) * CFrame.Angles(ANG, 0, 0))
 	end
 	for _, bz in { -22, 0 } do
 		bracket(CFrame.new(Vector3.new(28.6, 11.4, bz) + Vector3.new(CX, 0, CZ)) * CFrame.Angles(0, math.rad(90), 0) * CFrame.Angles(-ANG, 0, 0))
@@ -202,18 +198,17 @@ local swing = mkCF("SwingZoneMark", Vector3.new(14, 0.25, 100),
 	CFrame.new(Vector3.new(72, 1.2, 64) + Vector3.new(CX, 0, CZ)) * CFrame.Angles(0, math.rad(45), 0),
 	Color3.fromRGB(190, 150, 150))
 label(swing, "SWING PATH (diagonal, toward/away from the core)")
--- ══ NE: SECOND CRANE — mirrored wrecking ball over the north flank ═════════
-mk("CraneMast2", Vector3.new(6, 48, 6), Vector3.new(120, 24, -105))
-mkCF("CraneArm2", Vector3.new(4, 3, 130),
-	CFrame.new(Vector3.new(74, 46, -66) + Vector3.new(CX, 0, CZ)) * CFrame.Angles(0, math.rad(-45), 0))
-mkCF("WreckChain2", Vector3.new(1, 26, 1), CFrame.new(Vector3.new(60, 33, -52) + Vector3.new(CX, 0, CZ)))
-local ball2 = mk("WreckBall2", Vector3.new(20, 20, 20), Vector3.new(54, 16, -46), GREY_DK)
+-- ══ WEST FLANK: SECOND CRANE — ball swings N<->S along the corridor ════════
+-- (the west scaffold walkway was cut for it: nothing in the arc's path; the
+-- north walkway survives because a pendulum rises with |z| and clears it)
+mk("CraneMast2", Vector3.new(6, 48, 6), Vector3.new(-34, 24, -72))
+mk("CraneArm2", Vector3.new(4, 3, 130), Vector3.new(-34, 46, -5))
+mk("WreckChain2", Vector3.new(1, 26, 1), Vector3.new(-34, 33, 2))
+local ball2 = mk("WreckBall2", Vector3.new(20, 20, 20), Vector3.new(-34, 16, 8), GREY_DK)
 ball2.Shape = Enum.PartType.Ball
-label(ball2, "WRECKING BALL 2 — mirrors the SE arc over the north flank")
-local swing2 = mkCF("SwingZoneMark2", Vector3.new(14, 0.25, 100),
-	CFrame.new(Vector3.new(72, 1.2, -64) + Vector3.new(CX, 0, CZ)) * CFrame.Angles(0, math.rad(-45), 0),
-	Color3.fromRGB(190, 150, 150))
-label(swing2, "SWING PATH 2 (NE diagonal)")
+label(ball2, "WRECKING BALL 2 — swings N<->S along the west flank")
+local swing2 = mk("SwingZoneMark2", Vector3.new(14, 0.25, 100), Vector3.new(-34, 1.2, -5), Color3.fromRGB(190, 150, 150))
+label(swing2, "SWING PATH 2 (west corridor)")
 
 -- ══ NE + SW: SPAWN YARDS (diagonal axis) ════════════════════════════════════
 for _, sp in { { x = 155, z = -95, name = "TEAM A SPAWN (NE)" }, { x = -155, z = 95, name = "TEAM B SPAWN (SW)" } } do
