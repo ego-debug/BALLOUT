@@ -3,6 +3,13 @@
 -- Every tunable "feel" number lives here so we can dial the game in live.
 -- Values are starting points translated from the Knockout City feel research
 -- (see DESIGN.md). Tune freely.
+--
+-- SCALE KEY (2026-07-19): 1 meter ≈ 2.8 studs (KC character 1.8m = our 5
+-- studs). All speeds/distances below already sit in KC's envelope through
+-- this conversion — walk 22 ≈ 7.9 m/s, charged throw 140 ≈ 50 m/s, dash
+-- ≈ 7m. MAPS must match too: KC-scale arena ≈ 400x280 studs footprint,
+-- stories 11-17 studs, lanes 28-42 wide, engagement range 42-98 studs.
+-- If a new map feels off, fix the MAP to this key before touching speeds.
 
 local BallConfig = {}
 
@@ -66,6 +73,7 @@ BallConfig.ROLL_DRAG = 2.0           -- per-second horizontal decay while rollin
 BallConfig.SETTLE_SPEED = 4          -- below this the ball comes to rest
 BallConfig.WALL_RESTITUTION = 0.45   -- energy kept bouncing off a wall while Loose
 BallConfig.FLIGHT_WALL_KEEP = 0.35   -- speed kept when a thrown flight smacks a wall
+BallConfig.BALL_SPIN_MAX = 18        -- rad/s cap on visual roll/spin (no strobing at throw speed)
 
 -- ── Trick jumps (KC-accurate: E = spin -> curve, Q = flip -> lob) ────────
 BallConfig.TRICK_WINDOW = 0.5    -- release the throw within this after a spin/flip

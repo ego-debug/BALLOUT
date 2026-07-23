@@ -991,6 +991,20 @@ local function stepDrillRefill()
 	end
 end
 
+-- Move the kinematic ball AND roll it like a real one: rotation accumulates
+-- from travel (axis = up x motion, angle = distance / radius, capped so
+-- throw-speed flights don't strobe). Pure vertical motion doesn't spin.
+local function moveBallRolling(b: Ball, to: Vector3, dt: number)
+	local delta = to - b.part.Position
+	local axis = Vector3.yAxis:Cross(delta)
+	if axis.Magnitude > 1e-4 then
+		local angle = math.min(delta.Magnitude / (BallConfig.BALL_DIAMETER / 2), BallConfig.BALL_SPIN_MAX * dt)
+		b.part.CFrame = CFrame.fromAxisAngle(axis.Unit, angle) * b.part.CFrame.Rotation + to
+	else
+		b.part.Position = to
+	end
+end
+
 -- ── Per-frame update ───────────────────────────────────────────────────
 local function stepBall(b: Ball, dt: number)
 	-- Comic-book pulse: the aura breathes while charged.
@@ -1112,7 +1126,7 @@ local function stepBall(b: Ball, dt: number)
 			goLoose(b, reflected * BallConfig.FLIGHT_WALL_KEEP)
 			return
 		end
-		ball.Position = pos
+		moveBallRolling(b, pos, dt)
 
 		if target then
 			if sProg >= 1 or (ball.Position - targetPos).Magnitude <= BallConfig.CATCH_RADIUS * 0.5 then
@@ -1186,7 +1200,7 @@ local function stepBall(b: Ball, dt: number)
 				return
 			end
 		end
-		ball.Position = newPos
+		moveBallRolling(b, newPos, dt)
 		checkPickupAndBash(b)
 
 	elseif state == "Free" then
