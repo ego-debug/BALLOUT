@@ -234,10 +234,30 @@ mk("Pallets", Vector3.new(8, 4, 6), Vector3.new(178, 3, 30))
 mk("Pallets", Vector3.new(8, 4, 6), Vector3.new(-178, 3, -10))
 local eTower = mk("BlockerTower3", Vector3.new(34, 46, 34), Vector3.new(178, 23.5, 75), Color3.fromRGB(145, 143, 148))
 label(eTower, "SOLID TOWER — no entry")
--- NORTH column: solid blocker widened to the pit span and flush with the
--- void edge (z -132..-82) — no ground walkway past the pit
-local nb = mk("BlockerTowerN", Vector3.new(48, 46, 50), Vector3.new(0, 23.5, -107), Color3.fromRGB(145, 143, 148))
-label(nb, "SOLID BLOCK — seals the column; only the containers cross the pit")
+-- NORTH column building (flush with the void at z -82; column stays sealed
+-- by the N+S hall walls):
+--   FLOOR 1: raised podium (top y4), tall 20-stud hall, walls N+S, OPEN
+--            east/west with walk-up ramps
+--   FLOOR 2: slab at y24 — reachable ONLY by jumping off the pit
+--            containers mid-ride; corner posts + roof above
+do
+	local TZ = -107
+	mk("NB_Podium", Vector3.new(48, 4, 50), Vector3.new(0, 2, TZ))
+	local hall = mk("NB_WallN", Vector3.new(48, 20, 1.5), Vector3.new(0, 14, -131.25))
+	label(hall, "NORTH HALL — floor 1: tall ceiling, enter via E/W ramps")
+	mk("NB_WallS", Vector3.new(48, 20, 1.5), Vector3.new(0, 14, -82.75))
+	local f2 = mk("NB_Floor2", Vector3.new(48, 1, 50), Vector3.new(0, 24.5, TZ))
+	label(f2, "FLOOR 2 — jump off the containers mid-ride to land here")
+	for _, sx in { -22.5, 22.5 } do
+		for _, sz in { -130.5, -83.5 } do
+			mk("NB_Post", Vector3.new(3, 9, 3), Vector3.new(sx, 29.5, sz))
+		end
+	end
+	mk("NB_Roof", Vector3.new(50, 1, 52), Vector3.new(0, 34.5, TZ))
+	for _, sgn in { -1, 1 } do
+		wedge("NB_Ramp", Vector3.new(12, 4, 12), Vector3.new(sgn * 30, 2, TZ), -sgn * 90, GREY_LT)
+	end
+end
 
 -- ══ SOUTH PERCH TOWER: solid base flush with the pit, open post-deck top ════
 -- Base 48 wide x z 82..132 (seals the south column — no walkway past the
