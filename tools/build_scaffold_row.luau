@@ -232,12 +232,36 @@ for i = -3, 3 do
 end
 mk("Pallets", Vector3.new(8, 4, 6), Vector3.new(178, 3, 30))
 mk("Pallets", Vector3.new(8, 4, 6), Vector3.new(-178, 3, -10))
-local towers = { { 0, -115 }, { 0, 115 }, { 178, 75 } }
+local towers = { { 0, 115 }, { 178, 75 } }
 for i, t in towers do
-	local tower = mk("BlockerTower" .. i, Vector3.new(34, 46, 34), Vector3.new(t[1], 23.5, t[2]), Color3.fromRGB(145, 143, 148))
+	local tower = mk("BlockerTower" .. (i + 1), Vector3.new(34, 46, 34), Vector3.new(t[1], 23.5, t[2]), Color3.fromRGB(145, 143, 148))
 	if i == 1 then
 		label(tower, "SOLID TOWERS — no entry, break the road sightlines")
 	end
+end
+
+-- ══ NORTH STILT ROOM (was blocker 1): floor y16 on 4 pillars ════════════════
+-- Too high for any jump/trick from ground; entry chain crate(4) ->
+-- container(10) -> doorway floor(16): each hop <= jump 7, none skippable.
+do
+	local TX, TZ = 0, -115
+	for _, sx in { -13, 13 } do
+		for _, sz in { -13, 13 } do
+			mk("RoomPillar", Vector3.new(4, 16, 4), Vector3.new(TX + sx, 8, TZ + sz))
+		end
+	end
+	local floor2 = mk("RoomFloor", Vector3.new(34, 1, 34), Vector3.new(TX, 16.5, TZ))
+	label(floor2, "STILT ROOM — crate -> container -> in. No direct jump")
+	mk("RoomWall", Vector3.new(34, 10, 1.5), Vector3.new(TX, 22, TZ - 16.25))
+	mk("RoomWall", Vector3.new(1.5, 10, 34), Vector3.new(TX - 16.25, 22, TZ))
+	mk("RoomWall", Vector3.new(1.5, 10, 34), Vector3.new(TX + 16.25, 22, TZ))
+	mk("RoomWall", Vector3.new(11, 10, 1.5), Vector3.new(TX - 11.5, 22, TZ + 16.25))
+	mk("RoomWall", Vector3.new(11, 10, 1.5), Vector3.new(TX + 11.5, 22, TZ + 16.25))
+	mk("RoomRoof", Vector3.new(36, 1, 36), Vector3.new(TX, 27.5, TZ))
+	local crate = mk("EntryCrate", Vector3.new(4, 4, 4), Vector3.new(TX + 18, 2, TZ + 19))
+	label(crate, "HOP 1 (top y4)")
+	local cont = mk("EntryContainer", Vector3.new(10, 10, 8), Vector3.new(TX + 8, 5, TZ + 13), Color3.fromRGB(140, 90, 90))
+	label(cont, "HOP 2 (top y10) -> doorway (floor y16)")
 end
 
 -- ══ COMPASS LETTERS (outside the bounds — for markup screenshots) ═══════════
