@@ -244,7 +244,10 @@ mk("NorthStoryWall", Vector3.new(1.5, 14, 43), Vector3.new(69.25, 7, -100))
 -- WAY taller second story: posts 14->44, roof at 44 (container crest 45
 -- just clears the roof line)
 mk("NorthRoof", Vector3.new(150, 1, 48), Vector3.new(0, 44, -100))
--- open second story (owner reverted the walled version)
+-- open second story with back-face walls in the OUTER two bays only
+for _, side in { -1, 1 } do
+	mk("NorthBackWall", Vector3.new(33, 30, 1.5), Vector3.new(side * 52.5, 29, -120.75))
+end
 for _, px in { -70, -35, 0, 35, 70 } do
 	mk("NorthPost", Vector3.new(2, 30, 2), Vector3.new(px, 29, -79))
 	mk("NorthPostBack", Vector3.new(2, 30, 2), Vector3.new(px, 29, -121))
