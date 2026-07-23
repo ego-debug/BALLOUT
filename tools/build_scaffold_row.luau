@@ -162,15 +162,17 @@ do
 		b.CFrame = cf
 		b.Parent = m
 	end
-	-- base at the WALL (low end), tip under the walkway's OUTER lip
+	-- base at the WALL (low end), tip under the walkway's OUTER lip.
+	-- Sign convention verified numerically (v14): for a Z-length part,
+	-- +pitch sends local +Z DOWN-toward-the-wall on the north face.
 	for _, bx in { -26, -2, 22 } do -- north: wall is the +Z side
-		bracket(CFrame.new(Vector3.new(bx, 11.4, -28.6) + Vector3.new(CX, 0, CZ)) * CFrame.Angles(-ANG, 0, 0))
+		bracket(CFrame.new(Vector3.new(bx, 11.4, -28.6) + Vector3.new(CX, 0, CZ)) * CFrame.Angles(ANG, 0, 0))
 	end
 	for _, bz in { -26, -12, 2 } do -- west: wall is the +X side
-		bracket(CFrame.new(Vector3.new(-28.6, 11.4, bz) + Vector3.new(CX, 0, CZ)) * CFrame.Angles(0, math.rad(90), 0) * CFrame.Angles(-ANG, 0, 0))
+		bracket(CFrame.new(Vector3.new(-28.6, 11.4, bz) + Vector3.new(CX, 0, CZ)) * CFrame.Angles(0, math.rad(90), 0) * CFrame.Angles(ANG, 0, 0))
 	end
 	for _, bz in { -22, 0, 22 } do -- east: wall is the -X side
-		bracket(CFrame.new(Vector3.new(28.6, 11.4, bz) + Vector3.new(CX, 0, CZ)) * CFrame.Angles(0, math.rad(90), 0) * CFrame.Angles(ANG, 0, 0))
+		bracket(CFrame.new(Vector3.new(28.6, 11.4, bz) + Vector3.new(CX, 0, CZ)) * CFrame.Angles(0, math.rad(90), 0) * CFrame.Angles(-ANG, 0, 0))
 	end
 end
 wedge("ScafRamp", Vector3.new(8, 14, 22), Vector3.new(-46, 7, -29.5), 90)
