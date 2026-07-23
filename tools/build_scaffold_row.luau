@@ -280,7 +280,7 @@ local swing = mk("SwingZoneMark", Vector3.new(14, 0.25, 92), Vector3.new(12, 1.2
 label(swing, "SWING PATH (N <-> S)")
 
 -- ══ BLOCKERS + cross-cuts + bounds ══════════════════════════════════════════
-local towers = { { 115, -100 }, { -115, -100 }, { -115, 105 } }
+local towers = { { 115, -100 }, { -115, 105 }, { 115, 105 } }
 for i, t in towers do
 	local tower = mk("BlockerTower" .. i, Vector3.new(34, 46, 34), Vector3.new(t[1], 23.5, t[2]), Color3.fromRGB(145, 143, 148))
 	if i == 1 then
