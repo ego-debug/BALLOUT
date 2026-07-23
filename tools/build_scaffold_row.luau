@@ -164,8 +164,11 @@ label(breeze, "GROUND BREEZEWAY — ball swings through here")
 -- 8 pillars ON the platform corners
 for _, c in { { -68, 80 }, { -68, 120 }, { -14, 80 }, { -14, 120 },
 	{ 32, 80 }, { 32, 120 }, { 68, 80 }, { 68, 120 } } do
-	mk("ColPillar", Vector3.new(3, 13.5, 3), Vector3.new(c[1], 15.25, c[2]))
+	-- crane-height pillars (tops at y 52) carrying the tall twin roofs
+	mk("ColPillar", Vector3.new(3, 43.5, 3), Vector3.new(c[1], 30.25, c[2]))
 end
+mk("ColRoof", Vector3.new(58, 1, 44), Vector3.new(-41, 52.5, 100))
+mk("ColRoof", Vector3.new(40, 1, 44), Vector3.new(50, 52.5, 100))
 -- skirts: nobody gets under the platforms
 mk("PlatformSkirt", Vector3.new(58, 8, 1.5), Vector3.new(-41, 4, 78.75), SKIRT)
 mk("PlatformSkirt", Vector3.new(58, 8, 1.5), Vector3.new(-41, 4, 121.25), SKIRT)
@@ -177,11 +180,11 @@ mk("PlatformSkirt", Vector3.new(1.5, 8, 44), Vector3.new(30.75, 4, 100), SKIRT)
 mk("PlatformSkirt", Vector3.new(1.5, 8, 44), Vector3.new(69.25, 4, 100), SKIRT)
 -- facing divot ramps: feet at x 2 and x 22 — the 20-stud ball corridor
 -- runs exactly between them
-wedge("DivotRamp", Vector3.new(20, 8.5, 14), Vector3.new(-5, 4.25, 100), -90, RAMP_ORANGE)
-wedge("DivotRamp", Vector3.new(20, 8.5, 14), Vector3.new(23, 4.25, 100), 90, RAMP_ORANGE)
+wedge("DivotRamp", Vector3.new(44, 8.5, 14), Vector3.new(-5, 4.25, 100), -90, RAMP_ORANGE)
+wedge("DivotRamp", Vector3.new(44, 8.5, 14), Vector3.new(23, 4.25, 100), 90, RAMP_ORANGE)
 -- colonnade end ramps + open-end ground cover
-wedge("ColEndRamp", Vector3.new(10, 8.5, 22), Vector3.new(76, 4.25, 100), -90, GREY_LT)
-wedge("ColEndRamp", Vector3.new(10, 8.5, 22), Vector3.new(-76, 4.25, 100), 90, GREY_LT)
+wedge("ColEndRamp", Vector3.new(44, 8.5, 22), Vector3.new(81, 4.25, 100), -90, GREY_LT)
+wedge("ColEndRamp", Vector3.new(44, 8.5, 22), Vector3.new(-81, 4.25, 100), 90, GREY_LT)
 for _, sx in { -1, 1 } do
 	mk("SouthEndPallets", Vector3.new(8, 4, 6), Vector3.new(sx * 100, 3, 92))
 	local pipe = mk("SouthEndPipes", Vector3.new(12, 3.4, 3.4), Vector3.new(sx * 128, 2.7, 108))
