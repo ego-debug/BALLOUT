@@ -128,9 +128,11 @@ for ix = -1, 1 do
 	end
 end
 mk("TowerFloor2", Vector3.new(56, 1, 32), Vector3.new(0, 14.5, -12))
-mk("TowerFloor2b", Vector3.new(24, 1, 22), Vector3.new(16, 14.5, 14))
-mk("TowerFloor3", Vector3.new(30, 1, 56), Vector3.new(-13, 28.5, 0))
-label(mk("TowerTopBeam", Vector3.new(56, 1.5, 4), Vector3.new(0, 29, 24)), "TOWER")
+-- y28 roof is an L (north band + west band): the wrecking ball's swing
+-- plane (x 2..22, z 0..98) stays COMPLETELY clear of geometry
+mk("TowerFloor3", Vector3.new(56, 1, 24), Vector3.new(0, 28.5, -16))
+mk("TowerFloor3", Vector3.new(28, 1, 32), Vector3.new(-14, 28.5, 12))
+label(mk("TowerTopBeam", Vector3.new(28, 1.5, 4), Vector3.new(-14, 29, 24)), "TOWER")
 -- first-floor walls ON the pillar lines (owner-drawn path)
 local wn = mk("TowerWallN", Vector3.new(21, 14, 2), Vector3.new(-12, 7, -24))
 label(wn, "FIRST-FLOOR WALLS — on the pillar lines")
@@ -139,20 +141,16 @@ mk("TowerWallE", Vector3.new(2, 14, 21), Vector3.new(24, 7, -12))
 mk("TowerWallW", Vector3.new(2, 14, 21), Vector3.new(-24, 7, 12))
 mk("TowerWallS", Vector3.new(21, 14, 2), Vector3.new(-12, 7, 24))
 
--- ══ SCAFFOLD RING (mid-only; north side floats over the void) ═══════════════
-mk("ScafN", Vector3.new(100, 1, 8), Vector3.new(0, 14, -40))
-mk("ScafS", Vector3.new(100, 1, 8), Vector3.new(0, 14, 40))
-mk("ScafE", Vector3.new(8, 1, 88), Vector3.new(46, 14, 0))
-mk("ScafW", Vector3.new(8, 1, 88), Vector3.new(-46, 14, 0))
-for _, px in { -46, 46 } do
-	for _, pz in { -40, 0, 40 } do
-		mk("ScafPole", Vector3.new(1.5, 14, 1.5), Vector3.new(px, 7, pz))
-	end
+-- ══ SCAFFOLDING (hugs the tower's N+W faces — never the swing side) ═════════
+-- North walkway floats over the void; both sit almost flush to the walls
+-- like real scaffolding clamped to the building being built.
+mk("ScafN", Vector3.new(62, 1, 8), Vector3.new(-2, 14, -29.5))
+mk("ScafW", Vector3.new(8, 1, 64), Vector3.new(-29.5, 14, -1))
+for _, pp in { { -31, -32 }, { 27, -32 }, { -32, 28 }, { -32, -2 } } do
+	mk("ScafPole", Vector3.new(1.5, 14, 1.5), Vector3.new(pp[1], 7, pp[2]))
 end
-for _, d in { { x = -80, z = -40, yaw = 90 }, { x = 80, z = 40, yaw = -90 },
-	{ x = 46, z = -70, yaw = 180 }, { x = -46, z = 70, yaw = 0 } } do
-	wedge("ScafRamp", Vector3.new(8, 14, 26), Vector3.new(d.x, 7, d.z), d.yaw)
-end
+wedge("ScafRamp", Vector3.new(8, 14, 22), Vector3.new(-46, 7, -29.5), 90)
+wedge("ScafRamp", Vector3.new(8, 14, 22), Vector3.new(-29.5, 7, 43), 180)
 
 -- ══ SOUTH: colonnade halves + breezeway + facing divot ramps ════════════════
 label(mk("SouthColonnadeFloor", Vector3.new(58, 1, 44), Vector3.new(-41, 8, 100)), "COLONNADE WEST (elevated)")
