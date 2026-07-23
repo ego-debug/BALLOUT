@@ -1,22 +1,19 @@
 --!strict
--- Ballout | SCAFFOLD ROW blockout generator (grey skeleton, owner-directed)
+-- Ballout | SCAFFOLD ROW — "FRACTURED CORE" arrangement (v26, 2026-07-23)
 -- Run in EDIT mode: require(game:GetService("ServerStorage").MapTools.build_scaffold_row:Clone())
--- Destroys and rebuilds BuildZone.ScaffoldRowBlockout from scratch — this file
--- is the SOURCE OF TRUTH for the skeleton (v9 state, 2026-07-23). Owner marks
--- up screenshots, we change THIS script, rerun. KC-scale: 400x280 inside the
--- yard; 1 story ≈ 14 studs.
+-- Rebuilds BuildZone.ScaffoldRowBlockout from scratch. SOURCE OF TRUTH.
 --
--- Layout (all original):
---   MID: open tower frame (3x3 pillars), first-floor bay walls on the pillar
---        lines, scaffold ring at y14 (floats over the void on the north side),
---        half-floors at 14/28
---   NORTH: ground lane + middle-only two-story; Floor 2 reachable ONLY by
---        two vertically-cycling containers over a REAL void pit (no bottom)
---   SOUTH: middle-only elevated colonnade split by a ground breezeway where
---        the wrecking ball swings N<->S from a crane at the south edge;
---        facing divot ramps flank the 20-stud ball corridor
---   Three solid blocker towers pinch the lane ends; high beam WEST to the
---   exposed perch balances the east-side hazard.
+-- ORIGINAL composition (owner-approved divergence pass): dense central core
+-- with X-shaped circulation — corner spawns, hazards on opposing DIAGONALS.
+--   CORE (center): tower frame, bay walls, floors 14/28, hugging scaffold
+--   NW:   floorless VOID CANYON touching the core lip; pavilion overlook on
+--         its north rim; TWO vertical container ferries cross it
+--   SE:   WRECKING BALL YARD — crane in the corner, ball arcs diagonally
+--         toward the core between two gallery stubs (timed cover)
+--   NE/SW: raised spawn yards (diagonal spawn axis)
+--   Edge roads ring the map with cover rhythm + three blocker towers
+-- Every route feeds the core. Nothing shares zone adjacency with any
+-- existing game's map.
 
 local Workspace = game:GetService("Workspace")
 
@@ -37,6 +34,7 @@ local GREY_LT = Color3.fromRGB(200, 200, 203)
 local DARK = Color3.fromRGB(52, 52, 56)
 local SKIRT = Color3.fromRGB(110, 110, 116)
 local RAMP_ORANGE = Color3.fromRGB(235, 150, 60)
+local BROWN = Color3.fromRGB(150, 105, 65)
 local CX, CZ = 0, -650
 
 local function mk(name: string, size: Vector3, pos: Vector3, color: Color3?): Part
@@ -49,6 +47,17 @@ local function mk(name: string, size: Vector3, pos: Vector3, color: Color3?): Pa
 	p.Anchored = true
 	p.TopSurface = Enum.SurfaceType.Smooth
 	p.BottomSurface = Enum.SurfaceType.Smooth
+	p.Parent = m
+	return p
+end
+local function mkCF(name: string, size: Vector3, cf: CFrame, color: Color3?): Part
+	local p = Instance.new("Part")
+	p.Name = name
+	p.Size = size
+	p.CFrame = cf
+	p.Color = color or GREY
+	p.Material = Enum.Material.SmoothPlastic
+	p.Anchored = true
 	p.Parent = m
 	return p
 end
@@ -80,16 +89,16 @@ local function label(part: BasePart, text: string)
 	bb.Parent = part
 end
 
--- ══ GROUND (void hole x -24..24, z -82..-25) + yard floor repunch ═══════════
-mk("Dirt", Vector3.new(400, 1, 58), Vector3.new(0, 0.5, -111), GREY_DK)
-mk("Dirt", Vector3.new(400, 1, 165), Vector3.new(0, 0.5, 57.5), GREY_DK)
-mk("Dirt", Vector3.new(176, 1, 57), Vector3.new(-112, 0.5, -53.5), GREY_DK)
-mk("Dirt", Vector3.new(176, 1, 57), Vector3.new(112, 0.5, -53.5), GREY_DK)
-mk("PitWallN", Vector3.new(48, 30, 1), Vector3.new(0, -14, -82.5), DARK)
-mk("PitWallS", Vector3.new(48, 30, 1), Vector3.new(0, -14, -25.5), DARK)
-mk("PitWallW", Vector3.new(1, 30, 57), Vector3.new(-24.5, -14, -53.5), DARK)
-mk("PitWallE", Vector3.new(1, 30, 57), Vector3.new(24.5, -14, -53.5), DARK)
-do -- yard floor: 4 slabs leaving the same hole (world z -732..-675)
+-- ══ GROUND with the CANYON hole (x -160..-30, z -110..-40) ══════════════════
+mk("Dirt", Vector3.new(400, 1, 30), Vector3.new(0, 0.5, -125), GREY_DK)
+mk("Dirt", Vector3.new(400, 1, 180), Vector3.new(0, 0.5, 50), GREY_DK)
+mk("Dirt", Vector3.new(40, 1, 70), Vector3.new(-180, 0.5, -75), GREY_DK)
+mk("Dirt", Vector3.new(230, 1, 70), Vector3.new(85, 0.5, -75), GREY_DK)
+mk("PitWallN", Vector3.new(130, 30, 1), Vector3.new(-95, -14, -110.5), DARK)
+mk("PitWallS", Vector3.new(130, 30, 1), Vector3.new(-95, -14, -39.5), DARK)
+mk("PitWallW", Vector3.new(1, 30, 70), Vector3.new(-160.5, -14, -75), DARK)
+mk("PitWallE", Vector3.new(1, 30, 70), Vector3.new(-29.5, -14, -75), DARK)
+do -- yard floor: repunch to the canyon (world x -160..-30, z -760..-690)
 	for _, c in zone:GetChildren() do
 		if c.Name == "BuildFloor" then
 			c:Destroy()
@@ -105,57 +114,32 @@ do -- yard floor: 4 slabs leaving the same hole (world z -732..-675)
 		p.Anchored = true
 		p.Parent = zone
 	end
-	slab(Vector3.new(520, 4, 108), Vector3.new(0, -2, -786))
-	slab(Vector3.new(520, 4, 215), Vector3.new(0, -2, -567.5))
-	slab(Vector3.new(236, 4, 57), Vector3.new(-142, -2, -703.5))
-	slab(Vector3.new(236, 4, 57), Vector3.new(142, -2, -703.5))
+	slab(Vector3.new(520, 4, 80), Vector3.new(0, -2, -800))
+	slab(Vector3.new(520, 4, 230), Vector3.new(0, -2, -575))
+	slab(Vector3.new(100, 4, 70), Vector3.new(-210, -2, -725))
+	slab(Vector3.new(290, 4, 70), Vector3.new(115, -2, -725))
 end
 
--- ══ SPAWN DECKS ═════════════════════════════════════════════════════════════
-for _, side in { -1, 1 } do
-	local deck = mk("SpawnDeck", Vector3.new(60, 2, 120), Vector3.new(side * 170, 2, 0), GREY_LT)
-	label(deck, if side == -1 then "TEAM A SPAWN" else "TEAM B SPAWN")
-	mk("SpawnLip", Vector3.new(2, 5, 40), Vector3.new(side * 138, 4.5, -40))
-	mk("SpawnLip", Vector3.new(2, 5, 40), Vector3.new(side * 138, 4.5, 40))
-	wedge("SpawnRamp", Vector3.new(12, 2, 10), Vector3.new(side * 132, 2, 0), if side == 1 then 90 else -90, GREY_LT)
-end
-
--- ══ MID LANE + TOWER ════════════════════════════════════════════════════════
-label(mk("MidLaneMark", Vector3.new(320, 0.2, 60), Vector3.new(0, 1.15, 0), Color3.fromRGB(140, 140, 145)), "MID LANE")
+-- ══ CORE: the tower exactly as evolved (center 0,0) ═════════════════════════
 for ix = -1, 1 do
 	for iz = -1, 1 do
 		mk("TowerPillar", Vector3.new(3, 28, 3), Vector3.new(ix * 24, 14, iz * 24))
 	end
 end
--- slabs run flush with the PILLAR OUTER FACES (±25.5): full pillar width,
--- never past it — the scaffold gap (planks at 26.2+) stays visible
 mk("TowerFloor2", Vector3.new(51, 1, 29.5), Vector3.new(0, 14.5, -10.75))
--- y28 roof is an L (north band + west band): the wrecking ball's swing
--- plane (x 2..22, z 0..98) stays COMPLETELY clear of geometry
 mk("TowerFloor3", Vector3.new(51, 1, 21.5), Vector3.new(0, 28.5, -14.75))
--- west band reaches x 1.5 (caps the center + S-mid pillars); a thin east
--- strip continues the north band to cap E-mid. ONLY the SE corner pillar
--- stays bare — unfinished right where the ball swings past.
 mk("TowerFloor3", Vector3.new(27, 1, 29.5), Vector3.new(-12, 28.5, 10.75))
 mk("TowerFloor3", Vector3.new(3, 1, 5.5), Vector3.new(24, 28.5, -1.25))
--- first-floor walls ON the pillar lines (owner-drawn path)
 local wn = mk("TowerWallN", Vector3.new(21, 14, 2), Vector3.new(-12, 7, -24))
-label(wn, "FIRST-FLOOR WALLS — on the pillar lines")
+label(wn, "CORE TOWER — first-floor walls on the pillar lines")
 mk("TowerWallN", Vector3.new(21, 14, 2), Vector3.new(12, 7, -24))
 mk("TowerWallE", Vector3.new(2, 14, 21), Vector3.new(24, 7, -12))
 mk("TowerWallW", Vector3.new(2, 14, 21), Vector3.new(-24, 7, 12))
 mk("TowerWallS", Vector3.new(21, 14, 2), Vector3.new(-12, 7, 24))
-
--- ══ SCAFFOLDING (cantilevered, owner's sketch): west-north-east wrap with a
--- GAP on the south/SW; no ground poles — diagonal brackets tie each walkway
--- back to the tower walls. North run floats over the void.
--- thin planks floated 1.2 studs off the wall faces (slight gap, real-
--- scaffold look; too thin to fall through)
 mk("ScafW", Vector3.new(6, 0.6, 40), Vector3.new(-29.2, 14, -12))
 mk("ScafN", Vector3.new(62, 0.6, 6), Vector3.new(-2, 14, -29.2))
 mk("ScafE", Vector3.new(6, 0.6, 56), Vector3.new(29.2, 14, 0))
 do
-	local BROWN = Color3.fromRGB(150, 105, 65)
 	local ANG = math.rad(29)
 	local function bracket(cf: CFrame)
 		local b = Instance.new("Part")
@@ -167,126 +151,112 @@ do
 		b.CFrame = cf
 		b.Parent = m
 	end
-	-- base at the WALL (low end), tip under the walkway's OUTER lip.
-	-- Sign convention verified numerically (v14): for a Z-length part,
-	-- +pitch sends local +Z DOWN-toward-the-wall on the north face.
-	for _, bx in { -26, -2, 22 } do -- north: wall is the +Z side
+	for _, bx in { -26, -2, 22 } do
 		bracket(CFrame.new(Vector3.new(bx, 11.4, -28.6) + Vector3.new(CX, 0, CZ)) * CFrame.Angles(ANG, 0, 0))
 	end
-	for _, bz in { -26, -12, 2 } do -- west: wall is the +X side
+	for _, bz in { -26, -12, 2 } do
 		bracket(CFrame.new(Vector3.new(-28.6, 11.4, bz) + Vector3.new(CX, 0, CZ)) * CFrame.Angles(0, math.rad(90), 0) * CFrame.Angles(ANG, 0, 0))
 	end
-	for _, bz in { -22, 0, 22 } do -- east: wall is the -X side
+	for _, bz in { -22, 0, 22 } do
 		bracket(CFrame.new(Vector3.new(28.6, 11.4, bz) + Vector3.new(CX, 0, CZ)) * CFrame.Angles(0, math.rad(90), 0) * CFrame.Angles(-ANG, 0, 0))
 	end
 end
 wedge("ScafRamp", Vector3.new(8, 14, 22), Vector3.new(-46, 7, -29.5), 90)
 wedge("ScafRamp", Vector3.new(8, 14, 22), Vector3.new(29.5, 7, 41), 180)
-
--- ══ SOUTH: colonnade halves + breezeway + facing divot ramps ════════════════
-label(mk("SouthColonnadeFloor", Vector3.new(58, 1, 44), Vector3.new(-41, 8, 100)), "COLONNADE WEST (elevated)")
-label(mk("SouthColonnadeFloor", Vector3.new(40, 1, 44), Vector3.new(50, 8, 100)), "COLONNADE EAST (elevated)")
-mk("SouthRail", Vector3.new(58, 2.5, 1), Vector3.new(-41, 9.75, 79.5))
-mk("SouthRail", Vector3.new(40, 2.5, 1), Vector3.new(50, 9.75, 79.5))
-local breeze = mk("BreezewayMark", Vector3.new(42, 0.2, 44), Vector3.new(9, 1.15, 100), Color3.fromRGB(190, 150, 150))
-label(breeze, "GROUND BREEZEWAY — ball swings through here")
--- 8 pillars ON the platform corners
-for _, c in { { -68, 80 }, { -68, 120 }, { -14, 80 }, { -14, 120 },
-	{ 32, 80 }, { 32, 120 }, { 68, 80 }, { 68, 120 } } do
-	-- crane-height pillars (tops at y 52) carrying the tall twin roofs
-	mk("ColPillar", Vector3.new(3, 43.5, 3), Vector3.new(c[1], 30.25, c[2]))
-end
-mk("ColRoof", Vector3.new(58, 1, 44), Vector3.new(-41, 52.5, 100))
-mk("ColRoof", Vector3.new(40, 1, 44), Vector3.new(50, 52.5, 100))
--- skirts: nobody gets under the platforms
-mk("PlatformSkirt", Vector3.new(58, 8, 1.5), Vector3.new(-41, 4, 78.75), SKIRT)
-mk("PlatformSkirt", Vector3.new(58, 8, 1.5), Vector3.new(-41, 4, 121.25), SKIRT)
-mk("PlatformSkirt", Vector3.new(1.5, 8, 44), Vector3.new(-69.25, 4, 100), SKIRT)
-mk("PlatformSkirt", Vector3.new(1.5, 8, 44), Vector3.new(-12.75, 4, 100), SKIRT)
-mk("PlatformSkirt", Vector3.new(40, 8, 1.5), Vector3.new(50, 4, 78.75), SKIRT)
-mk("PlatformSkirt", Vector3.new(40, 8, 1.5), Vector3.new(50, 4, 121.25), SKIRT)
-mk("PlatformSkirt", Vector3.new(1.5, 8, 44), Vector3.new(30.75, 4, 100), SKIRT)
-mk("PlatformSkirt", Vector3.new(1.5, 8, 44), Vector3.new(69.25, 4, 100), SKIRT)
--- facing divot ramps: feet at x 2 and x 22 — the 20-stud ball corridor
--- runs exactly between them
-wedge("DivotRamp", Vector3.new(44, 8.5, 14), Vector3.new(-5, 4.25, 100), -90, RAMP_ORANGE)
-wedge("DivotRamp", Vector3.new(44, 8.5, 14), Vector3.new(23, 4.25, 100), 90, RAMP_ORANGE)
--- colonnade end ramps + open-end ground cover
-wedge("ColEndRamp", Vector3.new(44, 8.5, 22), Vector3.new(81, 4.25, 100), -90, GREY_LT)
-wedge("ColEndRamp", Vector3.new(44, 8.5, 22), Vector3.new(-81, 4.25, 100), 90, GREY_LT)
-for _, sx in { -1, 1 } do
-	mk("SouthEndPallets", Vector3.new(8, 4, 6), Vector3.new(sx * 100, 3, 92))
-	local pipe = mk("SouthEndPipes", Vector3.new(12, 3.4, 3.4), Vector3.new(sx * 128, 2.7, 108))
-	pipe.Shape = Enum.PartType.Cylinder
+for _, cdef in { { 46, 10 }, { -6, 48 }, { 48, -34 }, { -44, 44 } } do
+	mk("PlazaCrate", Vector3.new(6, 4.5, 5), Vector3.new(cdef[1], 3.25, cdef[2]))
 end
 
--- ══ NORTH: sealed ground story + tall second story (ramps both ends) ═══════
--- Ground cover lives in the lane strips around the building (the two piles
--- that sat inside the old open colonnade moved to the north strip).
-for i = -3, 3 do
-	if i ~= 0 then
-		local zPos = if math.abs(i * 44) < 70 then -130 else -100 + (if i % 3 == 0 then 8 else -8)
-		if i % 2 == 0 then
-			mk("Pallets", Vector3.new(8, 4, 6), Vector3.new(i * 44, 3, zPos))
-		else
-			local pipe = mk("PipePile", Vector3.new(12, 3.4, 3.4), Vector3.new(i * 44, 2.7, zPos))
-			pipe.Shape = Enum.PartType.Cylinder
+-- ══ NW: PAVILION overlook on the canyon's north rim ═════════════════════════
+do
+	local PX, PZ = -95, -125
+	local f2 = mk("NorthFloor2", Vector3.new(70, 1, 26), Vector3.new(PX, 14, PZ))
+	label(f2, "PAVILION — overlooks the canyon; ramps both ends")
+	mk("NorthStoryWall", Vector3.new(70, 14, 1.5), Vector3.new(PX, 7, PZ + 12.5))
+	mk("NorthStoryWall", Vector3.new(70, 14, 1.5), Vector3.new(PX, 7, PZ - 12.5))
+	mk("NorthStoryWall", Vector3.new(1.5, 14, 24), Vector3.new(PX - 34.25, 7, PZ))
+	mk("NorthStoryWall", Vector3.new(1.5, 14, 24), Vector3.new(PX + 34.25, 7, PZ))
+	mk("NorthRoof", Vector3.new(80, 1, 30), Vector3.new(PX, 44, PZ))
+	for _, px in { -35, 0, 35 } do
+		mk("NorthPost", Vector3.new(4, 30, 4), Vector3.new(PX + px, 29, PZ + 11))
+		mk("NorthPostBack", Vector3.new(4, 30, 4), Vector3.new(PX + px, 29, PZ - 11))
+	end
+	mk("NorthFloor2Rail", Vector3.new(70, 2.5, 1), Vector3.new(PX, 15.75, PZ + 12))
+	wedge("NorthRamp", Vector3.new(12, 14, 28), Vector3.new(PX - 49, 7, PZ), 90)
+	wedge("NorthRamp", Vector3.new(12, 14, 28), Vector3.new(PX + 49, 7, PZ), -90)
+end
+
+-- ══ CANYON FERRIES: two vertical container crossings ════════════════════════
+-- (cycle spec: anti-phase, LOW top just under ground, HIGH top y 45)
+local red = mk("ContainerRed", Vector3.new(26, 8, 10), Vector3.new(-48, -6, -55), Color3.fromRGB(140, 90, 90))
+label(red, "FERRY A (core end) — shown LOW. Ride up, drop onto the scaffold/roof")
+local blue = mk("ContainerBlue", Vector3.new(26, 8, 10), Vector3.new(-48, 41, -80), Color3.fromRGB(90, 110, 140))
+label(blue, "FERRY A2 — shown HIGH. Anti-phase with A; crest clears the tower roof")
+local red2 = mk("ContainerRed2", Vector3.new(26, 8, 10), Vector3.new(-135, -6, -80), Color3.fromRGB(140, 90, 90))
+label(red2, "FERRY B (west end) — SW rotation shortcut")
+local blue2 = mk("ContainerBlue2", Vector3.new(26, 8, 10), Vector3.new(-135, 41, -55), Color3.fromRGB(90, 110, 140))
+label(blue2, "FERRY B2 — anti-phase pair")
+
+-- ══ SE: WRECKING BALL YARD (diagonal arc toward the core) ═══════════════════
+mk("CraneMast", Vector3.new(6, 48, 6), Vector3.new(120, 24, 105))
+mkCF("CraneArm", Vector3.new(4, 3, 130),
+	CFrame.new(Vector3.new(74, 46, 66) + Vector3.new(CX, 0, CZ)) * CFrame.Angles(0, math.rad(45), 0))
+mkCF("WreckChain", Vector3.new(1, 26, 1),
+	CFrame.new(Vector3.new(60, 33, 52) + Vector3.new(CX, 0, CZ)))
+local ball = mk("WreckBall", Vector3.new(20, 20, 20), Vector3.new(54, 16, 46), GREY_DK)
+ball.Shape = Enum.PartType.Ball
+label(ball, "WRECKING BALL — arcs along the diagonal toward the core corner")
+local swing = mkCF("SwingZoneMark", Vector3.new(14, 0.25, 100),
+	CFrame.new(Vector3.new(72, 1.2, 64) + Vector3.new(CX, 0, CZ)) * CFrame.Angles(0, math.rad(45), 0),
+	Color3.fromRGB(190, 150, 150))
+label(swing, "SWING PATH (diagonal, toward/away from the core)")
+for _, g in { { x = 30, z = 92 }, { x = 96, z = 26 } } do
+	mk("GalleryFloor", Vector3.new(36, 1, 18), Vector3.new(g.x, 8, g.z))
+	for _, sx in { -16, 16 } do
+		for _, sz in { -7.5, 7.5 } do
+			mk("GalleryPillar", Vector3.new(3, 13.5, 3), Vector3.new(g.x + sx, 15.25, g.z + sz))
 		end
 	end
+	mk("GallerySkirt", Vector3.new(36, 8, 1.5), Vector3.new(g.x, 4, g.z - 9.75), SKIRT)
+	mk("GallerySkirt", Vector3.new(36, 8, 1.5), Vector3.new(g.x, 4, g.z + 9.75), SKIRT)
+	mk("GallerySkirt", Vector3.new(1.5, 8, 18), Vector3.new(g.x - 18.75, 4, g.z), SKIRT)
+	mk("GallerySkirt", Vector3.new(1.5, 8, 18), Vector3.new(g.x + 18.75, 4, g.z), SKIRT)
+	wedge("GalleryRamp", Vector3.new(18, 8.5, 14), Vector3.new(g.x - 25, 4.25, g.z), 90, RAMP_ORANGE)
+	mk("GalleryRoofPost", Vector3.new(3, 30, 3), Vector3.new(g.x - 16, 28.75, g.z - 7.5))
+	mk("GalleryRoofPost", Vector3.new(3, 30, 3), Vector3.new(g.x + 16, 28.75, g.z + 7.5))
+	mk("GalleryRoof", Vector3.new(40, 1, 22), Vector3.new(g.x, 44, g.z))
 end
--- COMPACT pavilion: just the two interior bays (x -35..35), thick pillars,
--- open second story (no walls), tall roof, ramps tucked at the ends
-local nFloor2 = mk("NorthFloor2", Vector3.new(70, 1, 44), Vector3.new(0, 14, -100))
-label(nFloor2, "NORTH FLOOR 2 — ramps both ends; containers cross high above")
-mk("NorthStoryWall", Vector3.new(70, 14, 1.5), Vector3.new(0, 7, -79.25))
-mk("NorthStoryWall", Vector3.new(70, 14, 1.5), Vector3.new(0, 7, -120.75))
-mk("NorthStoryWall", Vector3.new(1.5, 14, 43), Vector3.new(-34.25, 7, -100))
-mk("NorthStoryWall", Vector3.new(1.5, 14, 43), Vector3.new(34.25, 7, -100))
-mk("NorthRoof", Vector3.new(80, 1, 48), Vector3.new(0, 44, -100))
-for _, px in { -35, 0, 35 } do
-	mk("NorthPost", Vector3.new(4, 30, 4), Vector3.new(px, 29, -79))
-	mk("NorthPostBack", Vector3.new(4, 30, 4), Vector3.new(px, 29, -121))
+
+-- ══ NE + SW: SPAWN YARDS (diagonal axis) ════════════════════════════════════
+for _, sp in { { x = 155, z = -95, name = "TEAM A SPAWN (NE)" }, { x = -155, z = 95, name = "TEAM B SPAWN (SW)" } } do
+	local sgn = if sp.x > 0 then 1 else -1
+	local deck = mk("SpawnDeck", Vector3.new(50, 2, 50), Vector3.new(sp.x, 2, sp.z), GREY_LT)
+	label(deck, sp.name)
+	mk("SpawnLip", Vector3.new(2, 5, 30), Vector3.new(sp.x - sgn * 26, 4.5, sp.z - sgn * 8))
+	wedge("SpawnRamp", Vector3.new(12, 2, 10), Vector3.new(sp.x - sgn * 22, 2, sp.z + sgn * 16), sgn * 90, GREY_LT)
+	wedge("SpawnRamp", Vector3.new(12, 2, 10), Vector3.new(sp.x + sgn * 8, 2, sp.z - sgn * 28), if sgn > 0 then 180 else 0, GREY_LT)
 end
-mk("NorthFloor2Rail", Vector3.new(70, 2.5, 1), Vector3.new(0, 15.75, -78.5))
-for _, cx2 in { -22, 4, 24 } do
-	mk("Floor2Crates", Vector3.new(6, 4, 5), Vector3.new(cx2, 16.5, -104))
+
+-- ══ EDGE ROADS: cover rhythm + three blocker towers ═════════════════════════
+for i = -3, 3 do
+	if i % 2 == 0 then
+		mk("Pallets", Vector3.new(8, 4, 6), Vector3.new(i * 48, 3, if i % 3 == 0 then -122 else 122))
+	else
+		local pipe = mk("PipePile", Vector3.new(12, 3.4, 3.4), Vector3.new(i * 48, 2.7, if i % 3 == 0 then 122 else -122))
+		pipe.Shape = Enum.PartType.Cylinder
+	end
 end
-wedge("NorthRamp", Vector3.new(12, 14, 28), Vector3.new(-49, 7, -100), 90)
-wedge("NorthRamp", Vector3.new(12, 14, 28), Vector3.new(49, 7, -100), -90)
-
--- ══ CONTAINERS over the void (vertical cycle scripted at dress time) ════════
--- CYCLE SPEC (for dress-time scripting): anti-phase vertical travel —
--- one rises while the other falls, crossing at mid-travel (~y 17.5).
---   LOW extreme:  container top a touch UNDER ground level (top y -2,
---                 sunk into the void — you drop on or wait)
---   HIGH extreme: top slightly under the crane top (top y 45 vs crane 48)
--- Placeholders posed at the two extremes:
-local red = mk("ContainerRed", Vector3.new(10, 8, 26), Vector3.new(-9, -6, -56), Color3.fromRGB(140, 90, 90))
-label(red, "CONTAINER A — shown at LOW: sunk into the void, top just under ground")
-local blue = mk("ContainerBlue", Vector3.new(10, 8, 26), Vector3.new(9, 41, -50), Color3.fromRGB(90, 110, 140))
-label(blue, "CONTAINER B — shown at HIGH: top slightly under the crane top. They cycle in OPPOSITE directions, crossing mid-travel")
-
--- ══ WRECKING BALL (crane south, swings N<->S through the breezeway) ═════════
-mk("CraneMast", Vector3.new(6, 48, 6), Vector3.new(12, 24, 122))
-mk("CraneArm", Vector3.new(4, 3, 120), Vector3.new(12, 46, 60))
-mk("WreckChain", Vector3.new(1, 26, 1), Vector3.new(12, 33, 50))
-local ball = mk("WreckBall", Vector3.new(20, 20, 20), Vector3.new(12, 16, 44), GREY_DK)
-ball.Shape = Enum.PartType.Ball
-label(ball, "WRECKING BALL 20st — swings tower bay <-> colonnade")
-local swing = mk("SwingZoneMark", Vector3.new(14, 0.25, 92), Vector3.new(12, 1.2, 52), Color3.fromRGB(190, 150, 150))
-label(swing, "SWING PATH (N <-> S)")
-
--- ══ BLOCKERS + cross-cuts + bounds ══════════════════════════════════════════
-local towers = { { 115, -100 }, { -115, 105 }, { 115, 105 } }
+mk("Pallets", Vector3.new(8, 4, 6), Vector3.new(178, 3, 30))
+mk("Pallets", Vector3.new(8, 4, 6), Vector3.new(-178, 3, -10))
+local towers = { { 0, -115 }, { 0, 115 }, { 178, 75 } }
 for i, t in towers do
 	local tower = mk("BlockerTower" .. i, Vector3.new(34, 46, 34), Vector3.new(t[1], 23.5, t[2]), Color3.fromRGB(145, 143, 148))
 	if i == 1 then
-		label(tower, "SOLID TOWERS — no entry, block sightlines")
+		label(tower, "SOLID TOWERS — no entry, break the road sightlines")
 	end
 end
-for _, x in { -110, 110 } do
-	mk("CrossCutMark", Vector3.new(10, 0.2, 240), Vector3.new(x, 1.16, 0), Color3.fromRGB(130, 130, 136))
-end
+
+-- ══ BOUNDS GUIDE ════════════════════════════════════════════════════════════
 for _, def in {
 	{ Vector3.new(364, 0.3, 1), Vector3.new(0, 1.3, -126) },
 	{ Vector3.new(364, 0.3, 1), Vector3.new(0, 1.3, 128) },
@@ -298,4 +268,4 @@ for _, def in {
 end
 
 m.Parent = zone
-return "Scaffold Row blockout built: " .. #m:GetChildren() .. " parts"
+return "FRACTURED CORE built: " .. #m:GetChildren() .. " parts"
