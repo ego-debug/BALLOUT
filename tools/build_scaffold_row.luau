@@ -512,7 +512,7 @@ do
 		tower = { 105488940082739, 110958436568221 },
 		-- construction-vibe building templates (v65)
 		bldg_concrete = { 140013797007692, 104297449889312 }, -- clean solid glass tower (v65b)
-		bldg_tarp = { 95373586915096, 123346592918685 },
+		bldg_tarp = { 134344618023053, 89292694419511 }, -- solid tower, tarp top (v65d)
 		bldg_brick = { 138397727486531, 85956331974645 }, -- clean solid brick (v65c)
 		bldg_warehouse = { 123778151690244, 100579815563326 },
 	}
