@@ -273,9 +273,9 @@ local corner = {
 	{ Vector3.new(45, 44, 40), Vector3.new(157.5, 22, -106) },
 	{ Vector3.new(40, 34, 40), Vector3.new(115, 17, -106) },
 	{ Vector3.new(40, 26, 26), Vector3.new(115, 13, -73) },
-	-- NW (compact + shoulder)
-	{ Vector3.new(34, 42, 50), Vector3.new(-158, 21, -97) },
-	{ Vector3.new(20, 32, 40), Vector3.new(-131, 16, -92) },
+	-- NW (compact + shoulder, flush to the bounds at x -182 / z -126)
+	{ Vector3.new(41, 42, 54), Vector3.new(-161.5, 21, -99) },
+	{ Vector3.new(20, 32, 54), Vector3.new(-131, 16, -99) },
 	{ Vector3.new(24, 24, 26), Vector3.new(-112, 12, -86) },
 }
 for i, def in corner do
