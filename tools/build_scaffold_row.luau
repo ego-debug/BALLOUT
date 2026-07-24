@@ -198,24 +198,47 @@ label(redS, "CONTAINER C — south pit, shown LOW")
 local blueS = mk("ContainerBlueS", Vector3.new(10, 8, 26), Vector3.new(9, 41, 50), Color3.fromRGB(90, 110, 140))
 label(blueS, "CONTAINER D — south pit, shown HIGH (anti-phase)")
 
--- ══ LANE BUILDINGS: boarding halls flanking each pit ════════════════════════
--- One per pit, on its OUTER side. Only the outer wall is solid; E/W walk-up
--- ramps enter floor 1 (raised podium, tall hall); the INNER face is open to
--- the pit so you board the rising containers and bail onto floor 2. A solid
--- tower mass caps each to y64. (These were dropped in the v26 rewrite;
--- restored here so they survive rebuilds.)
-for _, hall in { { z = -104, back = -125.25, front = -82.75, name = "NORTH" },
-	{ z = 104, back = 125.25, front = 82.75, name = "SOUTH" } } do
-	local hz = hall.z
-	mk("LaneHallPodium", Vector3.new(48, 4, 44), Vector3.new(0, 2, hz))
-	local outer = mk("LaneHallWall", Vector3.new(48, 14, 1.5), Vector3.new(0, 11, hall.back))
-	label(outer, hall.name .. " HALL — ramps E/W; inner face open to the pit")
-	mk("LaneHallPillar", Vector3.new(3, 14, 3), Vector3.new(-22.5, 11, hall.front))
-	mk("LaneHallPillar", Vector3.new(3, 14, 3), Vector3.new(22.5, 11, hall.front))
-	mk("LaneHallFloor2", Vector3.new(48, 1, 44), Vector3.new(0, 18.5, hz))
-	mk("LaneHallTower", Vector3.new(48, 45, 44), Vector3.new(0, 41.5, hz)) -- solid cap y19..64
-	wedge("LaneHallRamp", Vector3.new(12, 4, 14), Vector3.new(-28, 2, hz), 90, GREY_LT)
-	wedge("LaneHallRamp", Vector3.new(12, 4, 14), Vector3.new(28, 2, hz), -90, GREY_LT)
+-- ══ LANE BUILDINGS: two DIFFERENT structures flanking the pits ══════════════
+-- (Both were dropped in the v26 rewrite; restored here so they survive
+-- rebuilds. They are NOT the same building.)
+--
+-- NORTH = two-story BOARDING HALL. Raised floor-1 podium you enter via E/W
+-- walk-up ramps; only the outer (N) wall is solid; the inner face is open to
+-- the pit so you board the rising containers and bail onto floor 2. Solid
+-- tower cap to y64.
+do
+	local hz, backZ, frontZ = -104, -125.25, -82.75
+	mk("NB_Podium", Vector3.new(48, 4, 44), Vector3.new(0, 2, hz))
+	local outer = mk("NB_Wall", Vector3.new(48, 14, 1.5), Vector3.new(0, 11, backZ))
+	label(outer, "NORTH HALL — ramps E/W; inner face open to the pit, floor 2 above")
+	mk("NB_HallPillar", Vector3.new(3, 14, 3), Vector3.new(-22.5, 11, frontZ))
+	mk("NB_HallPillar", Vector3.new(3, 14, 3), Vector3.new(22.5, 11, frontZ))
+	mk("NB_Floor2", Vector3.new(48, 1, 44), Vector3.new(0, 18.5, hz))
+	mk("NB_Tower", Vector3.new(48, 45, 44), Vector3.new(0, 41.5, hz)) -- solid cap y19..64
+	wedge("NB_Ramp", Vector3.new(12, 4, 14), Vector3.new(-28, 2, hz), 90, GREY_LT)
+	wedge("NB_Ramp", Vector3.new(12, 4, 14), Vector3.new(28, 2, hz), -90, GREY_LT)
+end
+--
+-- SOUTH = solid PERCH tower. No interior/underpass; a SOLID block to y16 with
+-- an open sniper DECK on top (corner posts + roof), reached ONLY by parkour up
+-- the outside: crate (top y4) -> container (top y10) -> deck (y16.5), on both
+-- the E and W faces. Solid tower cap to y64 over the roof.
+do
+	local pz = 104
+	mk("Room_Base", Vector3.new(48, 16, 44), Vector3.new(0, 8, pz)) -- solid, no way in
+	local deck = mk("Room_Deck", Vector3.new(48, 1, 44), Vector3.new(0, 16.5, pz))
+	label(deck, "SOUTH PERCH — solid; parkour crate->container->deck (both sides)")
+	for _, sx in { -22.5, 22.5 } do
+		for _, sz in { pz - 21.5, pz + 21.5 } do
+			mk("Room_Post", Vector3.new(3, 10, 3), Vector3.new(sx, 21.5, sz))
+		end
+	end
+	mk("Room_Roof", Vector3.new(48, 1, 44), Vector3.new(0, 27.5, pz))
+	mk("Room_Tower", Vector3.new(48, 36, 44), Vector3.new(0, 46, pz)) -- solid cap y28..64
+	for _, sgn in { -1, 1 } do
+		mk("Room_Crate", Vector3.new(4, 4, 4), Vector3.new(sgn * 30, 2, pz))
+		mk("Room_EntryContainer", Vector3.new(8, 10, 10), Vector3.new(sgn * 26, 5, pz), Color3.fromRGB(140, 90, 90))
+	end
 end
 
 -- ══ SE: WRECKING BALL YARD (diagonal arc toward the core) ═══════════════════
