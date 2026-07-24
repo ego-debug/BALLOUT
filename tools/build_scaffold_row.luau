@@ -543,7 +543,49 @@ do
 			end
 		end
 	end
-end
+		-- ── GROUND + OUTER-BUILDING material pass (v64) ──────────────────────
+		local DUSTY_MATS = { Enum.Material.Brick, Enum.Material.Concrete, Enum.Material.Limestone }
+		local GLASS = Color3.fromRGB(38, 44, 58)
+		for _, c in m:GetChildren() do
+			local n = c.Name
+			if n == "Dirt" then
+				c.Material = Enum.Material.Concrete
+				c.Color = Color3.fromRGB(176, 170, 158)
+			elseif n == "PitWall" then
+				c.Material = Enum.Material.Slate
+				c.Color = Color3.fromRGB(46, 46, 50)
+			elseif n == "EdgeFence" or n == "GapPlank" or n == "GapPallet" then
+				c.Material = Enum.Material.WoodPlanks
+			elseif n == "SpawnDeck" then
+				c.Material = Enum.Material.Concrete
+			elseif n == "CornerMass" or n == "OutworldTower" then
+				local lp = c.Position - Vector3.new(CX, 0, CZ)
+				c.Material = DUSTY_MATS[math.floor(math.abs(lp.X + lp.Z * 3) / 37) % 3 + 1]
+				if c.Size.Y > 30 then
+					local inX = math.abs(lp.X) > math.abs(lp.Z)
+					local sgn = if inX then (if lp.X > 0 then -1 else 1) else (if lp.Z > 0 then -1 else 1)
+					for _, frac in { 0.42, 0.72 } do
+						local band = mkCF("FacadeBand",
+							if inX then Vector3.new(0.4, 4, c.Size.Z * 0.8) else Vector3.new(c.Size.X * 0.8, 4, 0.4),
+							CFrame.new(c.Position + (if inX
+								then Vector3.new(sgn * (c.Size.X / 2 + 0.2), c.Size.Y * (frac - 0.5), 0)
+								else Vector3.new(0, c.Size.Y * (frac - 0.5), sgn * (c.Size.Z / 2 + 0.2)))),
+							GLASS)
+						band.Material = Enum.Material.Glass
+						band.CanCollide = false
+						band.CanQuery = false
+					end
+				end
+			end
+		end
+		for _, pd in { { -70, -20, 22, 14 }, { 60, 30, 18, 12 }, { -100, 30, 16, 10 },
+			{ 90, -40, 20, 12 }, { -50, 110, 18, 10 }, { 40, -115, 16, 10 } } do
+			local pt = mk("DirtPatch", Vector3.new(pd[3], 0.12, pd[4]), Vector3.new(pd[1], 1.12, pd[2]),
+				Color3.fromRGB(128, 102, 70))
+			pt.Material = Enum.Material.Ground
+			pt.CanCollide = false
+		end
+	end
 
 m.Parent = zone
 return "FRACTURED CORE built: " .. #m:GetChildren() .. " parts"
