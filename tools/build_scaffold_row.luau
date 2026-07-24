@@ -350,6 +350,68 @@ do
 	end
 end
 
+-- ══ OUTWORLD RING (beyond the line — visual only, unreachable) ═══════════════
+-- Near apron: equipment + dirt piles on all four sides. Backdrop: really
+-- tall dusty buildings sealing every distant view (cranes lean in from this
+-- skyline). Real-arena build: void/clouds beyond.
+do
+	local DIRT = Color3.fromRGB(124, 96, 62)
+	local DUSTY = {
+		Color3.fromRGB(168, 158, 140), Color3.fromRGB(150, 140, 124),
+		Color3.fromRGB(140, 132, 120), Color3.fromRGB(158, 146, 128),
+		Color3.fromRGB(146, 138, 130),
+	}
+	local towers = {
+		{ Vector3.new(95, 120, 24), Vector3.new(-150, 60, -185) },
+		{ Vector3.new(85, 90, 24), Vector3.new(-45, 45, -185) },
+		{ Vector3.new(90, 135, 24), Vector3.new(65, 67.5, -185) },
+		{ Vector3.new(80, 100, 24), Vector3.new(165, 50, -185) },
+		{ Vector3.new(90, 110, 24), Vector3.new(-155, 55, 185) },
+		{ Vector3.new(95, 85, 24), Vector3.new(-50, 42.5, 185) },
+		{ Vector3.new(85, 130, 24), Vector3.new(55, 65, 185) },
+		{ Vector3.new(90, 95, 24), Vector3.new(160, 47.5, 185) },
+		{ Vector3.new(24, 125, 100), Vector3.new(235, 62.5, -110) },
+		{ Vector3.new(24, 95, 90), Vector3.new(235, 47.5, -5) },
+		{ Vector3.new(24, 115, 95), Vector3.new(235, 57.5, 100) },
+		{ Vector3.new(24, 105, 95), Vector3.new(-235, 52.5, -95) },
+		{ Vector3.new(24, 140, 100), Vector3.new(-235, 70, 15) },
+		{ Vector3.new(24, 90, 90), Vector3.new(-235, 45, 115) },
+	}
+	for i, t in towers do
+		mk("OutworldTower", t[1], t[2], DUSTY[(i - 1) % #DUSTY + 1])
+	end
+	local function dirtPile(x, z, sc)
+		mk("OutworldDirt", Vector3.new(14 * sc, 4 * sc, 12 * sc), Vector3.new(x, 2 * sc, z), DIRT)
+		mk("OutworldDirt", Vector3.new(9 * sc, 3 * sc, 8 * sc), Vector3.new(x + 2, 4.5 * sc, z - 1), DIRT)
+		mk("OutworldDirt", Vector3.new(5 * sc, 2 * sc, 4 * sc), Vector3.new(x - 1, 6.4 * sc, z + 1), DIRT)
+	end
+	local function pipeStack(x, z)
+		for i in ipairs({ 1, 2, 3 }) do
+			local pipe = mk("OutworldPipe", Vector3.new(16, 3, 3), Vector3.new(x, if i == 3 then 4.2 else 1.7, z + (i - 1.5) * 2.2), Color3.fromRGB(120, 118, 122))
+			pipe.Shape = Enum.PartType.Cylinder
+		end
+	end
+	local function spool(x, z)
+		local s1 = mk("OutworldSpool", Vector3.new(2.5, 8, 8), Vector3.new(x, 4, z), Color3.fromRGB(170, 130, 80))
+		s1.Shape = Enum.PartType.Cylinder
+	end
+	local function genBox(x, z)
+		mk("OutworldGen", Vector3.new(9, 6, 5), Vector3.new(x, 3, z), Color3.fromRGB(120, 116, 110))
+		mk("OutworldGen", Vector3.new(2, 1.5, 2), Vector3.new(x + 2.5, 7, z), Color3.fromRGB(80, 78, 76))
+	end
+	local function barrels(x, z)
+		for _, dx in { -1.8, 1.8 } do
+			local b = mk("OutworldBarrel", Vector3.new(4, 3, 3), Vector3.new(x + dx, 2, z), Color3.fromRGB(96, 110, 130))
+			b.Shape = Enum.PartType.Cylinder
+			b.CFrame = b.CFrame * CFrame.Angles(0, 0, math.rad(90))
+		end
+	end
+	dirtPile(-120, -145, 1.2); pipeStack(-75, -142); genBox(30, -144); dirtPile(75, -148, 1); spool(120, -143)
+	dirtPile(-140, 145, 1.1); spool(-60, 146); genBox(0, 148); dirtPile(60, 150, 1.3); barrels(100, 144)
+	dirtPile(196, -90, 1); spool(193, -40); barrels(194, 40); dirtPile(198, 90, 1.2); pipeStack(192, 0)
+	pipeStack(-192, -90); dirtPile(-196, -30, 1.2); genBox(-193, 30); dirtPile(-198, 90, 1); spool(-192, 130)
+end
+
 -- ══ COMPASS LETTERS (outside the bounds — for markup screenshots) ═══════════
 -- 40-stud panels; PixelsPerStud 2.5 because TextScaled caps at 100px (a
 -- bigger canvas renders a tiny glyph). Yaws make each glyph's top point
