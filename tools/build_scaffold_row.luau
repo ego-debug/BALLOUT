@@ -259,29 +259,28 @@ mk("Pallets", Vector3.new(8, 4, 6), Vector3.new(-178, 3, -10))
 -- ball-2 line clear, SE bite = the ball-arc zone (x128..156, z60..90).
 local GREY_BLD = Color3.fromRGB(150, 148, 152)
 local corner = {
-	-- SE (big + notch)
-	{ Vector3.new(30, 48, 36), Vector3.new(165, 24, 108) },
-	{ Vector3.new(24, 36, 36), Vector3.new(140, 18, 108) },
-	{ Vector3.new(24, 42, 30), Vector3.new(168, 21, 75) },
+	-- SE (big + notch) — all corners ~1.5x taller (v57)
+	{ Vector3.new(30, 72, 36), Vector3.new(165, 36, 108) },
+	{ Vector3.new(24, 54, 36), Vector3.new(140, 27, 108) },
+	{ Vector3.new(24, 62, 30), Vector3.new(168, 31, 75) },
 	-- SW (wide + two fingers)
-	{ Vector3.new(38, 46, 42), Vector3.new(-161, 23, 105) },
-	{ Vector3.new(30, 34, 42), Vector3.new(-127, 17, 105) },
-	{ Vector3.new(18, 40, 34), Vector3.new(-101, 20, 101) },
-	{ Vector3.new(20, 28, 24), Vector3.new(-165, 14, 72) },
-	{ Vector3.new(20, 32, 24), Vector3.new(-115, 16, 72) },
+	{ Vector3.new(38, 70, 42), Vector3.new(-161, 35, 105) },
+	{ Vector3.new(30, 50, 42), Vector3.new(-127, 25, 105) },
+	{ Vector3.new(18, 58, 34), Vector3.new(-101, 29, 101) },
+	{ Vector3.new(20, 40, 24), Vector3.new(-165, 20, 72) },
+	{ Vector3.new(20, 46, 24), Vector3.new(-115, 23, 72) },
 	-- NE (long + step)
-	{ Vector3.new(45, 44, 40), Vector3.new(157.5, 22, -106) },
-	{ Vector3.new(40, 34, 40), Vector3.new(115, 17, -106) },
-	{ Vector3.new(40, 26, 26), Vector3.new(115, 13, -73) },
-	-- NW: BUILDING CLUSTER (owner: no bleachers) — tall corner tower with
-	-- offset annexes, varied heights, rooftop lip + AC. Flush to bounds.
-	{ Vector3.new(36, 56, 40), Vector3.new(-164, 28, -106) },
-	{ Vector3.new(28, 44, 30), Vector3.new(-132, 22, -111) },
-	{ Vector3.new(40, 26, 20), Vector3.new(-152, 13, -82) },
-	{ Vector3.new(16, 34, 24), Vector3.new(-112, 17, -108) },
-	{ Vector3.new(38, 1.5, 2), Vector3.new(-164, 56.75, -125) },
-	{ Vector3.new(38, 1.5, 2), Vector3.new(-164, 56.75, -87) },
-	{ Vector3.new(6, 3, 5), Vector3.new(-166, 57.5, -104) },
+	{ Vector3.new(45, 66, 40), Vector3.new(157.5, 33, -106) },
+	{ Vector3.new(40, 52, 40), Vector3.new(115, 26, -106) },
+	{ Vector3.new(40, 38, 26), Vector3.new(115, 19, -73) },
+	-- NW: BUILDING CLUSTER — 82-tall tower + annexes; dressing rides the top
+	{ Vector3.new(36, 82, 40), Vector3.new(-164, 41, -106) },
+	{ Vector3.new(28, 64, 30), Vector3.new(-132, 32, -111) },
+	{ Vector3.new(40, 38, 20), Vector3.new(-152, 19, -82) },
+	{ Vector3.new(16, 50, 24), Vector3.new(-112, 25, -108) },
+	{ Vector3.new(38, 1.5, 2), Vector3.new(-164, 82.75, -125) },
+	{ Vector3.new(38, 1.5, 2), Vector3.new(-164, 82.75, -87) },
+	{ Vector3.new(6, 3, 5), Vector3.new(-166, 83.5, -104) },
 }
 for i, def in corner do
 	local blk = mk("CornerMass", def[1], def[2], GREY_BLD)
