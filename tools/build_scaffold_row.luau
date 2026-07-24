@@ -273,10 +273,11 @@ local corner = {
 	{ Vector3.new(45, 44, 40), Vector3.new(157.5, 22, -106) },
 	{ Vector3.new(40, 34, 40), Vector3.new(115, 17, -106) },
 	{ Vector3.new(40, 26, 26), Vector3.new(115, 13, -73) },
-	-- NW (compact + shoulder, flush to the bounds at x -182 / z -126)
-	{ Vector3.new(41, 42, 54), Vector3.new(-161.5, 21, -99) },
-	{ Vector3.new(20, 32, 54), Vector3.new(-131, 16, -99) },
-	{ Vector3.new(24, 24, 26), Vector3.new(-112, 12, -86) },
+	-- NW: three tiers descending N->S (stepped faces look toward the west
+	-- spawn; tall back flush against the boundary at x -182 / z -126)
+	{ Vector3.new(78, 42, 22), Vector3.new(-143, 21, -115) },
+	{ Vector3.new(78, 32, 16), Vector3.new(-143, 16, -96) },
+	{ Vector3.new(78, 24, 16), Vector3.new(-143, 12, -80) },
 }
 for i, def in corner do
 	local blk = mk("CornerMass", def[1], def[2], GREY_BLD)
