@@ -260,6 +260,9 @@ do
 			mk("NB_UpperPost", Vector3.new(3, 20, 3), Vector3.new(sx, 29, szc))
 		end
 	end
+	-- boundary-side wall: floor 2 is open on posts, so seal the outer face
+	-- (this side borders the map edge — nothing should be thrown out here)
+	mk("NB_UpperWall", Vector3.new(48, 20, 1.5), Vector3.new(0, 29, backZ))
 	mk("NB_UpperRoof", Vector3.new(48, 1, 44), Vector3.new(0, 39.5, hz))
 	mk("NB_Tower", Vector3.new(48, 24, 44), Vector3.new(0, 52, hz)) -- solid cap y40..64
 	wedge("NB_Ramp", Vector3.new(12, 4, 14), Vector3.new(-28, 2, hz), 90, GREY_LT)
@@ -280,6 +283,8 @@ do
 			mk("Room_Post", Vector3.new(3, 20, 3), Vector3.new(sx, 26.5, sz)) -- 20-stud headroom
 		end
 	end
+	-- boundary-side wall: the deck is open on posts, so seal the outer face
+	mk("Room_DeckWall", Vector3.new(48, 19.5, 1.5), Vector3.new(0, 26.75, pz + 21.25))
 	mk("Room_Roof", Vector3.new(48, 1, 44), Vector3.new(0, 37, pz))
 	mk("Room_Tower", Vector3.new(48, 26.5, 44), Vector3.new(0, 50.75, pz)) -- solid cap y37.5..64
 	for _, sgn in { -1, 1 } do
@@ -394,6 +399,7 @@ mk("CornerMass", Vector3.new(18, 40, 8), Vector3.new(-101, 20, 122), GREY_BLD)
 -- reach), G3/G4 behind the east/west spawns.
 do
 	local FENCE_H = 20             -- 4x the 5-stud player: tall solid hoarding
+	local FENCE_FLOOR = BASIN_TOP - 10 -- every segment's base: under the basin
 	local BURY = 4                 -- panels reach below grade so a panel
 	                               -- crossing a hillside never floats
 	local POST = Color3.fromRGB(74, 72, 78)
@@ -402,11 +408,15 @@ do
 	local HAZ = Color3.fromRGB(210, 180, 70)
 	local PANEL_W = 14
 	local PANEL_STEP = 15
+	-- FULL perimeter coverage. Only two things interrupt a run: the four
+	-- drop gaps, and the N/S centre buildings (x -25..25) whose own outer
+	-- walls seal the boundary there.
+	--   drop gaps: N x -60..-20 | S x 96..126 | E z -20..20 | W z -20..20
 	local runs = {
-		{ "x", -125.4, -104, -60 }, { "x", -125.4, -20, 95 },
-		{ "x", 125.4, -112, 96 },
-		{ "z", 181.4, -60, -20 }, { "z", 181.4, 20, 60 },
-		{ "z", -181.4, -72, -20 }, { "z", -181.4, 20, 84 },
+		{ "x", -125.4, -182, -60 }, { "x", -125.4, 25, 182 },
+		{ "x", 125.4, -182, -25 }, { "x", 125.4, 25, 96 }, { "x", 125.4, 126, 182 },
+		{ "z", 181.4, -126, -20 }, { "z", 181.4, 20, 128 },
+		{ "z", -181.4, -126, -20 }, { "z", -181.4, 20, 128 },
 	}
 	-- vertical layout, all relative to plateau grade (y=1); the band shift
 	-- pass reseats each piece for its own x, so hillside panels follow the hill
@@ -416,25 +426,43 @@ do
 	for _, r in runs do
 		local axis, line, a, b = r[1], r[2], r[3], r[4]
 		local len = b - a
-		-- ONE CONTINUOUS solid metal wall per run: no panel seams, nothing to
-		-- see through. Ribs sit ON the outer face (they never break the wall).
+		-- Solid metal wall, TERRAIN-FOLLOWING. Every segment's base is pinned
+		-- to FENCE_FLOOR (below the basin) and its top to localGrade+FENCE_H,
+		-- so the wall is never undercut where the ground drops and the pieces
+		-- crossing the hillside are automatically TALLER to bridge the slope.
+		-- Segments butt together (slight overlap) = no seams.
 		local mid = (a + b) / 2
 		if axis == "x" then
-			local wall = mk("EdgeFence", Vector3.new(len, infillH, 1.6), Vector3.new(mid, infillY, line), STEEL)
-			wall.Material = Enum.Material.DiamondPlate
-			local cap = mk("EdgeFence", Vector3.new(len, 1.2, 2.4), Vector3.new(mid, railY, line), STEEL_CAP)
-			cap.Material = Enum.Material.Metal
-			for rx = a + 6, b - 6, 12 do
-				local rib = mk("EdgeFence", Vector3.new(1.1, infillH - 1, 2.2), Vector3.new(rx, infillY, line), POST)
+			local x = a
+			while x < b - 0.01 do
+				local ax = math.abs(x)
+				-- fine steps across the hillside, long spans on flat ground
+				local onSlope = ax > BAND - 8 and ax < BAND + SLOPE_RUN + 8
+				local w = math.min(if onSlope then 6 else 26, b - x)
+				local cx2 = x + w / 2
+				local top = PLATEAU_TOP + bandDelta(cx2, line) + FENCE_H
+				local h = top - FENCE_FLOOR
+				local wall = mk("EdgeFence", Vector3.new(w + 0.4, h, 1.6), Vector3.new(cx2, FENCE_FLOOR + h / 2, line), STEEL)
+				wall.Material = Enum.Material.DiamondPlate
+				local cap = mk("EdgeFence", Vector3.new(w + 0.4, 1.2, 2.4), Vector3.new(cx2, top - 0.6, line), STEEL_CAP)
+				cap.Material = Enum.Material.Metal
+				x += w
+			end
+			for rx = a + 8, b - 8, 24 do
+				local top = PLATEAU_TOP + bandDelta(rx, line) + FENCE_H
+				local rib = mk("EdgeFence", Vector3.new(1.1, top - 1 - FENCE_FLOOR, 2.2), Vector3.new(rx, FENCE_FLOOR + (top - 1 - FENCE_FLOOR) / 2, line), POST)
 				rib.Material = Enum.Material.Metal
 			end
 		else
-			local wall = mk("EdgeFence", Vector3.new(1.6, infillH, len), Vector3.new(line, infillY, mid), STEEL)
+			-- side runs sit out at |x| 181: always plateau grade, so one part
+			local top = PLATEAU_TOP + FENCE_H
+			local h = top - FENCE_FLOOR
+			local wall = mk("EdgeFence", Vector3.new(1.6, h, len), Vector3.new(line, FENCE_FLOOR + h / 2, mid), STEEL)
 			wall.Material = Enum.Material.DiamondPlate
-			local cap = mk("EdgeFence", Vector3.new(2.4, 1.2, len), Vector3.new(line, railY, mid), STEEL_CAP)
+			local cap = mk("EdgeFence", Vector3.new(2.4, 1.2, len), Vector3.new(line, top - 0.6, mid), STEEL_CAP)
 			cap.Material = Enum.Material.Metal
-			for rz = a + 6, b - 6, 12 do
-				local rib = mk("EdgeFence", Vector3.new(2.2, infillH - 1, 1.1), Vector3.new(line, infillY, rz), POST)
+			for rz = a + 6, b - 6, 24 do
+				local rib = mk("EdgeFence", Vector3.new(2.2, h - 1, 1.1), Vector3.new(line, FENCE_FLOOR + (h - 1) / 2, rz), POST)
 				rib.Material = Enum.Material.Metal
 			end
 		end
@@ -761,6 +789,7 @@ do
 		OutworldDirt = true, OutworldPipe = true, OutworldSpool = true,
 		OutworldGen = true, OutworldBarrel = true,
 		CompassN = true, CompassS = true, CompassE = true, CompassW = true,
+		EdgeFence = true, -- authored per-segment at its own grade already
 		PlayBoundsMark = true,
 	}
 	-- each crane is RIGID: shift the whole assembly by the delta at its BALL,
