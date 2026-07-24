@@ -385,41 +385,71 @@ label(rail, "RAIL VOID — hop the rail and you drop")
 mk("CornerMass", Vector3.new(18, 40, 8), Vector3.new(-101, 20, 122), GREY_BLD)
 
 -- ══ PERIMETER (skyscraper-top containment) ═══════════════════════════════════
--- Hoarding panels on every open boundary stretch; INVISIBLE walls (to y60)
--- above fenced stretches only (CanQuery=false: the ball ignores them).
--- FOUR drop gaps — no fence, no wall — staged with edge equipment: hazard
--- pad, overhanging plank, pallet, cones. Get knocked through one and it's
--- the void. G1 north (ball-2 corridor), G2 south (ball-1 reach), G3/G4
--- behind the east/west spawns.
+-- CONSTRUCTION FENCING at 2.5x player height (player 5 -> fence 12.5 tall):
+-- framed panels with dark posts, a top rail and orange safety-mesh infill.
+-- Above them an invisible wall 400 studs tall so NOBODY can be thrown or
+-- glided over the edge — the only way off the building is through one of the
+-- FOUR drop gaps (no fence, no wall), staged with hazard pad, overhanging
+-- plank, pallet and cones. G1 north (ball-2 corridor), G2 south (ball-1
+-- reach), G3/G4 behind the east/west spawns.
 do
-	local PLY = Color3.fromRGB(172, 140, 96)
+	local FENCE_H = 20             -- 4x the 5-stud player: tall solid hoarding
+	local BURY = 4                 -- panels reach below grade so a panel
+	                               -- crossing a hillside never floats
+	local POST = Color3.fromRGB(74, 72, 78)
+	local STEEL = Color3.fromRGB(108, 116, 124)   -- solid site hoarding
+	local STEEL_CAP = Color3.fromRGB(146, 152, 158)
 	local HAZ = Color3.fromRGB(210, 180, 70)
+	local PANEL_W = 14
+	local PANEL_STEP = 15
 	local runs = {
 		{ "x", -125.4, -104, -60 }, { "x", -125.4, -20, 95 },
 		{ "x", 125.4, -112, 96 },
 		{ "z", 181.4, -60, -20 }, { "z", 181.4, 20, 60 },
 		{ "z", -181.4, -72, -20 }, { "z", -181.4, 20, 84 },
 	}
+	-- vertical layout, all relative to plateau grade (y=1); the band shift
+	-- pass reseats each piece for its own x, so hillside panels follow the hill
+	local infillH = FENCE_H + BURY
+	local infillY = 1 + FENCE_H - infillH / 2
+	local railY = 1 + FENCE_H - 0.4
 	for _, r in runs do
 		local axis, line, a, b = r[1], r[2], r[3], r[4]
 		local len = b - a
-		local n = math.max(1, math.floor((len + 2) / 15))
-		for i = 0, n - 1 do
-			local c = if n == 1 then (a + b) / 2 else a + 7.5 + i * ((len - 15) / math.max(n - 1, 1))
-			if axis == "x" then
-				mk("EdgeFence", Vector3.new(13, 4.5, 0.8), Vector3.new(c, 3.25, line), PLY)
-			else
-				mk("EdgeFence", Vector3.new(0.8, 4.5, 13), Vector3.new(line, 3.25, c), PLY)
+		-- ONE CONTINUOUS solid metal wall per run: no panel seams, nothing to
+		-- see through. Ribs sit ON the outer face (they never break the wall).
+		local mid = (a + b) / 2
+		if axis == "x" then
+			local wall = mk("EdgeFence", Vector3.new(len, infillH, 1.6), Vector3.new(mid, infillY, line), STEEL)
+			wall.Material = Enum.Material.DiamondPlate
+			local cap = mk("EdgeFence", Vector3.new(len, 1.2, 2.4), Vector3.new(mid, railY, line), STEEL_CAP)
+			cap.Material = Enum.Material.Metal
+			for rx = a + 6, b - 6, 12 do
+				local rib = mk("EdgeFence", Vector3.new(1.1, infillH - 1, 2.2), Vector3.new(rx, infillY, line), POST)
+				rib.Material = Enum.Material.Metal
+			end
+		else
+			local wall = mk("EdgeFence", Vector3.new(1.6, infillH, len), Vector3.new(line, infillY, mid), STEEL)
+			wall.Material = Enum.Material.DiamondPlate
+			local cap = mk("EdgeFence", Vector3.new(2.4, 1.2, len), Vector3.new(line, railY, mid), STEEL_CAP)
+			cap.Material = Enum.Material.Metal
+			for rz = a + 6, b - 6, 12 do
+				local rib = mk("EdgeFence", Vector3.new(2.2, infillH - 1, 1.1), Vector3.new(line, infillY, rz), POST)
+				rib.Material = Enum.Material.Metal
 			end
 		end
+		-- invisible wall: 400 tall, based well below the basin so it seals at
+		-- every elevation. Knockback + glider can't clear it; only the gaps.
+		local BARRIER_H = 400
+		local barrierY = -30 + BARRIER_H / 2
 		local w
 		if axis == "x" then
-			w = mk("EdgeBarrier", Vector3.new(len, 60, 1), Vector3.new((a + b) / 2, 31, line))
+			w = mk("EdgeBarrier", Vector3.new(len, BARRIER_H, 1), Vector3.new((a + b) / 2, barrierY, line))
 		else
-			w = mk("EdgeBarrier", Vector3.new(1, 60, len), Vector3.new(line, 31, (a + b) / 2))
+			w = mk("EdgeBarrier", Vector3.new(1, BARRIER_H, len), Vector3.new(line, barrierY, (a + b) / 2))
 		end
 		w.Transparency = 1
-		w.CanQuery = false
+		w.CanQuery = false -- the dodgeball's wall sweep ignores it
 	end
 	local gaps = {
 		{ -40, -126, 0, -1, 40 }, { 111, 126, 0, 1, 30 },
@@ -699,8 +729,9 @@ do
 			elseif n == "PitWall" then
 				c.Material = Enum.Material.Slate
 				c.Color = Color3.fromRGB(46, 46, 50)
-			elseif n == "EdgeFence" or n == "GapPlank" or n == "GapPallet" then
+			elseif n == "GapPlank" or n == "GapPallet" then
 				c.Material = Enum.Material.WoodPlanks
+				-- (EdgeFence keeps its own metal materials — set at build)
 			elseif n == "SpawnDeck" then
 				c.Material = Enum.Material.Concrete
 			elseif n == "OutworldTowerFar" then
