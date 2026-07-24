@@ -479,19 +479,10 @@ do
 	end
 	-- ferry containers + wrecking balls keep pose and labels
 	for _, c in m:GetChildren() do
+		-- (containers stay as plain rectangular prisms — owner call, v63: the
+		-- generated mesh's irregular top read badly; Metal material instead)
 		if c.Name:match("^Container") then
-			local mp = meshPart("container")
-			if mp then
-				mp.Name = c.Name
-				-- stretch along the mesh's NATIVE long axis (X), then yaw 90
-				-- to run N-S; cross-stretching squashes the ribs (v62 bug)
-				mp.Size = Vector3.new(26, 8, 10)
-				mp.CFrame = CFrame.new(c.Position) * CFrame.Angles(0, math.rad(90), 0)
-				local bb = c:FindFirstChildOfClass("BillboardGui")
-				if bb then bb.Parent = mp end
-				mp.Parent = m
-				c:Destroy()
-			end
+			c.Material = Enum.Material.Metal
 		elseif c.Name == "WreckBall" or c.Name == "WreckBall2" then
 			local mp = meshPart("ball")
 			if mp then
