@@ -447,5 +447,110 @@ for _, def in {
 	p.CanCollide = false
 end
 
+-- ══ MESH DRESS PASS (post-process: swap primitives for generated meshes) ════
+-- Five AI-generated originals (permanent asset IDs). Runs after the build so
+-- primitives remain the fallback if a mesh fails to load.
+do
+	local AssetService = game:GetService("AssetService")
+	local IDS = {
+		ball = { 121033251049707, 90328631351540 },
+		container = { 106472072356359, 90293876196576 },
+		dirt = { 71501601810769, 139894024422338 },
+		excavator = { 78595779734465, 126594719056235 },
+		tower = { 105488940082739, 110958436568221 },
+	}
+	local cache = {}
+	local function meshPart(kind: string): MeshPart?
+		local def = IDS[kind]
+		if cache[kind] == nil then
+			local ok, mp = pcall(function()
+				return AssetService:CreateMeshPartAsync(Content.fromAssetId(def[1]))
+			end)
+			if ok and mp then
+				mp.TextureID = "rbxassetid://" .. def[2]
+				mp.Anchored = true
+				cache[kind] = mp
+			else
+				cache[kind] = false
+			end
+		end
+		local t = cache[kind]
+		return if t then t:Clone() else nil
+	end
+	-- ferry containers + wrecking balls keep pose and labels
+	for _, c in m:GetChildren() do
+		if c.Name:match("^Container") then
+			local mp = meshPart("container")
+			if mp then
+				mp.Name = c.Name
+				mp.Size = c.Size
+				mp.CFrame = c.CFrame
+				local bb = c:FindFirstChildOfClass("BillboardGui")
+				if bb then bb.Parent = mp end
+				mp.Parent = m
+				c:Destroy()
+			end
+		elseif c.Name == "WreckBall" or c.Name == "WreckBall2" then
+			local mp = meshPart("ball")
+			if mp then
+				mp.Name = c.Name
+				mp.Size = Vector3.new(26, 30, 26)
+				mp.CFrame = c.CFrame + Vector3.new(0, 2, 0)
+				local bb = c:FindFirstChildOfClass("BillboardGui")
+				if bb then bb.Parent = mp end
+				mp.Parent = m
+				c:Destroy()
+			end
+		end
+	end
+	-- outworld dirt clusters -> mesh mounds
+	local dirtSpots = {}
+	for _, c in m:GetChildren() do
+		if c.Name == "OutworldDirt" then
+			local lp = c.Position - Vector3.new(CX, 0, CZ)
+			if c.Size.X > 10 then
+				table.insert(dirtSpots, { lp.X, lp.Z, c.Size.X / 14 })
+			end
+			c:Destroy()
+		end
+	end
+	for _, sp in dirtSpots do
+		local mp = meshPart("dirt")
+		if mp then
+			mp.Name = "OutworldDirt"
+			mp.Size = Vector3.new(16 * sp[3], 8 * sp[3], 14 * sp[3])
+			mp.CFrame = CFrame.new(Vector3.new(sp[1], 4 * sp[3], sp[2]) + Vector3.new(CX, 0, CZ)) * CFrame.Angles(0, math.rad(sp[1] * 7 % 360), 0)
+			mp.Parent = m
+		end
+	end
+	-- excavator parked on the south apron
+	local exc = meshPart("excavator")
+	if exc then
+		exc.Name = "OutworldExcavator"
+		exc.Size = Vector3.new(10, 10, 18)
+		exc.CFrame = CFrame.new(Vector3.new(60, 5, 150) + Vector3.new(CX, 0, CZ)) * CFrame.Angles(0, math.rad(35), 0)
+		exc.Parent = m
+	end
+	-- six FRONT-ROW backdrop towers become the building mesh (backs stay slabs)
+	local frontSwapped = 0
+	for _, c in m:GetChildren() do
+		if c.Name == "OutworldTower" and frontSwapped < 6 then
+			local lp = c.Position - Vector3.new(CX, 0, CZ)
+			local isFront = (math.abs(lp.Z) > 170 and math.abs(lp.Z) < 190) or (math.abs(lp.X) > 200 and math.abs(lp.X) < 225)
+			if isFront then
+				local mp = meshPart("tower")
+				if mp then
+					mp.Name = "OutworldTower"
+					mp.Size = c.Size
+					mp.CFrame = c.CFrame
+					mp.Parent = m
+					c:Destroy()
+					frontSwapped += 1
+				end
+			end
+		end
+	end
+end
+
 m.Parent = zone
 return "FRACTURED CORE built: " .. #m:GetChildren() .. " parts"
