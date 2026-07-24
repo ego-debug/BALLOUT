@@ -90,56 +90,95 @@ local function label(part: BasePart, text: string)
 	bb.Parent = part
 end
 
--- ══ GROUND with TWIN VOID pits (x -24..24; z -82..-25 and z 25..82) ═════════
-mk("Dirt", Vector3.new(400, 1, 58), Vector3.new(0, 0.5, -111), GREY_DK)
-mk("Dirt", Vector3.new(400, 1, 50), Vector3.new(0, 0.5, 0), GREY_DK)
-mk("Dirt", Vector3.new(400, 1, 58), Vector3.new(0, 0.5, 111), GREY_DK)
-for _, sx in { -1, 1 } do
-	for _, sz in { -1, 1 } do
-		if not (sx == -1 and sz == 1) then
-			mk("Dirt", Vector3.new(176, 1, 57), Vector3.new(sx * 112, 0.5, sz * 53.5), GREY_DK)
-		end
+-- ══ ELEVATION: lowered CENTRE BASIN + smooth hillsides (v68) ════════════════
+-- The whole central N-S band is EXCAVATED to BASIN_Y; the spawn flanks stay
+-- up on plateaus, and broad walkable HILLSIDES (full map depth, ~22 deg)
+-- roll down between them — a hillside, not a ramp you have to find. The
+-- structure shift pass at the bottom of this script drops everything that
+-- stands inside the band by the same amount.
+--   |x| <= 85          basin      (top y = -13)
+--   85 < |x| < 119     hillside   (smooth 1 -> -13)
+--   |x| >= 119         plateau    (top y = 1)
+local BAND = 85       -- basin half-width
+local SLOPE_RUN = 34  -- hillside run on each side
+local DROP = 14       -- basin is this far below the plateaus
+local PLATEAU_TOP = 1
+local BASIN_TOP = PLATEAU_TOP - DROP
+
+-- how far DOWN a thing at this x/z sits relative to the old flat ground
+local function bandDelta(x: number, z: number): number
+	if math.abs(z) > 140 then
+		return 0 -- outworld apron keeps plateau level
 	end
+	local ax = math.abs(x)
+	if ax <= BAND then
+		return -DROP
+	elseif ax >= BAND + SLOPE_RUN then
+		return 0
+	end
+	return -DROP * (1 - (ax - BAND) / SLOPE_RUN)
 end
--- W-south flank carries the SW finger void (x -152..-128, z 62..82):
-mk("Dirt", Vector3.new(48, 1, 57), Vector3.new(-176, 0.5, 53.5), GREY_DK)
-mk("Dirt", Vector3.new(104, 1, 57), Vector3.new(-76, 0.5, 53.5), GREY_DK)
-mk("Dirt", Vector3.new(24, 1, 37), Vector3.new(-140, 0.5, 43.5), GREY_DK)
+
+-- PLATEAUS (top y=1). West is split around the SW finger void.
+mk("Dirt", Vector3.new(81, 1, 202), Vector3.new(-159.5, 0.5, -39), GREY_DK)
+mk("Dirt", Vector3.new(81, 1, 58), Vector3.new(-159.5, 0.5, 111), GREY_DK)
+mk("Dirt", Vector3.new(48, 1, 20), Vector3.new(-176, 0.5, 72), GREY_DK)
+mk("Dirt", Vector3.new(9, 1, 20), Vector3.new(-123.5, 0.5, 72), GREY_DK)
+mk("Dirt", Vector3.new(81, 1, 280), Vector3.new(159.5, 0.5, 0), GREY_DK)
+
+-- HILLSIDES: wedges spanning the full map depth. A wedge is tall at its
+-- local +Z end, so yaw -90 puts the high side at -X (west) and yaw 90 at +X.
+wedge("Hillside", Vector3.new(280, DROP, SLOPE_RUN), Vector3.new(-102, BASIN_TOP + DROP / 2, 0), -90, GREY_DK)
+wedge("Hillside", Vector3.new(280, DROP, SLOPE_RUN), Vector3.new(102, BASIN_TOP + DROP / 2, 0), 90, GREY_DK)
+
+-- BASIN floor (top y=-13) with the twin void pits cut out
+mk("Dirt", Vector3.new(61, 1, 280), Vector3.new(-54.5, BASIN_TOP - 0.5, 0), GREY_DK)
+mk("Dirt", Vector3.new(61, 1, 280), Vector3.new(54.5, BASIN_TOP - 0.5, 0), GREY_DK)
+mk("Dirt", Vector3.new(48, 1, 58), Vector3.new(0, BASIN_TOP - 0.5, -111), GREY_DK)
+mk("Dirt", Vector3.new(48, 1, 50), Vector3.new(0, BASIN_TOP - 0.5, 0), GREY_DK)
+mk("Dirt", Vector3.new(48, 1, 58), Vector3.new(0, BASIN_TOP - 0.5, 111), GREY_DK)
+
+-- RETAINING WALLS shoring the basin's N/S ends against the outworld apron
+-- (out of bounds behind the fences — reads as site shoring, no cliff seam)
+for _, sz in { -1, 1 } do
+	mk("RetainWall", Vector3.new(2 * BAND, DROP + 1, 2), Vector3.new(0, BASIN_TOP + (DROP + 1) / 2 - 0.5, sz * 141), DARK)
+end
+
+-- CENTRE PIT walls: from the basin floor straight down (void, no bottom)
+for _, sz in { -1, 1 } do
+	mk("PitWall", Vector3.new(48, 30, 1), Vector3.new(0, BASIN_TOP - 15, sz * 82.5), DARK)
+	mk("PitWall", Vector3.new(48, 30, 1), Vector3.new(0, BASIN_TOP - 15, sz * 25.5), DARK)
+	mk("PitWall", Vector3.new(1, 30, 57), Vector3.new(-24.5, BASIN_TOP - 15, sz * 53.5), DARK)
+	mk("PitWall", Vector3.new(1, 30, 57), Vector3.new(24.5, BASIN_TOP - 15, sz * 53.5), DARK)
+end
+
+-- SW FINGER VOID stays out on the west plateau (x -152..-128, z 62..82)
 mk("PitWall", Vector3.new(24, 30, 1), Vector3.new(-140, -14, 62.5), DARK)
 mk("PitWall", Vector3.new(24, 30, 1), Vector3.new(-140, -14, 81.5), DARK)
 mk("PitWall", Vector3.new(1, 30, 20), Vector3.new(-152.5, -14, 72), DARK)
 mk("PitWall", Vector3.new(1, 30, 20), Vector3.new(-127.5, -14, 72), DARK)
-for _, sz in { -1, 1 } do
-	mk("PitWall", Vector3.new(48, 30, 1), Vector3.new(0, -14, sz * 82.5), DARK)
-	mk("PitWall", Vector3.new(48, 30, 1), Vector3.new(0, -14, sz * 25.5), DARK)
-	mk("PitWall", Vector3.new(1, 30, 57), Vector3.new(-24.5, -14, sz * 53.5), DARK)
-	mk("PitWall", Vector3.new(1, 30, 57), Vector3.new(24.5, -14, sz * 53.5), DARK)
-end
-do -- yard floor: repunch to the canyon (world x -160..-30, z -760..-690)
+
+do -- yard floor: now a FRAME around the map (map ground covers its own
+	-- footprint at three elevations, so a slab underneath would bury the basin)
 	for _, c in zone:GetChildren() do
 		if c.Name == "BuildFloor" then
 			c:Destroy()
 		end
 	end
 	local function slab(size: Vector3, worldPos: Vector3)
-		local p = Instance.new("Part")
-		p.Name = "BuildFloor"
-		p.Size = size
-		p.Position = worldPos
-		p.Color = GREY_DK
-		p.Material = Enum.Material.SmoothPlastic
-		p.Anchored = true
-		p.Parent = zone
+		local pt = Instance.new("Part")
+		pt.Name = "BuildFloor"
+		pt.Size = size
+		pt.Position = worldPos
+		pt.Color = GREY_DK
+		pt.Material = Enum.Material.SmoothPlastic
+		pt.Anchored = true
+		pt.Parent = zone
 	end
-	slab(Vector3.new(520, 4, 108), Vector3.new(0, -2, -786))
-	slab(Vector3.new(520, 4, 50), Vector3.new(0, -2, -650))
-	slab(Vector3.new(520, 4, 108), Vector3.new(0, -2, -514))
-	slab(Vector3.new(236, 4, 57), Vector3.new(-142, -2, -703.5))
-	slab(Vector3.new(236, 4, 57), Vector3.new(142, -2, -703.5))
-	slab(Vector3.new(108, 4, 57), Vector3.new(-206, -2, -596.5))
-	slab(Vector3.new(104, 4, 57), Vector3.new(-76, -2, -596.5))
-	slab(Vector3.new(24, 4, 37), Vector3.new(-140, -2, -606.5))
-	slab(Vector3.new(236, 4, 57), Vector3.new(142, -2, -596.5))
+	slab(Vector3.new(520, 4, 50), Vector3.new(0, -2, -815))   -- north apron
+	slab(Vector3.new(520, 4, 50), Vector3.new(0, -2, -485))   -- south apron
+	slab(Vector3.new(60, 4, 280), Vector3.new(-230, -2, -650)) -- west apron
+	slab(Vector3.new(60, 4, 280), Vector3.new(230, -2, -650))  -- east apron
 end
 
 -- ══ CORE: the tower exactly as evolved (center 0,0) ═════════════════════════
@@ -678,6 +717,60 @@ do
 			pt.CanCollide = false
 		end
 	end
+
+-- ══ BAND SHIFT: drop everything standing in the basin ═══════════════════════
+-- Ground/hillsides/pit walls are already authored at their final elevations,
+-- and the out-of-bounds masses stay on plateau level, so both are skipped.
+-- Everything else moves DOWN by bandDelta at its own x — props on a hillside
+-- get a partial shift, so fences and equipment follow the slope.
+do
+	local SKIP = {
+		Dirt = true, Hillside = true, RetainWall = true, PitWall = true,
+		CornerMass = true, OutworldTower = true, OutworldTowerFar = true,
+		OutworldDirt = true, OutworldPipe = true, OutworldSpool = true,
+		OutworldGen = true, OutworldBarrel = true,
+		CompassN = true, CompassS = true, CompassE = true, CompassW = true,
+		PlayBoundsMark = true,
+	}
+	-- each crane is RIGID: shift the whole assembly by the delta at its BALL,
+	-- or the arm/chain/ball would shear apart across the hillside
+	local CRANE1 = { CraneMast = true, CraneArm = true, WreckChain = true, WreckBall = true, SwingZoneMark = true }
+	local CRANE2 = { CraneMast2 = true, CraneArm2 = true, WreckChain2 = true, WreckBall2 = true, SwingZoneMark2 = true }
+	local crane1Delta = bandDelta(76, 68)   -- ball 1 hangs over x 76
+	local crane2Delta = bandDelta(-40, -100) -- ball 2 over x -40
+
+	for _, c in m:GetChildren() do
+		if c:IsA("BasePart") and not SKIP[c.Name] then
+			local lp = c.Position - Vector3.new(CX, 0, CZ)
+			local d
+			if CRANE1[c.Name] then
+				d = crane1Delta
+			elseif CRANE2[c.Name] then
+				d = crane2Delta
+			else
+				d = bandDelta(lp.X, lp.Z)
+			end
+			if d ~= 0 then
+				c.Position = c.Position + Vector3.new(0, d, 0)
+			end
+		end
+	end
+
+	-- out-of-bounds masses whose footprint reaches into the band/hillside would
+	-- otherwise float over the excavation: extend their bases down to the pit
+	for _, c in m:GetChildren() do
+		if c:IsA("BasePart") and (c.Name == "CornerMass" or c.Name == "OutworldTower") then
+			local lp = c.Position - Vector3.new(CX, 0, CZ)
+			local innerX = math.abs(lp.X) - c.Size.X / 2
+			if innerX < BAND + SLOPE_RUN and math.abs(lp.Z) < 150 then
+				local top = c.Position.Y + c.Size.Y / 2
+				local newH = top - (BASIN_TOP - 8)
+				c.Size = Vector3.new(c.Size.X, newH, c.Size.Z)
+				c.Position = Vector3.new(c.Position.X, top - newH / 2, c.Position.Z)
+			end
+		end
+	end
+end
 
 m.Parent = zone
 return "FRACTURED CORE built: " .. #m:GetChildren() .. " parts"
