@@ -273,11 +273,15 @@ local corner = {
 	{ Vector3.new(45, 44, 40), Vector3.new(157.5, 22, -106) },
 	{ Vector3.new(40, 34, 40), Vector3.new(115, 17, -106) },
 	{ Vector3.new(40, 26, 26), Vector3.new(115, 13, -73) },
-	-- NW: three tiers descending N->S (stepped faces look toward the west
-	-- spawn; tall back flush against the boundary at x -182 / z -126)
-	{ Vector3.new(78, 42, 22), Vector3.new(-143, 21, -115) },
-	{ Vector3.new(78, 32, 16), Vector3.new(-143, 16, -96) },
-	{ Vector3.new(78, 24, 16), Vector3.new(-143, 12, -80) },
+	-- NW: BUILDING CLUSTER (owner: no bleachers) — tall corner tower with
+	-- offset annexes, varied heights, rooftop lip + AC. Flush to bounds.
+	{ Vector3.new(36, 56, 40), Vector3.new(-164, 28, -106) },
+	{ Vector3.new(28, 44, 30), Vector3.new(-132, 22, -111) },
+	{ Vector3.new(40, 26, 20), Vector3.new(-152, 13, -82) },
+	{ Vector3.new(16, 34, 24), Vector3.new(-112, 17, -108) },
+	{ Vector3.new(38, 1.5, 2), Vector3.new(-164, 56.75, -125) },
+	{ Vector3.new(38, 1.5, 2), Vector3.new(-164, 56.75, -87) },
+	{ Vector3.new(6, 3, 5), Vector3.new(-166, 57.5, -104) },
 }
 for i, def in corner do
 	local blk = mk("CornerMass", def[1], def[2], GREY_BLD)
