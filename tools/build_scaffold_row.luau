@@ -510,6 +510,11 @@ do
 		dirt = { 71501601810769, 139894024422338 },
 		excavator = { 78595779734465, 126594719056235 },
 		tower = { 105488940082739, 110958436568221 },
+		-- construction-vibe building templates (v65)
+		bldg_concrete = { 120357183999526, 74854698359455 },
+		bldg_tarp = { 95373586915096, 123346592918685 },
+		bldg_brick = { 94378804245131, 136963449361619 },
+		bldg_warehouse = { 123778151690244, 100579815563326 },
 	}
 	local cache = {}
 	local function meshPart(kind: string): MeshPart?
@@ -576,28 +581,35 @@ do
 		exc.CFrame = CFrame.new(Vector3.new(60, 5, 150) + Vector3.new(CX, 0, CZ)) * CFrame.Angles(0, math.rad(35), 0)
 		exc.Parent = m
 	end
-	-- six FRONT-ROW backdrop towers become the building mesh (backs stay slabs)
-	local frontSwapped = 0
+		-- ALL corner masses + backdrop towers -> construction meshes; template
+	-- picked by height, scaled to each footprint (grey primitive = fallback)
+	local toSwap = {}
 	for _, c in m:GetChildren() do
-		if c.Name == "OutworldTower" and frontSwapped < 6 then
-			local lp = c.Position - Vector3.new(CX, 0, CZ)
-			local isFront = (math.abs(lp.Z) > 170 and math.abs(lp.Z) < 190) or (math.abs(lp.X) > 200 and math.abs(lp.X) < 225)
-			if isFront then
-				local mp = meshPart("tower")
-				if mp then
-					mp.Name = "OutworldTower"
-					mp.Size = c.Size
-					mp.CFrame = c.CFrame
-					mp.Parent = m
-					c:Destroy()
-					frontSwapped += 1
-				end
-			end
+		if c.Name == "CornerMass" or c.Name == "OutworldTower" then
+			table.insert(toSwap, c)
 		end
 	end
-		-- ── GROUND + OUTER-BUILDING material pass (v64) ──────────────────────
-		local DUSTY_MATS = { Enum.Material.Brick, Enum.Material.Concrete, Enum.Material.Limestone }
-		local GLASS = Color3.fromRGB(38, 44, 58)
+	for _, c in toSwap do
+		local lp = c.Position - Vector3.new(CX, 0, CZ)
+		local h = c.Size.Y
+		local pick
+		if h > 95 then
+			pick = (math.floor(math.abs(lp.X)) % 2 == 0) and "bldg_concrete" or "bldg_tarp"
+		elseif h > 58 then
+			pick = (math.floor(math.abs(lp.Z)) % 2 == 0) and "bldg_tarp" or "bldg_brick"
+		else
+			pick = (math.floor(math.abs(lp.X + lp.Z)) % 2 == 0) and "bldg_warehouse" or "bldg_brick"
+		end
+		local mp = meshPart(pick)
+		if mp then
+			mp.Name = c.Name
+			mp.Size = c.Size
+			mp.CFrame = CFrame.new(c.Position) * CFrame.Angles(0, math.rad((lp.X * 3 + lp.Z) % 8 - 4), 0)
+			mp.Parent = m
+			c:Destroy()
+		end
+	end
+-- ── GROUND + OUTER-BUILDING material pass (v64) ──────────────────────
 		for _, c in m:GetChildren() do
 			local n = c.Name
 			if n == "Dirt" then
@@ -610,25 +622,8 @@ do
 				c.Material = Enum.Material.WoodPlanks
 			elseif n == "SpawnDeck" then
 				c.Material = Enum.Material.Concrete
-			elseif n == "CornerMass" or n == "OutworldTower" then
-				local lp = c.Position - Vector3.new(CX, 0, CZ)
-				c.Material = DUSTY_MATS[math.floor(math.abs(lp.X + lp.Z * 3) / 37) % 3 + 1]
-				if c.Size.Y > 30 then
-					local inX = math.abs(lp.X) > math.abs(lp.Z)
-					local sgn = if inX then (if lp.X > 0 then -1 else 1) else (if lp.Z > 0 then -1 else 1)
-					for _, frac in { 0.42, 0.72 } do
-						local band = mkCF("FacadeBand",
-							if inX then Vector3.new(0.4, 4, c.Size.Z * 0.8) else Vector3.new(c.Size.X * 0.8, 4, 0.4),
-							CFrame.new(c.Position + (if inX
-								then Vector3.new(sgn * (c.Size.X / 2 + 0.2), c.Size.Y * (frac - 0.5), 0)
-								else Vector3.new(0, c.Size.Y * (frac - 0.5), sgn * (c.Size.Z / 2 + 0.2)))),
-							GLASS)
-						band.Material = Enum.Material.Glass
-						band.CanCollide = false
-						band.CanQuery = false
-					end
-				end
 			end
+			-- (buildings are swapped for construction meshes in the mesh pass)
 		end
 		for _, pd in { { -70, -20, 22, 14 }, { 60, 30, 18, 12 }, { -100, 30, 16, 10 },
 			{ 90, -40, 20, 12 }, { -50, 110, 18, 10 }, { 40, -115, 16, 10 } } do
