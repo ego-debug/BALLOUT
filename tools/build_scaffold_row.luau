@@ -182,7 +182,8 @@ do
 	end
 end
 wedge("ScafRamp", Vector3.new(8, 14, 22), Vector3.new(-46, 7, -29.5), 90)
-for _, cdef in { { 46, 10 }, { -6, 48 }, { 48, -34 }, { -44, 44 } } do
+-- plaza crates on SOLID ground only ({-6,48} used to strand over the south pit)
+for _, cdef in { { 46, 10 }, { -14, 16 }, { 48, -34 }, { -44, 44 } } do
 	mk("PlazaCrate", Vector3.new(6, 4.5, 5), Vector3.new(cdef[1], 3.25, cdef[2]))
 end
 
