@@ -293,6 +293,63 @@ local rail = mk("VoidRail", Vector3.new(26, 2.5, 1), Vector3.new(-140, 2.25, 61.
 label(rail, "RAIL VOID — hop the rail and you drop")
 mk("CornerMass", Vector3.new(18, 40, 8), Vector3.new(-101, 20, 122), GREY_BLD)
 
+-- ══ PERIMETER (skyscraper-top containment) ═══════════════════════════════════
+-- Hoarding panels on every open boundary stretch; INVISIBLE walls (to y60)
+-- above fenced stretches only (CanQuery=false: the ball ignores them).
+-- FOUR drop gaps — no fence, no wall — staged with edge equipment: hazard
+-- pad, overhanging plank, pallet, cones. Get knocked through one and it's
+-- the void. G1 north (ball-2 corridor), G2 south (ball-1 reach), G3/G4
+-- behind the east/west spawns.
+do
+	local PLY = Color3.fromRGB(172, 140, 96)
+	local HAZ = Color3.fromRGB(210, 180, 70)
+	local runs = {
+		{ "x", -125.4, -104, -60 }, { "x", -125.4, -20, 95 },
+		{ "x", 125.4, -112, 96 },
+		{ "z", 181.4, -60, -20 }, { "z", 181.4, 20, 60 },
+		{ "z", -181.4, -72, -20 }, { "z", -181.4, 20, 84 },
+	}
+	for _, r in runs do
+		local axis, line, a, b = r[1], r[2], r[3], r[4]
+		local len = b - a
+		local n = math.max(1, math.floor((len + 2) / 15))
+		for i = 0, n - 1 do
+			local c = if n == 1 then (a + b) / 2 else a + 7.5 + i * ((len - 15) / math.max(n - 1, 1))
+			if axis == "x" then
+				mk("EdgeFence", Vector3.new(13, 4.5, 0.8), Vector3.new(c, 3.25, line), PLY)
+			else
+				mk("EdgeFence", Vector3.new(0.8, 4.5, 13), Vector3.new(line, 3.25, c), PLY)
+			end
+		end
+		local w
+		if axis == "x" then
+			w = mk("EdgeBarrier", Vector3.new(len, 60, 1), Vector3.new((a + b) / 2, 31, line))
+		else
+			w = mk("EdgeBarrier", Vector3.new(1, 60, len), Vector3.new(line, 31, (a + b) / 2))
+		end
+		w.Transparency = 1
+		w.CanQuery = false
+	end
+	local gaps = {
+		{ -40, -126, 0, -1, 40 }, { 111, 126, 0, 1, 30 },
+		{ 182, 0, 1, 0, 40 }, { -182, 0, -1, 0, 40 },
+	}
+	for _, g in gaps do
+		local gx, gz, ox, oz, gw = g[1], g[2], g[3], g[4], g[5]
+		local lx, lz = math.abs(oz), math.abs(ox)
+		local padSize = if ox == 0 then Vector3.new(gw, 0.15, 6) else Vector3.new(6, 0.15, gw)
+		mk("GapHazardPad", padSize, Vector3.new(gx - ox * 3.5, 1.28, gz - oz * 3.5), HAZ)
+		local plankSize = if ox == 0 then Vector3.new(2, 0.4, 14) else Vector3.new(14, 0.4, 2)
+		mk("GapPlank", plankSize, Vector3.new(gx + lx * 6, 1.6, gz + lz * 6), Color3.fromRGB(202, 122, 62))
+		mk("GapPallet", Vector3.new(8, 4, 6), Vector3.new(gx - ox * 8 - lx * 10, 3, gz - oz * 8 - lz * 10))
+		for _, sgn in { -1, 1 } do
+			local cone = mk("GapCone", Vector3.new(2.2, 2.2, 2.2), Vector3.new(gx - ox * 5 + lx * sgn * 13, 2.1, gz - oz * 5 + lz * sgn * 13), Color3.fromRGB(235, 120, 50))
+			cone.Shape = Enum.PartType.Cylinder
+			cone.CFrame = cone.CFrame * CFrame.Angles(0, 0, math.rad(90))
+		end
+	end
+end
+
 -- ══ COMPASS LETTERS (outside the bounds — for markup screenshots) ═══════════
 -- 40-stud panels; PixelsPerStud 2.5 because TextScaled caps at 100px (a
 -- bigger canvas renders a tiny glyph). Yaws make each glyph's top point
