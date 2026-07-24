@@ -423,7 +423,7 @@ do
 	--                  silhouettes need no mesh detail (name = ...Far, which
 	--                  the mesh swap below skips).
 	local RINGS = {
-		{ bump = 0, spacing = 84, w = 92, d = 26, hBase = 88, hVar = 46, off = 0, far = false },
+		{ bump = 0, spacing = 76, w = 92, d = 26, hBase = 84, hVar = 62, off = 0, far = false },
 		{ bump = 64, spacing = 88, w = 96, d = 28, hBase = 142, hVar = 38, off = 44, far = true },
 		{ bump = 132, spacing = 96, w = 104, d = 30, hBase = 182, hVar = 44, off = 20, far = true },
 	}
@@ -439,7 +439,6 @@ do
 	}
 	for si, side in SIDES do
 		for ri, ring in RINGS do
-			local dist = side.dist + ring.bump
 			local a = side.from + ring.off
 			local idx = 0
 			while a <= side.to do
@@ -447,6 +446,13 @@ do
 				-- deterministic height jitter (same skyline on every rebuild)
 				local jitter = ((idx * 37 + ri * 91 + si * 53) % 100) / 100
 				local h = ring.hBase + jitter * ring.hVar
+				-- DEPTH STAGGER (near ring): shove each building back by a
+				-- varying amount so the run isn't a flat wallpaper plane.
+				-- Ring 1's lateral overlap (92 wide on 76 spacing) plus the
+				-- half-bay-offset ring 2 behind it keep the staggered notches
+				-- sealed — verified by the ray audit.
+				local back = if ring.far then 0 else ((idx * 3 + si * 2) % 5) * 8.5
+				local dist = side.dist + ring.bump + back
 				local size, pos
 				if side.along == "x" then
 					size = Vector3.new(ring.w, h, ring.d)
