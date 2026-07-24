@@ -415,8 +415,8 @@ do
 	local runs = {
 		{ "x", -125.4, -182, -60 }, { "x", -125.4, 25, 182 },
 		{ "x", 125.4, -182, -25 }, { "x", 125.4, 25, 96 }, { "x", 125.4, 126, 182 },
-		{ "z", 181.4, -126, -20 }, { "z", 181.4, 20, 128 },
-		{ "z", -181.4, -126, -20 }, { "z", -181.4, 20, 128 },
+		{ "z", 181.4, -126, 60 }, { "z", 181.4, 96, 128 },
+		{ "z", -181.4, -126, -96 }, { "z", -181.4, -60, 128 },
 	}
 	-- vertical layout, all relative to plateau grade (y=1); the band shift
 	-- pass reseats each piece for its own x, so hillside panels follow the hill
@@ -479,9 +479,12 @@ do
 		w.Transparency = 1
 		w.CanQuery = false -- the dodgeball's wall sweep ignores it
 	end
+	-- Drop gaps. NOTE: the E/W gaps used to sit at z -20..20, which is
+	-- directly behind the spawn decks (z -25..25) — spawn-camping by
+	-- knockback. They're staggered off the spawn backs now.
 	local gaps = {
 		{ -40, -126, 0, -1, 40 }, { 111, 126, 0, 1, 30 },
-		{ 182, 0, 1, 0, 40 }, { -182, 0, -1, 0, 40 },
+		{ 182, 78, 1, 0, 36 }, { -182, -78, -1, 0, 36 },
 	}
 	for _, g in gaps do
 		local gx, gz, ox, oz, gw = g[1], g[2], g[3], g[4], g[5]
