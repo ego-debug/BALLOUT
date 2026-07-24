@@ -413,24 +413,60 @@ do
 		Color3.fromRGB(140, 132, 120), Color3.fromRGB(158, 146, 128),
 		Color3.fromRGB(146, 138, 130),
 	}
-	local towers = {
-		{ Vector3.new(95, 120, 24), Vector3.new(-150, 60, -185) },
-		{ Vector3.new(85, 90, 24), Vector3.new(-45, 45, -185) },
-		{ Vector3.new(90, 135, 24), Vector3.new(65, 67.5, -185) },
-		{ Vector3.new(80, 100, 24), Vector3.new(165, 50, -185) },
-		{ Vector3.new(90, 110, 24), Vector3.new(-155, 55, 185) },
-		{ Vector3.new(95, 85, 24), Vector3.new(-50, 42.5, 185) },
-		{ Vector3.new(85, 130, 24), Vector3.new(55, 65, 185) },
-		{ Vector3.new(90, 95, 24), Vector3.new(160, 47.5, 185) },
-		{ Vector3.new(24, 125, 100), Vector3.new(235, 62.5, -110) },
-		{ Vector3.new(24, 95, 90), Vector3.new(235, 47.5, -5) },
-		{ Vector3.new(24, 115, 95), Vector3.new(235, 57.5, 100) },
-		{ Vector3.new(24, 105, 95), Vector3.new(-235, 52.5, -95) },
-		{ Vector3.new(24, 140, 100), Vector3.new(-235, 70, 15) },
-		{ Vector3.new(24, 90, 90), Vector3.new(-235, 45, 115) },
+	-- LAYERED SKYLINE — three concentric rings so there are NO gaps and the
+	-- city reads with depth instead of as a flat fence:
+	--   ring 1 (near): buildings OVERLAP (spacing < width) so the run is
+	--                  continuous; these get the detailed construction meshes
+	--   ring 2/3 (far): set back 64 / 132 studs, progressively TALLER, and
+	--                  offset half a bay so they fill ring 1's seams and rise
+	--                  above its roofline. Kept as tinted slabs — distant
+	--                  silhouettes need no mesh detail (name = ...Far, which
+	--                  the mesh swap below skips).
+	local RINGS = {
+		{ bump = 0, spacing = 84, w = 92, d = 26, hBase = 88, hVar = 46, off = 0, far = false },
+		{ bump = 64, spacing = 88, w = 96, d = 28, hBase = 142, hVar = 38, off = 44, far = true },
+		{ bump = 132, spacing = 96, w = 104, d = 30, hBase = 182, hVar = 44, off = 20, far = true },
 	}
-	for i, t in towers do
-		mk("OutworldTower", t[1], t[2], DUSTY[(i - 1) % #DUSTY + 1])
+	local SIDES = {
+		{ along = "x", nx = 0, nz = -1, dist = 185, from = -290, to = 290 },
+		{ along = "x", nx = 0, nz = 1, dist = 185, from = -290, to = 290 },
+		{ along = "z", nx = 1, nz = 0, dist = 235, from = -270, to = 270 },
+		{ along = "z", nx = -1, nz = 0, dist = 235, from = -270, to = 270 },
+	}
+	local FAR_TINT = {
+		Color3.fromRGB(178, 172, 160), Color3.fromRGB(166, 160, 150),
+		Color3.fromRGB(158, 154, 148), Color3.fromRGB(172, 164, 152),
+	}
+	for si, side in SIDES do
+		for ri, ring in RINGS do
+			local dist = side.dist + ring.bump
+			local a = side.from + ring.off
+			local idx = 0
+			while a <= side.to do
+				idx += 1
+				-- deterministic height jitter (same skyline on every rebuild)
+				local jitter = ((idx * 37 + ri * 91 + si * 53) % 100) / 100
+				local h = ring.hBase + jitter * ring.hVar
+				local size, pos
+				if side.along == "x" then
+					size = Vector3.new(ring.w, h, ring.d)
+					pos = Vector3.new(a, h / 2, side.nz * dist)
+				else
+					size = Vector3.new(ring.d, h, ring.w)
+					pos = Vector3.new(side.nx * dist, h / 2, a)
+				end
+				local palette = if ring.far then FAR_TINT else DUSTY
+				mk(if ring.far then "OutworldTowerFar" else "OutworldTower",
+					size, pos, palette[(idx + si) % #palette + 1])
+				a += ring.spacing
+			end
+		end
+	end
+	-- diagonal corner fills: close the sight lines where the N/S runs meet
+	-- the E/W runs (a straight ring leaves a wedge open at each corner)
+	for ci, cdef in { { 250, -232 }, { 250, 232 }, { -250, -232 }, { -250, 232 } } do
+		mk("OutworldTowerFar", Vector3.new(120, 158 + ci * 9, 120),
+			Vector3.new(cdef[1], (158 + ci * 9) / 2, cdef[2]), FAR_TINT[ci % #FAR_TINT + 1])
 	end
 	local function dirtPile(x, z, sc)
 		mk("OutworldDirt", Vector3.new(14 * sc, 4 * sc, 12 * sc), Vector3.new(x, 2 * sc, z), DIRT)
@@ -622,6 +658,9 @@ do
 				c.Material = Enum.Material.WoodPlanks
 			elseif n == "SpawnDeck" then
 				c.Material = Enum.Material.Concrete
+			elseif n == "OutworldTowerFar" then
+				-- distant rings: dusty masonry, no mesh detail needed
+				c.Material = if c.Size.Y > 190 then Enum.Material.Concrete else Enum.Material.Limestone
 			end
 			-- (buildings are swapped for construction meshes in the mesh pass)
 		end
