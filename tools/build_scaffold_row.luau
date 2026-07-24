@@ -214,7 +214,15 @@ do
 	mk("NB_HallPillar", Vector3.new(3, 14, 3), Vector3.new(-22.5, 11, frontZ))
 	mk("NB_HallPillar", Vector3.new(3, 14, 3), Vector3.new(22.5, 11, frontZ))
 	mk("NB_Floor2", Vector3.new(48, 1, 44), Vector3.new(0, 18.5, hz))
-	mk("NB_Tower", Vector3.new(48, 45, 44), Vector3.new(0, 41.5, hz)) -- solid cap y19..64
+	-- floor 2 is an OPEN level with real headroom (posts + roof), THEN the
+	-- solid tower cap above — not a slab crushed under the tower
+	for _, sx in { -22.5, 22.5 } do
+		for _, szc in { hz - 21, hz + 21 } do
+			mk("NB_UpperPost", Vector3.new(3, 20, 3), Vector3.new(sx, 29, szc))
+		end
+	end
+	mk("NB_UpperRoof", Vector3.new(48, 1, 44), Vector3.new(0, 39.5, hz))
+	mk("NB_Tower", Vector3.new(48, 24, 44), Vector3.new(0, 52, hz)) -- solid cap y40..64
 	wedge("NB_Ramp", Vector3.new(12, 4, 14), Vector3.new(-28, 2, hz), 90, GREY_LT)
 	wedge("NB_Ramp", Vector3.new(12, 4, 14), Vector3.new(28, 2, hz), -90, GREY_LT)
 end
@@ -230,11 +238,11 @@ do
 	label(deck, "SOUTH PERCH — solid; parkour crate->container->deck (both sides)")
 	for _, sx in { -22.5, 22.5 } do
 		for _, sz in { pz - 21.5, pz + 21.5 } do
-			mk("Room_Post", Vector3.new(3, 10, 3), Vector3.new(sx, 21.5, sz))
+			mk("Room_Post", Vector3.new(3, 20, 3), Vector3.new(sx, 26.5, sz)) -- 20-stud headroom
 		end
 	end
-	mk("Room_Roof", Vector3.new(48, 1, 44), Vector3.new(0, 27.5, pz))
-	mk("Room_Tower", Vector3.new(48, 36, 44), Vector3.new(0, 46, pz)) -- solid cap y28..64
+	mk("Room_Roof", Vector3.new(48, 1, 44), Vector3.new(0, 37, pz))
+	mk("Room_Tower", Vector3.new(48, 26.5, 44), Vector3.new(0, 50.75, pz)) -- solid cap y37.5..64
 	for _, sgn in { -1, 1 } do
 		mk("Room_Crate", Vector3.new(4, 4, 4), Vector3.new(sgn * 30, 2, pz))
 		mk("Room_EntryContainer", Vector3.new(8, 10, 10), Vector3.new(sgn * 26, 5, pz), Color3.fromRGB(140, 90, 90))
