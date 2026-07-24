@@ -483,8 +483,10 @@ do
 			local mp = meshPart("container")
 			if mp then
 				mp.Name = c.Name
-				mp.Size = c.Size
-				mp.CFrame = c.CFrame
+				-- stretch along the mesh's NATIVE long axis (X), then yaw 90
+				-- to run N-S; cross-stretching squashes the ribs (v62 bug)
+				mp.Size = Vector3.new(26, 8, 10)
+				mp.CFrame = CFrame.new(c.Position) * CFrame.Angles(0, math.rad(90), 0)
 				local bb = c:FindFirstChildOfClass("BillboardGui")
 				if bb then bb.Parent = mp end
 				mp.Parent = m
