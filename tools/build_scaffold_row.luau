@@ -198,6 +198,26 @@ label(redS, "CONTAINER C — south pit, shown LOW")
 local blueS = mk("ContainerBlueS", Vector3.new(10, 8, 26), Vector3.new(9, 41, 50), Color3.fromRGB(90, 110, 140))
 label(blueS, "CONTAINER D — south pit, shown HIGH (anti-phase)")
 
+-- ══ LANE BUILDINGS: boarding halls flanking each pit ════════════════════════
+-- One per pit, on its OUTER side. Only the outer wall is solid; E/W walk-up
+-- ramps enter floor 1 (raised podium, tall hall); the INNER face is open to
+-- the pit so you board the rising containers and bail onto floor 2. A solid
+-- tower mass caps each to y64. (These were dropped in the v26 rewrite;
+-- restored here so they survive rebuilds.)
+for _, hall in { { z = -104, back = -125.25, front = -82.75, name = "NORTH" },
+	{ z = 104, back = 125.25, front = 82.75, name = "SOUTH" } } do
+	local hz = hall.z
+	mk("LaneHallPodium", Vector3.new(48, 4, 44), Vector3.new(0, 2, hz))
+	local outer = mk("LaneHallWall", Vector3.new(48, 14, 1.5), Vector3.new(0, 11, hall.back))
+	label(outer, hall.name .. " HALL — ramps E/W; inner face open to the pit")
+	mk("LaneHallPillar", Vector3.new(3, 14, 3), Vector3.new(-22.5, 11, hall.front))
+	mk("LaneHallPillar", Vector3.new(3, 14, 3), Vector3.new(22.5, 11, hall.front))
+	mk("LaneHallFloor2", Vector3.new(48, 1, 44), Vector3.new(0, 18.5, hz))
+	mk("LaneHallTower", Vector3.new(48, 45, 44), Vector3.new(0, 41.5, hz)) -- solid cap y19..64
+	wedge("LaneHallRamp", Vector3.new(12, 4, 14), Vector3.new(-28, 2, hz), 90, GREY_LT)
+	wedge("LaneHallRamp", Vector3.new(12, 4, 14), Vector3.new(28, 2, hz), -90, GREY_LT)
+end
+
 -- ══ SE: WRECKING BALL YARD (diagonal arc toward the core) ═══════════════════
 mk("CraneMast", Vector3.new(6, 110, 6), Vector3.new(148, 55, 140)) -- OFF-MAP (past the bounds line): unreachable
 -- SINGLE-POINT pendulum (owner's sketch): the arm ENDS at the pivot; the
