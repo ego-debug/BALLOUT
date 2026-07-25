@@ -1099,5 +1099,80 @@ do
 	end
 end
 
+-- ══ SURFACE PASS (v79): kill the smooth-toy look ═════════════════════════════
+-- mk() defaults every part to SmoothPlastic, which is exactly why surfaces
+-- read as moulded plastic. Give everything a material that matches what it
+-- is meant to BE. Deliberately-set surfaces (fence steel, tower timber,
+-- dev markers) are excluded so this can't stomp them.
+do
+	local MAT = {
+		-- ground / earthworks
+		Hillside = Enum.Material.Sand,
+		RetainWall = Enum.Material.Concrete,
+		DirtPatch = Enum.Material.Ground,
+		-- spawn structures
+		SpawnLip = Enum.Material.Concrete,
+		SpawnRamp = Enum.Material.Concrete,
+		-- timber goods
+		Pallets = Enum.Material.WoodPlanks,
+		PlazaCrate = Enum.Material.WoodPlanks,
+		OutworldSpool = Enum.Material.WoodPlanks,
+		-- metal goods
+		PipePile = Enum.Material.CorrodedMetal,
+		OutworldPipe = Enum.Material.CorrodedMetal,
+		OutworldBarrel = Enum.Material.CorrodedMetal,
+		OutworldGen = Enum.Material.DiamondPlate,
+		OutworldExcavator = Enum.Material.Metal,
+		Room_EntryContainer = Enum.Material.CorrodedMetal,
+		ContainerRed = Enum.Material.CorrodedMetal,
+		ContainerBlue = Enum.Material.CorrodedMetal,
+		ContainerRedS = Enum.Material.CorrodedMetal,
+		ContainerBlueS = Enum.Material.CorrodedMetal,
+		VoidRail = Enum.Material.Metal,
+		-- plant: rusted iron ball, greased steel mast/arm
+		WreckBall = Enum.Material.CorrodedMetal,
+		WreckBall2 = Enum.Material.CorrodedMetal,
+		WreckChain = Enum.Material.Metal,
+		WreckChain2 = Enum.Material.Metal,
+		CraneMast = Enum.Material.DiamondPlate,
+		CraneMast2 = Enum.Material.DiamondPlate,
+		CraneArm = Enum.Material.DiamondPlate,
+		CraneArm2 = Enum.Material.DiamondPlate,
+		-- masonry (textured meshes still pick up the roughness response)
+		CornerMass = Enum.Material.Concrete,
+		OutworldTower = Enum.Material.Concrete,
+		OutworldDirt = Enum.Material.Ground,
+		GapHazardPad = Enum.Material.Concrete,
+		GapCone = Enum.Material.Plastic,
+		-- centre buildings
+		TowerPillar = Enum.Material.Concrete,
+		TowerWallN = Enum.Material.Concrete, TowerWallE = Enum.Material.Concrete,
+		TowerWallW = Enum.Material.Concrete, TowerWallS = Enum.Material.Concrete,
+		NB_Wall = Enum.Material.CorrodedMetal, NB_UpperWall = Enum.Material.CorrodedMetal,
+		NB_Tower = Enum.Material.CorrodedMetal, NB_HallPillar = Enum.Material.Concrete,
+		NB_UpperPost = Enum.Material.Concrete,
+		Room_Base = Enum.Material.Concrete, Room_Tower = Enum.Material.Concrete,
+		Room_DeckWall = Enum.Material.Concrete, Room_Post = Enum.Material.Concrete,
+	}
+	-- never touch: deliberately-set surfaces + invisible dev geometry
+	local KEEP = {
+		EdgeFence = true, EdgeBarrier = true, PlayBoundsMark = true,
+		SwingZoneMark = true, SwingZoneMark2 = true,
+		CompassN = true, CompassS = true, CompassE = true, CompassW = true,
+		ScafN = true, ScafE = true, ScafW = true, ScafS = true,
+		ScafRamp = true, ScafBracket = true,
+	}
+	for _, c in m:GetChildren() do
+		if c:IsA("BasePart") and not KEEP[c.Name] then
+			local mat = MAT[c.Name]
+			if mat then
+				c.Material = mat
+			elseif c.Material == Enum.Material.SmoothPlastic or c.Material == Enum.Material.Plastic then
+				c.Material = Enum.Material.Concrete -- anything still on plastic
+			end
+		end
+	end
+end
+
 m.Parent = zone
 return "FRACTURED CORE built: " .. #m:GetChildren() .. " parts"
