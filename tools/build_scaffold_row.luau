@@ -1123,6 +1123,67 @@ do
 	end
 end
 
+-- ══ MATCH MARKERS + TEST SPAWN (v82) ════════════════════════════════════════
+-- MatchService contract: RedSpawn1..3 / BlueSpawn1..3 / BallSpawn, plus
+-- ScoreboardN|S each holding a SurfaceGui TextLabel named ScoreLabel.
+-- All markers are invisible, non-colliding and CanQuery=false so they can
+-- never block a throw or a raycast.
+do
+	local function marker(name: string, pos: Vector3)
+		local mk2 = mk(name, Vector3.new(2, 2, 2), pos)
+		mk2.Transparency = 1
+		mk2.CanCollide = false
+		mk2.CanQuery = false
+		mk2.CanTouch = false
+		return mk2
+	end
+	-- spawn decks sit at x ±155 (top y 3, no band shift out there); root sits
+	-- ~3 studs above the deck
+	for i, dz in { -18, 0, 18 } do
+		marker("RedSpawn" .. i, Vector3.new(155, 6, dz))
+		marker("BlueSpawn" .. i, Vector3.new(-155, 6, dz))
+	end
+	-- ball starts mid-map on the basin floor
+	marker("BallSpawn", Vector3.new(0, BASIN_TOP + 3, 0))
+
+	-- scoreboards on the two centre buildings' inward faces
+	local function scoreboard(name: string, pos: Vector3, face: Enum.NormalId)
+		local panel = mk(name, Vector3.new(34, 7, 1), pos, Color3.fromRGB(24, 22, 28))
+		panel.Material = Enum.Material.Metal
+		local gui = Instance.new("SurfaceGui")
+		gui.Face = face
+		gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+		gui.PixelsPerStud = 20
+		gui.Parent = panel
+		local lbl = Instance.new("TextLabel")
+		lbl.Name = "ScoreLabel"
+		lbl.Size = UDim2.fromScale(1, 1)
+		lbl.BackgroundTransparency = 1
+		lbl.Font = Enum.Font.GothamBlack
+		lbl.TextScaled = true
+		lbl.TextColor3 = Color3.new(1, 1, 1)
+		lbl.Text = "RED 0 — 0 BLUE"
+		lbl.Parent = gui
+	end
+	scoreboard("ScoreboardN", Vector3.new(0, 6, -80), Enum.NormalId.Front)
+	scoreboard("ScoreboardS", Vector3.new(0, 6, 80), Enum.NormalId.Back)
+
+	-- TEST SPAWN: lets you walk the blockout without wiring MatchService.
+	-- Disabled by default so it never fights the HQ garage spawn; the
+	-- arenaTest toggle below flips between lobby and arena.
+	local ts = Instance.new("SpawnLocation")
+	ts.Name = "TestSpawn"
+	ts.Size = Vector3.new(12, 1, 12)
+	ts.Position = Vector3.new(155, 3.5, 0) + Vector3.new(CX, 0, CZ)
+	ts.Anchored = true
+	ts.Transparency = 1
+	ts.CanCollide = false
+	ts.Neutral = true
+	ts.Duration = 0
+	ts.Enabled = false
+	ts.Parent = m
+end
+
 -- ══ SURFACE PASS (v79): kill the smooth-toy look ═════════════════════════════
 -- mk() defaults every part to SmoothPlastic, which is exactly why surfaces
 -- read as moulded plastic. Give everything a material that matches what it
