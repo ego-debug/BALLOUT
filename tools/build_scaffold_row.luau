@@ -220,7 +220,13 @@ do
 		bracket(CFrame.new(Vector3.new(28.6, 11.4, bz) + Vector3.new(CX, 0, CZ)) * CFrame.Angles(0, math.rad(90), 0) * CFrame.Angles(-ANG, 0, 0))
 	end
 end
-wedge("ScafRamp", Vector3.new(8, 14, 22), Vector3.new(-46, 7, -29.5), 90)
+-- SCAFFOLD APPROACH (v81): no ramp — you climb crate -> container, then
+-- JUMP the gap up onto the catwalk.
+--   basin floor -13 | crate top -9 | container top -5 | catwalk 0.3
+--   container east end x -39 vs catwalk west end x -33 = 6-stud gap
+mk("ScafContainer", Vector3.new(26, 8, 10), Vector3.new(-52, 5, -29.2), Color3.fromRGB(140, 90, 90))
+local stepCrate = mk("ScafStepCrate", Vector3.new(5, 4, 5), Vector3.new(-70, 3, -29.2), Color3.fromRGB(168, 122, 74))
+stepCrate.Material = Enum.Material.WoodPlanks
 -- plaza crates on SOLID ground only ({-6,48} used to strand over the south pit)
 for _, cdef in { { 46, 10 }, { -14, 16 }, { 48, -34 }, { -44, 44 } } do
 	mk("PlazaCrate", Vector3.new(6, 4.5, 5), Vector3.new(cdef[1], 3.25, cdef[2]))
@@ -650,7 +656,7 @@ do
 	local AssetService = game:GetService("AssetService")
 	local IDS = {
 		ball = { 121033251049707, 90328631351540 },
-		container = { 106472072356359, 90293876196576 },
+		container = { 118557174191364, 115669725224597 }, -- weathered shipping container (v81)
 		dirt = { 71501601810769, 139894024422338 },
 		excavator = { 78595779734465, 126594719056235 },
 		tower = { 105488940082739, 110958436568221 },
@@ -702,10 +708,28 @@ do
 	end
 	-- ferry containers + wrecking balls keep pose and labels
 	for _, c in m:GetChildren() do
-		-- (containers stay as plain rectangular prisms — owner call, v63: the
-		-- generated mesh's irregular top read badly; Metal material instead)
-		if c.Name:match("^Container") then
-			c.Material = Enum.Material.Metal
+		-- every container in the map uses the shipping-container mesh. Its
+		-- native long axis is X, so pit ferries (which run along Z) are built
+		-- at X-long size and yawed 90 rather than cross-stretched.
+		if c.Name:match("^Container") or c.Name == "Room_EntryContainer" or c.Name == "ScafContainer" then
+			local mp = meshPart("container")
+			if mp then
+				mp.Name = c.Name
+				if c.Name:match("^Container") then
+					mp.Size = Vector3.new(26, 8, 10)
+					mp.CFrame = CFrame.new(c.Position) * CFrame.Angles(0, math.rad(90), 0)
+				elseif c.Name == "Room_EntryContainer" then
+					mp.Size = Vector3.new(12, 10, 10)
+					mp.CFrame = CFrame.new(c.Position)
+				else -- ScafContainer
+					mp.Size = Vector3.new(26, 8, 10)
+					mp.CFrame = CFrame.new(c.Position)
+				end
+				local bb = c:FindFirstChildOfClass("BillboardGui")
+				if bb then bb.Parent = mp end
+				mp.Parent = m
+				c:Destroy()
+			end
 		elseif c.Name == "WreckBall" or c.Name == "WreckBall2" then
 			local mp = meshPart("ball")
 			if mp then
@@ -1115,6 +1139,7 @@ do
 		SpawnRamp = Enum.Material.Concrete,
 		-- timber goods
 		Pallets = Enum.Material.WoodPlanks,
+		ScafStepCrate = Enum.Material.WoodPlanks,
 		PlazaCrate = Enum.Material.WoodPlanks,
 		OutworldSpool = Enum.Material.WoodPlanks,
 		-- metal goods
