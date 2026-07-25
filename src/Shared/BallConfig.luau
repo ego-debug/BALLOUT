@@ -153,6 +153,15 @@ BallConfig.DRILL_RADIUS = 4.5     -- stand within this of the circle center to t
 BallConfig.DRILL_REFILL_WAIT = 5  -- circle empty this long -> the bot's ball snaps back
 BallConfig.DRILL_LOST_RANGE = 90  -- unheld drill ball further than this = lost, refill now
 
+-- ── Wrecking ball (map hazard) ──────────────────────────────────────────
+-- Hit radius is the ball's own radius PLUS this pad, so the swing threatens
+-- a wide corridor rather than needing a pixel-perfect touch.
+BallConfig.WRECK_HIT_PAD = 8       -- studs of reach beyond the ball's surface
+BallConfig.WRECK_LAUNCH_UP = 115   -- upward launch speed (~34 studs of rise)
+BallConfig.WRECK_LAUNCH_OUT = 80   -- shove along the ball's direction of travel
+BallConfig.WRECK_FLY_TIME = 1.3    -- seconds of ragdoll-ish flight before control returns
+BallConfig.WRECK_HIT_COOLDOWN = 2  -- per-player, stops the same swing re-hitting
+
 -- ── Dash bonk (reckless dodging has consequences) ───────────────────────
 BallConfig.BONK_STUN = 0.6        -- seconds on the floor holding your head
 BallConfig.BONK_WALL_RANGE = 2.4  -- how close to a wall mid-dash counts as a face-plant

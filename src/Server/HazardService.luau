@@ -19,7 +19,11 @@
 -- made them unridable: jittery, no walking, no jumping.
 
 local RunService = game:GetService("RunService")
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
+
+local BallConfig = require(ReplicatedStorage.BallConfig)
 
 local HazardService = {}
 
@@ -32,6 +36,7 @@ type Pendulum = {
 	amp: number,    -- radians
 	period: number,
 	phase: number,
+	lastPos: Vector3?, -- previous frame, for the ball's travel direction
 }
 
 type Ferry = {
@@ -47,6 +52,57 @@ local pendulums: { Pendulum } = {}
 local ferries: { Ferry } = {}
 local started = false
 
+-- ── Wrecking-ball impacts ───────────────────────────────────────────────────
+-- The ball threatens a corridor, not a pixel: hit radius is its own radius
+-- plus WRECK_HIT_PAD. On contact you get launched along the ball's actual
+-- direction of travel plus a big vertical kick.
+--
+-- The humanoid MUST be put into Physics state first — in any walking state
+-- the controller brakes velocity writes and the launch just fizzles (the
+-- same trap the dash/ballform code hits).
+local hitAt: { [Player]: number } = {}
+
+local function launch(player: Player, char: Model, dir: Vector3)
+	local root = char:FindFirstChild("HumanoidRootPart")
+	local hum = char:FindFirstChildOfClass("Humanoid")
+	if not (root and root:IsA("BasePart") and hum) then
+		return
+	end
+	local flat = Vector3.new(dir.X, 0, dir.Z)
+	flat = if flat.Magnitude > 0.01 then flat.Unit else Vector3.zero
+	hum:ChangeState(Enum.HumanoidStateType.Physics)
+	root.AssemblyLinearVelocity =
+		flat * BallConfig.WRECK_LAUNCH_OUT + Vector3.new(0, BallConfig.WRECK_LAUNCH_UP, 0)
+	task.delay(BallConfig.WRECK_FLY_TIME, function()
+		if char.Parent and hum.Health > 0 then
+			hum:ChangeState(Enum.HumanoidStateType.GettingUp)
+		end
+	end)
+end
+
+local function checkImpacts(p: Pendulum, ballPos: Vector3, travel: Vector3)
+	local reach = p.ball.Size.X / 2 + BallConfig.WRECK_HIT_PAD
+	local now = os.clock()
+	for _, player in Players:GetPlayers() do
+		local char = player.Character
+		local root = char and char:FindFirstChild("HumanoidRootPart")
+		if root and root:IsA("BasePart") then
+			if (root.Position - ballPos).Magnitude <= reach then
+				if now - (hitAt[player] or -math.huge) >= BallConfig.WRECK_HIT_COOLDOWN then
+					hitAt[player] = now
+					-- shove along travel; fall back to radial if the ball is
+					-- momentarily stationary at the top of its arc
+					local dir = travel
+					if dir.Magnitude < 0.01 then
+						dir = root.Position - ballPos
+					end
+					launch(player, char :: Model, dir)
+				end
+			end
+		end
+	end
+end
+
 local function step()
 	local t = os.clock()
 	for _, p in pendulums do
@@ -59,6 +115,9 @@ local function step()
 		local span = (ballPos - p.pivot).Magnitude
 		p.chain.Size = Vector3.new(p.chain.Size.X, span, p.chain.Size.Z)
 		p.chain.CFrame = CFrame.lookAt(mid, ballPos) * CFrame.Angles(math.rad(90), 0, 0)
+		local travel = if p.lastPos then ballPos - p.lastPos else Vector3.zero
+		p.lastPos = ballPos
+		checkImpacts(p, ballPos, travel)
 	end
 	for _, f in ferries do
 		local mid = (f.lowY + f.highY) / 2
@@ -81,6 +140,14 @@ local function addPendulum(model: Instance, ballName: string, chainName: string,
 	if not (ball:IsA("BasePart") and chain:IsA("BasePart") and arm:IsA("BasePart")) then
 		return
 	end
+	-- The ball does NOT collide. An anchored part swept through a character
+	-- imparts its own huge shove, which stacked on top of the scripted launch
+	-- (measured ~64 studs of rise against a configured 34) and could just as
+	-- easily crush someone into geometry. With collision off, the hit is
+	-- entirely the scripted launch: predictable and tunable from BallConfig.
+	ball.CanCollide = false
+	chain.CanCollide = false
+
 	-- pivot = top of the chain as authored; swing along the arm's long axis
 	local pivot = Vector3.new(chain.Position.X, chain.Position.Y + chain.Size.Y / 2, chain.Position.Z)
 	local look = arm.CFrame.LookVector
