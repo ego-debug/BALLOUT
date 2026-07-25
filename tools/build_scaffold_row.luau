@@ -657,6 +657,10 @@ do
 		bldg_tarp = { 134344618023053, 89292694419511 }, -- solid tower, tarp top (v65d)
 		bldg_brick = { 138397727486531, 85956331974645 }, -- clean solid brick (v65c)
 		bldg_warehouse = { 123778151690244, 100579815563326 },
+		-- crane kit (v72): lattice mast, jib boom, twisted steel rope
+		crane_mast = { 126008349832708, 93528564387647 },
+		crane_arm = { 92107200748996, 78274682935714 },
+		crane_rope = { 117141007456779, 92312225022942 },
 	}
 	local cache = {}
 	local function meshPart(kind: string): MeshPart?
@@ -690,6 +694,26 @@ do
 				mp.CFrame = c.CFrame + Vector3.new(0, 2, 0)
 				local bb = c:FindFirstChildOfClass("BillboardGui")
 				if bb then bb.Parent = mp end
+				mp.Parent = m
+				c:Destroy()
+			end
+		elseif c.Name == "CraneMast" or c.Name == "CraneMast2"
+			or c.Name == "CraneArm" or c.Name == "CraneArm2"
+			or c.Name == "WreckChain" or c.Name == "WreckChain2" then
+			-- CRANE KIT: every template's long axis already matches its part
+			-- (mast/rope = Y, jib = Z), so size carries straight over and the
+			-- 45-degree jib keeps its CFrame.
+			local kind = if c.Name:match("^CraneMast") then "crane_mast"
+				elseif c.Name:match("^CraneArm") then "crane_arm"
+				else "crane_rope"
+			local mp = meshPart(kind)
+			if mp then
+				mp.Name = c.Name
+				-- rope reads too thin at 1 stud: thicken so the strands show
+				mp.Size = if kind == "crane_rope"
+					then Vector3.new(2, c.Size.Y, 2)
+					else c.Size
+				mp.CFrame = c.CFrame
 				mp.Parent = m
 				c:Destroy()
 			end
