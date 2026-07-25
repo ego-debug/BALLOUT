@@ -38,6 +38,15 @@ local RAMP_ORANGE = Color3.fromRGB(235, 150, 60)
 local BROWN = Color3.fromRGB(150, 105, 65)
 local CX, CZ = 0, -650
 
+-- ══ GLOBAL MAP SCALE (v83) ══════════════════════════════════════════════════
+-- Playtest: the player could jump straight onto containers, second floors and
+-- the scaffolding, defeating every climb gate in the map. The blockout was
+-- authored to a DERIVED "KC scale" that turned out too small against a 5-stud
+-- character with a 7-stud jump. Everything below stays authored at scale 1 and
+-- the finished model is scaled about map centre at the very end, so all the
+-- geometry keeps its proportions to itself.
+local MAP_SCALE = 1.45
+
 local function mk(name: string, size: Vector3, pos: Vector3, color: Color3?): Part
 	local p = Instance.new("Part")
 	p.Name = name
@@ -168,8 +177,11 @@ do -- yard floor: now a FRAME around the map (map ground covers its own
 	local function slab(size: Vector3, worldPos: Vector3)
 		local pt = Instance.new("Part")
 		pt.Name = "BuildFloor"
-		pt.Size = size
-		pt.Position = worldPos
+		-- the yard frame lives OUTSIDE the model so ScaleTo never touches it:
+		-- scale it here about map centre so it still frames the bigger map
+		local c = Vector3.new(CX, 0, CZ)
+		pt.Size = size * MAP_SCALE
+		pt.Position = c + (worldPos - c) * MAP_SCALE
 		pt.Color = GREY_DK
 		pt.Material = Enum.Material.SmoothPlastic
 		pt.Anchored = true
@@ -224,8 +236,11 @@ end
 -- JUMP the gap up onto the catwalk.
 --   basin floor -13 | crate top -9 | container top -5 | catwalk 0.3
 --   container east end x -39 vs catwalk west end x -33 = 6-stud gap
-mk("ScafContainer", Vector3.new(26, 8, 10), Vector3.new(-52, 5, -29.2), Color3.fromRGB(140, 90, 90))
-local stepCrate = mk("ScafStepCrate", Vector3.new(5, 4, 5), Vector3.new(-70, 3, -29.2), Color3.fromRGB(168, 122, 74))
+-- Heights re-spaced for MAP_SCALE (v83): the total basin-floor -> catwalk
+-- climb is ~19 studs scaled, so it MUST be three hops of <7 or the last jump
+-- is impossible. Authored values chosen to land ~6.4 per hop after scaling.
+mk("ScafContainer", Vector3.new(26, 8, 10), Vector3.new(-50, 5.8, -29.2), Color3.fromRGB(140, 90, 90))
+local stepCrate = mk("ScafStepCrate", Vector3.new(5, 4, 5), Vector3.new(-68, 3.4, -29.2), Color3.fromRGB(168, 122, 74))
 stepCrate.Material = Enum.Material.WoodPlanks
 -- plaza crates on SOLID ground only ({-6,48} used to strand over the south pit)
 for _, cdef in { { 46, 10 }, { -14, 16 }, { 48, -34 }, { -44, 44 } } do
@@ -1261,4 +1276,10 @@ do
 end
 
 m.Parent = zone
+-- scale the finished map about its centre, pivot on the ground plane so it
+-- grows outward and upward rather than away from the origin
+if MAP_SCALE ~= 1 then
+	m.WorldPivot = CFrame.new(CX, 0, CZ)
+	m:ScaleTo(MAP_SCALE)
+end
 return "FRACTURED CORE built: " .. #m:GetChildren() .. " parts"
