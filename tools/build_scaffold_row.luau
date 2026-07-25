@@ -793,6 +793,15 @@ do
 			local mp = meshPart(kind, true) -- Box collision baked at creation
 			if mp then
 				mp.Name = c.Name
+				-- CRITICAL: MeshPart.Color is IGNORED while a TextureID is set
+				-- — the texture wins outright (verified: a mesh forced to pure
+				-- red still rendered white). These concrete templates ship
+				-- near-white textures, which is exactly why the buildings read
+				-- as blank. Drop the texture so the tint + Concrete material
+				-- carry the surface; the moulded geometry (formwork seams,
+				-- floor bands, rebar) still reads through shading.
+				mp.TextureID = ""
+				mp.Material = Enum.Material.Concrete
 				mp.Color = tintFor(c.Name)
 				if kind == "bld_panel" and c.Size.Z > c.Size.X then
 					-- panel's long axis is X: yaw the Z-running walls to match
@@ -817,16 +826,16 @@ do
 	-- Slabs get a darker/warmer cast than walls so levels stay legible.
 	do
 		local WALLTONE = {
-			Tower = Color3.fromRGB(170, 142, 104),
-			NB_ = Color3.fromRGB(188, 146, 96),
-			Room_ = Color3.fromRGB(150, 134, 112),
-			Scaf = Color3.fromRGB(176, 150, 112),
+			Tower = Color3.fromRGB(146, 116, 78),
+			NB_ = Color3.fromRGB(172, 118, 66),
+			Room_ = Color3.fromRGB(124, 112, 96),
+			Scaf = Color3.fromRGB(158, 126, 84),
 		}
 		local SLABTONE = {
-			Tower = Color3.fromRGB(176, 148, 110),
-			NB_ = Color3.fromRGB(196, 156, 104),
-			Room_ = Color3.fromRGB(160, 146, 124),
-			Scaf = Color3.fromRGB(182, 156, 118),
+			Tower = Color3.fromRGB(158, 124, 86),
+			NB_ = Color3.fromRGB(184, 132, 74),
+			Room_ = Color3.fromRGB(138, 124, 104),
+			Scaf = Color3.fromRGB(168, 134, 92),
 		}
 		local KEEP = { Room_EntryContainer = true, ScafBracket = true }
 		for _, c in m:GetChildren() do
@@ -992,6 +1001,65 @@ do
 				local newH = top - (BASIN_TOP - 8)
 				c.Size = Vector3.new(c.Size.X, newH, c.Size.Z)
 				c.Position = Vector3.new(c.Position.X, top - newH / 2, c.Position.Z)
+			end
+		end
+	end
+end
+
+-- ══ FULL-MAP PALETTE (v76) ══════════════════════════════════════════════════
+-- Everything outside the three centre buildings was still sitting at Roblox
+-- default grey (0.64) — cranes, corner masses, backdrop towers, spoil heaps,
+-- the excavator. Pale generated textures then read as plain white. This pass
+-- gives the WHOLE map a construction palette: safety yellow plant, warm
+-- ochre/terracotta masonry with per-building variation, earth-brown spoil,
+-- rust and steel accents.
+do
+	local YELLOW = Color3.fromRGB(228, 168, 44)      -- plant / heavy equipment
+	local YELLOW_DK = Color3.fromRGB(186, 132, 30)
+	local STEEL_DK = Color3.fromRGB(96, 98, 104)
+	local IRON = Color3.fromRGB(74, 68, 64)
+	local EARTH = Color3.fromRGB(132, 96, 58)
+	local RUST = Color3.fromRGB(158, 88, 52)
+
+	-- warm masonry spread for the out-of-bounds massing; picked per-part from
+	-- position so the skyline varies but stays deterministic
+	local MASONRY = {
+		Color3.fromRGB(196, 138, 96),   -- terracotta
+		Color3.fromRGB(178, 152, 116),  -- sandstone
+		Color3.fromRGB(206, 172, 124),  -- warm ochre
+		Color3.fromRGB(158, 122, 98),   -- weathered brick
+		Color3.fromRGB(188, 166, 138),  -- pale limestone
+		Color3.fromRGB(146, 130, 116),  -- grey stone
+	}
+	local FLAT = {
+		CraneMast = YELLOW, CraneArm = YELLOW, CraneMast2 = YELLOW, CraneArm2 = YELLOW,
+		WreckChain = STEEL_DK, WreckChain2 = STEEL_DK,
+		WreckBall = IRON, WreckBall2 = IRON,
+		OutworldDirt = EARTH, DirtPatch = EARTH,
+		OutworldExcavator = YELLOW_DK,
+		OutworldPipe = STEEL_DK, OutworldBarrel = RUST,
+		OutworldSpool = Color3.fromRGB(150, 108, 68),
+		OutworldGen = Color3.fromRGB(120, 124, 128),
+		GapCone = Color3.fromRGB(238, 118, 40),
+		GapHazardPad = Color3.fromRGB(226, 182, 52),
+		GapPlank = Color3.fromRGB(178, 128, 76), GapPallet = Color3.fromRGB(178, 128, 76),
+		Pallets = Color3.fromRGB(178, 128, 76), PipePile = STEEL_DK,
+		PlazaCrate = Color3.fromRGB(168, 122, 74),
+		ScafBracket = Color3.fromRGB(164, 116, 70),
+		SpawnDeck = Color3.fromRGB(176, 154, 122),
+		SpawnLip = Color3.fromRGB(206, 178, 128),
+		SpawnRamp = Color3.fromRGB(186, 162, 128),
+		RetainWall = Color3.fromRGB(112, 100, 88),
+		Hillside = Color3.fromRGB(184, 156, 116),
+	}
+	for _, c in m:GetChildren() do
+		if c:IsA("BasePart") then
+			local flat = FLAT[c.Name]
+			if flat then
+				c.Color = flat
+			elseif c.Name == "CornerMass" or c.Name == "OutworldTower" or c.Name == "OutworldTowerFar" then
+				local seed = math.floor(math.abs(c.Position.X) * 0.37 + math.abs(c.Position.Z) * 0.11)
+				c.Color = MASONRY[seed % #MASONRY + 1]
 			end
 		end
 	end
