@@ -1073,5 +1073,31 @@ do
 	end
 end
 
+-- ══ CENTRE TOWER: timber scaffolding only (v78) ══════════════════════════════
+-- Owner: in the centre building ONLY the scaffolding is brown, and it should
+-- read as wooden planks. So the catwalks / ramp / diagonal struts go to
+-- WoodPlanks timber, and the tower FLOORS get pulled back to concrete grey
+-- so the brown doesn't bleed across the whole structure.
+do
+	local WOOD = Color3.fromRGB(158, 108, 58)
+	local WOOD_DK = Color3.fromRGB(132, 88, 48)
+	local CONCRETE = Color3.fromRGB(172, 168, 160)
+	local TIMBER = { ScafN = true, ScafE = true, ScafW = true, ScafS = true, ScafRamp = true }
+	for _, c in m:GetChildren() do
+		if c:IsA("BasePart") then
+			if TIMBER[c.Name] then
+				c.Color = WOOD
+				c.Material = Enum.Material.WoodPlanks
+			elseif c.Name == "ScafBracket" then
+				c.Color = WOOD_DK -- struts a shade darker so they read separately
+				c.Material = Enum.Material.Wood
+			elseif c.Name == "TowerFloor2" or c.Name == "TowerFloor3" then
+				c.Color = CONCRETE
+				c.Material = Enum.Material.Concrete
+			end
+		end
+	end
+end
+
 m.Parent = zone
 return "FRACTURED CORE built: " .. #m:GetChildren() .. " parts"
