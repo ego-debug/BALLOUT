@@ -769,11 +769,29 @@ do
 				table.insert(targets, c)
 			end
 		end
+		-- TINTS: the generated concrete textures are very pale, and MeshPart
+		-- .Color multiplies against the texture — leaving it white reads as
+		-- blank. Warm sandy-concrete tones, a distinct cast per structure so
+		-- the three buildings don't look like one material.
+		local TINT = {
+			Tower = Color3.fromRGB(170, 142, 104),  -- core: warm ochre concrete
+			NB_ = Color3.fromRGB(188, 146, 96),     -- north hall: sandy orange
+			Room_ = Color3.fromRGB(150, 134, 112),  -- south perch: cooler stone
+		}
+		local function tintFor(name: string): Color3
+			for prefix, col in TINT do
+				if name:sub(1, #prefix) == prefix then
+					return col
+				end
+			end
+			return TINT.Tower
+		end
 		for _, c in targets do
 			local kind = if COLUMN[c.Name] then "bld_column" elseif PANEL[c.Name] then "bld_panel" else "bld_mass"
 			local mp = meshPart(kind, true) -- Box collision baked at creation
 			if mp then
 				mp.Name = c.Name
+				mp.Color = tintFor(c.Name)
 				if kind == "bld_panel" and c.Size.Z > c.Size.X then
 					-- panel's long axis is X: yaw the Z-running walls to match
 					mp.Size = Vector3.new(c.Size.Z, c.Size.Y, c.Size.X)
@@ -787,6 +805,74 @@ do
 				mp.Parent = m
 				c:Destroy()
 			end
+		end
+	end
+
+	-- ── WHOLE-BUILDING TINT (v74) ───────────────────────────────────────
+	-- The meshed columns/walls were tinted at swap, but the floors, roofs,
+	-- decks, podium and ramps are still plain primitives — they're the big
+	-- flat surfaces, so leaving them grey is what read as "blank white".
+	-- Slabs get a darker/warmer cast than walls so levels stay legible.
+	do
+		local WALLTONE = {
+			Tower = Color3.fromRGB(170, 142, 104),
+			NB_ = Color3.fromRGB(188, 146, 96),
+			Room_ = Color3.fromRGB(150, 134, 112),
+			Scaf = Color3.fromRGB(176, 150, 112),
+		}
+		local SLABTONE = {
+			Tower = Color3.fromRGB(176, 148, 110),
+			NB_ = Color3.fromRGB(196, 156, 104),
+			Room_ = Color3.fromRGB(160, 146, 124),
+			Scaf = Color3.fromRGB(182, 156, 118),
+		}
+		local KEEP = { Room_EntryContainer = true, ScafBracket = true }
+		for _, c in m:GetChildren() do
+			if c:IsA("BasePart") and not KEEP[c.Name] then
+				for prefix, wall in WALLTONE do
+					if c.Name:sub(1, #prefix) == prefix then
+						local isSlab = c.Name:find("Floor") or c.Name:find("Roof")
+							or c.Name:find("Deck") or c.Name:find("Podium") or c.Name:find("Ramp")
+						c.Color = if isSlab then SLABTONE[prefix] else wall
+						if c.Name:find("Crate") then
+							c.Color = Color3.fromRGB(168, 122, 74) -- timber
+							c.Material = Enum.Material.WoodPlanks
+						elseif not c:IsA("MeshPart") then
+							c.Material = Enum.Material.Concrete
+						end
+						break
+					end
+				end
+			end
+		end
+	end
+
+	-- ── LIGHTING (v74) ──────────────────────────────────────────────────
+	-- The scene was washing every colour to white: Ambient sat at ~0.59, i.e.
+	-- a 59% flat white fill on every surface regardless of shadow, with
+	-- Brightness 2.9 on top. Tints were being applied correctly and then
+	-- bleached out. Low warm ambient + a warm sky fill restores contrast and
+	-- sets up the orange/sand direction.
+	-- NOTE: Lighting is shared with the HQ map, whose own build script also
+	-- sets it — whichever ran last wins.
+	do
+		local L = game:GetService("Lighting")
+		L.Brightness = 2.4
+		L.Ambient = Color3.fromRGB(62, 52, 42)
+		L.OutdoorAmbient = Color3.fromRGB(132, 114, 92)
+		L.ClockTime = 16.2
+		L.FogColor = Color3.fromRGB(216, 188, 150)
+		L.FogStart = 340
+		L.FogEnd = 1500
+		local cc = L:FindFirstChildOfClass("ColorCorrectionEffect")
+		if cc then
+			cc.Saturation = 0.22
+			cc.Contrast = 0.12
+			cc.TintColor = Color3.fromRGB(255, 246, 232)
+		end
+		local bl = L:FindFirstChildOfClass("BloomEffect")
+		if bl then
+			bl.Intensity = 0.35
 		end
 	end
 
