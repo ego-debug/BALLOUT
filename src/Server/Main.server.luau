@@ -11,6 +11,7 @@ local BallService = require(ServerScriptService.BallService)
 local BotService = require(ServerScriptService.BotService)
 local MatchService = require(ServerScriptService.MatchService)
 local QueueService = require(ServerScriptService.QueueService)
+local HazardService = require(ServerScriptService.HazardService)
 local LobbyMap = require(ServerStorage.Maps.Lobby)
 
 print("[Ballout] Booting throw/catch prototype…")
@@ -26,6 +27,7 @@ LobbyMap.Build()
 BallService.Start()
 MatchService.Start() -- builds the arena, hooks KO scoring
 QueueService.Start() -- watches the queue-room pads
+HazardService.Start() -- swings the wrecking balls, runs the pit ferries
 
 -- Spawn the training dummy on its own (lower) training roof, KC-style.
 -- The map marks the spot with a "DummyPad" part; fall back to midfield.

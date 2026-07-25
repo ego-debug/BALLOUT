@@ -236,12 +236,16 @@ end
 -- JUMP the gap up onto the catwalk.
 --   basin floor -13 | crate top -9 | container top -5 | catwalk 0.3
 --   container east end x -39 vs catwalk west end x -33 = 6-stud gap
--- Heights re-spaced for MAP_SCALE (v83): the total basin-floor -> catwalk
--- climb is ~19 studs scaled, so it MUST be three hops of <7 or the last jump
--- is impossible. Authored values chosen to land ~6.4 per hop after scaling.
-mk("ScafContainer", Vector3.new(26, 8, 10), Vector3.new(-50, 5.8, -29.2), Color3.fromRGB(140, 90, 90))
-local stepCrate = mk("ScafStepCrate", Vector3.new(5, 4, 5), Vector3.new(-68, 3.4, -29.2), Color3.fromRGB(168, 122, 74))
-stepCrate.Material = Enum.Material.WoodPlanks
+-- SCAFFOLD CLIMB (v84): no wooden crates — a stacked CONTAINER YARD instead.
+-- The basin-floor -> catwalk climb is ~19 studs after scaling and a 7-stud
+-- jump caps each hop, so three surfaces are required. Two containers give
+-- that without any brown boxes:
+--   basin floor -> A (+6.0) -> B (+6.5) -> catwalk (+6.8)
+-- and B sits back far enough that the final leap is a ~9.5-stud gap
+-- (roughly double the old 5.8) — needs a sprint run-up, which is the
+-- physics ceiling for a 6.8-stud rise.
+mk("ScafContainer", Vector3.new(26, 8, 10), Vector3.new(-80, 1.14, -29.2), Color3.fromRGB(140, 90, 90))
+mk("ScafContainer2", Vector3.new(26, 8, 10), Vector3.new(-52.55, 5.62, -29.2), Color3.fromRGB(90, 110, 140))
 -- plaza crates on SOLID ground only ({-6,48} used to strand over the south pit)
 for _, cdef in { { 46, 10 }, { -14, 16 }, { 48, -34 }, { -44, 44 } } do
 	mk("PlazaCrate", Vector3.new(6, 4.5, 5), Vector3.new(cdef[1], 3.25, cdef[2]))
@@ -726,7 +730,7 @@ do
 		-- every container in the map uses the shipping-container mesh. Its
 		-- native long axis is X, so pit ferries (which run along Z) are built
 		-- at X-long size and yawed 90 rather than cross-stretched.
-		if c.Name:match("^Container") or c.Name == "Room_EntryContainer" or c.Name == "ScafContainer" then
+		if c.Name:match("^Container") or c.Name == "Room_EntryContainer" or c.Name:match("^ScafContainer") then
 			local mp = meshPart("container")
 			if mp then
 				mp.Name = c.Name
@@ -736,7 +740,7 @@ do
 				elseif c.Name == "Room_EntryContainer" then
 					mp.Size = Vector3.new(12, 10, 10)
 					mp.CFrame = CFrame.new(c.Position)
-				else -- ScafContainer
+				else -- ScafContainer / ScafContainer2
 					mp.Size = Vector3.new(26, 8, 10)
 					mp.CFrame = CFrame.new(c.Position)
 				end
@@ -1184,8 +1188,13 @@ do
 	scoreboard("ScoreboardS", Vector3.new(0, 6, 80), Enum.NormalId.Back)
 
 	-- TEST SPAWN: lets you walk the blockout without wiring MatchService.
-	-- Disabled by default so it never fights the HQ garage spawn; the
-	-- arenaTest toggle below flips between lobby and arena.
+	-- ENABLED by default, and the HQ garage spawn is switched off below, so
+	-- hitting Play always lands you in the blockout. (Previously this was
+	-- built disabled, which meant every rebuild silently left BOTH spawns
+	-- off and dropped the player at world origin with no way back.)
+	-- To go back to lobby testing, run in the command bar:
+	--   workspace.BuildZone.ScaffoldRowBlockout.TestSpawn.Enabled = false
+	--   workspace.BalloutMap.GarageSpawn.Enabled = true
 	local ts = Instance.new("SpawnLocation")
 	ts.Name = "TestSpawn"
 	ts.Size = Vector3.new(12, 1, 12)
@@ -1195,8 +1204,14 @@ do
 	ts.CanCollide = false
 	ts.Neutral = true
 	ts.Duration = 0
-	ts.Enabled = false
+	ts.Enabled = true
 	ts.Parent = m
+	-- exactly ONE spawn should ever be live, or Roblox picks between them
+	local hq = Workspace:FindFirstChild("BalloutMap")
+	local garage = hq and hq:FindFirstChild("GarageSpawn")
+	if garage and garage:IsA("SpawnLocation") then
+		garage.Enabled = false
+	end
 end
 
 -- ══ SURFACE PASS (v79): kill the smooth-toy look ═════════════════════════════
@@ -1215,7 +1230,6 @@ do
 		SpawnRamp = Enum.Material.Concrete,
 		-- timber goods
 		Pallets = Enum.Material.WoodPlanks,
-		ScafStepCrate = Enum.Material.WoodPlanks,
 		PlazaCrate = Enum.Material.WoodPlanks,
 		OutworldSpool = Enum.Material.WoodPlanks,
 		-- metal goods
