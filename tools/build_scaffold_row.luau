@@ -665,10 +665,10 @@ do
 		-- COLOURED building components (v77). Colour must live in the TEXTURE:
 		-- MeshPart.Color is ignored whenever a TextureID is set, so tinting a
 		-- white mesh does nothing. Each of these was generated pre-coloured.
-		bld_column = { 136161903577786, 84442920783765 },   -- grey concrete column (correct as-is)
-		bld_panel = { 117274076087943, 79232060946878 },    -- terracotta painted panel
-		bld_mass_rust = { 88179266001926, 121208433811242 },-- rust corrugated warehouse (north)
-		bld_mass_sand = { 96386405227475, 131541898147002 },-- sand stucco + terracotta band (south)
+		bld_column = { 94789495761928, 84571403496041 },    -- WEATHERED concrete column (v80)
+		bld_panel = { 79620855025586, 133234199177647 },    -- WEATHERED terracotta panel (v80)
+		bld_mass_rust = { 101708963166511, 100682713317704 },-- WEATHERED rust warehouse (v80)
+		bld_mass_sand = { 139752600350096, 139267083597521 },-- WEATHERED sand stucco (v80)
 		-- crane kit (v72): lattice mast, jib boom, twisted steel rope
 		crane_mast = { 126008349832708, 93528564387647 },
 		crane_arm = { 92107200748996, 78274682935714 },
