@@ -9,6 +9,7 @@ local Workspace = game:GetService("Workspace")
 
 local BallService = require(ServerScriptService.BallService)
 local BotService = require(ServerScriptService.BotService)
+local AvatarService = require(ServerScriptService.AvatarService)
 local MatchService = require(ServerScriptService.MatchService)
 local QueueService = require(ServerScriptService.QueueService)
 local HazardService = require(ServerScriptService.HazardService)
@@ -63,6 +64,11 @@ local function onCharacter(player: Player, character: Model)
 		humanoid.WalkSpeed = BallConfig.WALK_SPEED
 		humanoid.UseJumpPower = false
 		humanoid.JumpHeight = BallConfig.JUMP_HEIGHT
+		-- ...and one canonical BODY for everyone. Equal jump height is not
+		-- equal reach: a taller avatar clears a higher ledge on the same jump
+		-- and is a bigger target. Locking scale keeps the map's climb gates
+		-- honest and keeps future cosmetics purely cosmetic.
+		AvatarService.Normalize(humanoid)
 	end
 	-- Limbs are ALWAYS massless (root carries all mass): animated limb
 	-- movement (tuck poses, IK) would otherwise impart reaction forces
