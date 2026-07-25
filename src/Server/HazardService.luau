@@ -12,12 +12,13 @@
 -- PIT CONTAINERS: vertical ferries running anti-phase in pairs (one rising
 -- while the other falls, crossing at mid-travel).
 --
--- Anchored parts moved by CFrame do NOT carry players in Roblox, so riders are
--- detected and translated by the same delta each frame — otherwise you'd stand
--- still while the container slid out from under you.
+-- Ferries are REAL PHYSICS PLATFORMS (unanchored, held by a rigid
+-- AlignPosition) rather than anchored parts shoved by CFrame. An anchored
+-- part does not carry a rider, and teleporting the player's root each frame
+-- to compensate fights the humanoid controller — that combination is what
+-- made them unridable: jittery, no walking, no jumping.
 
 local RunService = game:GetService("RunService")
-local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
 
 local HazardService = {}
@@ -35,6 +36,7 @@ type Pendulum = {
 
 type Ferry = {
 	part: BasePart,
+	align: AlignPosition,
 	lowY: number,
 	highY: number,
 	period: number,
@@ -44,28 +46,6 @@ type Ferry = {
 local pendulums: { Pendulum } = {}
 local ferries: { Ferry } = {}
 local started = false
-
--- Ride support: anything standing on top of a ferry moves with it.
-local function carryRiders(part: BasePart, delta: number)
-	if math.abs(delta) < 1e-4 then
-		return
-	end
-	local top = part.Position.Y + part.Size.Y / 2
-	local halfX, halfZ = part.Size.X / 2 + 1.5, part.Size.Z / 2 + 1.5
-	for _, player in Players:GetPlayers() do
-		local char = player.Character
-		local root = char and char:FindFirstChild("HumanoidRootPart")
-		if root and root:IsA("BasePart") then
-			local rel = part.CFrame:PointToObjectSpace(root.Position)
-			-- feet sit ~3 studs under the root; allow a small band above the deck
-			local feetY = root.Position.Y - 3
-			if math.abs(rel.X) <= halfX and math.abs(rel.Z) <= halfZ
-				and feetY >= top - 1.5 and feetY <= top + 4 then
-				root.CFrame = root.CFrame + Vector3.new(0, delta, 0)
-			end
-		end
-	end
-end
 
 local function step()
 	local t = os.clock()
@@ -84,9 +64,9 @@ local function step()
 		local mid = (f.lowY + f.highY) / 2
 		local half = (f.highY - f.lowY) / 2
 		local y = mid + half * math.sin((t / f.period) * math.pi * 2 + f.phase)
-		local delta = y - f.part.Position.Y
-		f.part.Position = Vector3.new(f.part.Position.X, y, f.part.Position.Z)
-		carryRiders(f.part, delta)
+		-- move the TARGET, not the part: the physics solver carries the
+		-- platform (and anyone standing on it) there itself
+		f.align.Position = Vector3.new(f.align.Position.X, y, f.align.Position.Z)
 	end
 end
 
@@ -112,7 +92,7 @@ local function addPendulum(model: Instance, ballName: string, chainName: string,
 		pivot = pivot,
 		length = (pivot - ball.Position).Magnitude,
 		swing = swing,
-		amp = math.rad(55),
+		amp = math.rad(38), -- narrower arc: slower sweep at the bottom
 		period = period,
 		phase = 0,
 	})
@@ -127,15 +107,46 @@ local function addFerryPair(model: Instance, lowName: string, highName: string, 
 		return
 	end
 	local lowY, highY = low.Position.Y, high.Position.Y
-	table.insert(ferries, { part = low, lowY = lowY, highY = highY, period = period, phase = -math.pi / 2 })
-	table.insert(ferries, { part = high, lowY = lowY, highY = highY, period = period, phase = math.pi / 2 })
+	-- PHYSICS PLATFORMS. An ANCHORED part moved by CFrame does not carry a
+	-- player — the character keeps its own velocity and the platform slides
+	-- out from under it, and teleporting the root each frame to compensate
+	-- fights the humanoid controller (that was the jitter: no walking, no
+	-- jumping). Instead the container is unanchored and held by a rigid
+	-- AlignPosition; the solver moves it, so riders are carried natively and
+	-- can walk and jump normally.
+	local function makePlatform(part: BasePart, phase: number)
+		part.Anchored = false
+		part.CanCollide = true
+		part.Massless = false
+		local att = Instance.new("Attachment")
+		att.Name = "FerryAttach"
+		att.Parent = part
+		local ap = Instance.new("AlignPosition")
+		ap.Mode = Enum.PositionAlignmentMode.OneAttachment
+		ap.Attachment0 = att
+		ap.RigidityEnabled = true
+		ap.Position = part.Position
+		ap.Parent = part
+		local ao = Instance.new("AlignOrientation")
+		ao.Mode = Enum.OrientationAlignmentMode.OneAttachment
+		ao.Attachment0 = att
+		ao.RigidityEnabled = true
+		ao.CFrame = part.CFrame.Rotation -- stays level, never tips or spins
+		ao.Parent = part
+		table.insert(ferries, {
+			part = part, align = ap, lowY = lowY, highY = highY,
+			period = period, phase = phase,
+		})
+	end
+	makePlatform(low, -math.pi / 2)
+	makePlatform(high, math.pi / 2)
 end
 
 function HazardService.Bind(model: Instance)
-	addPendulum(model, "WreckBall", "WreckChain", "CraneArm", 5.5)
-	addPendulum(model, "WreckBall2", "WreckChain2", "CraneArm2", 6.5)
-	addFerryPair(model, "ContainerRed", "ContainerBlue", 9)
-	addFerryPair(model, "ContainerRedS", "ContainerBlueS", 10)
+	addPendulum(model, "WreckBall", "WreckChain", "CraneArm", 12)
+	addPendulum(model, "WreckBall2", "WreckChain2", "CraneArm2", 14)
+	addFerryPair(model, "ContainerRed", "ContainerBlue", 20)
+	addFerryPair(model, "ContainerRedS", "ContainerBlueS", 23)
 
 	if not started and (#pendulums > 0 or #ferries > 0) then
 		started = true

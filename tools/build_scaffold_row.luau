@@ -744,6 +744,11 @@ do
 					mp.Size = Vector3.new(26, 8, 10)
 					mp.CFrame = CFrame.new(c.Position)
 				end
+				-- NOTE: CollisionFidelity cannot be written from a script in
+				-- any context here (edit or runtime — it needs the Plugin
+				-- capability), so the mesh keeps Default. That is acceptable:
+				-- Default is a convex-hull approximation and this mesh is a
+				-- box, so the deck comes out effectively flat.
 				local bb = c:FindFirstChildOfClass("BillboardGui")
 				if bb then bb.Parent = mp end
 				mp.Parent = m
