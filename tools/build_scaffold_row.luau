@@ -662,9 +662,13 @@ do
 		-- centre-lane building components (v73): mapped 1:1 onto existing
 		-- parts so shapes are unchanged; CollisionFidelity=Box keeps the
 		-- collision mathematically identical to the primitives they replace
-		bld_column = { 136161903577786, 84442920783765 },
-		bld_panel = { 75625199042999, 133615164182321 },
-		bld_mass = { 124923462825128, 86632479507824 },
+		-- COLOURED building components (v77). Colour must live in the TEXTURE:
+		-- MeshPart.Color is ignored whenever a TextureID is set, so tinting a
+		-- white mesh does nothing. Each of these was generated pre-coloured.
+		bld_column = { 136161903577786, 84442920783765 },   -- grey concrete column (correct as-is)
+		bld_panel = { 117274076087943, 79232060946878 },    -- terracotta painted panel
+		bld_mass_rust = { 88179266001926, 121208433811242 },-- rust corrugated warehouse (north)
+		bld_mass_sand = { 96386405227475, 131541898147002 },-- sand stucco + terracotta band (south)
 		-- crane kit (v72): lattice mast, jib boom, twisted steel rope
 		crane_mast = { 126008349832708, 93528564387647 },
 		crane_arm = { 92107200748996, 78274682935714 },
@@ -789,19 +793,23 @@ do
 			return TINT.Tower
 		end
 		for _, c in targets do
-			local kind = if COLUMN[c.Name] then "bld_column" elseif PANEL[c.Name] then "bld_panel" else "bld_mass"
+			-- masses differ PER BUILDING so the three structures read as
+			-- distinct places, not three copies of one material
+			local kind
+			if COLUMN[c.Name] then
+				kind = "bld_column"
+			elseif PANEL[c.Name] then
+				kind = "bld_panel"
+			else
+				kind = if c.Name:sub(1, 3) == "NB_" then "bld_mass_rust" else "bld_mass_sand"
+			end
 			local mp = meshPart(kind, true) -- Box collision baked at creation
 			if mp then
 				mp.Name = c.Name
-				-- CRITICAL: MeshPart.Color is IGNORED while a TextureID is set
-				-- — the texture wins outright (verified: a mesh forced to pure
-				-- red still rendered white). These concrete templates ship
-				-- near-white textures, which is exactly why the buildings read
-				-- as blank. Drop the texture so the tint + Concrete material
-				-- carry the surface; the moulded geometry (formwork seams,
-				-- floor bands, rebar) still reads through shading.
-				mp.TextureID = ""
-				mp.Material = Enum.Material.Concrete
+				-- MeshPart.Color is IGNORED while TextureID is set (verified:
+				-- a mesh forced to pure red still rendered white). So colour
+				-- MUST come from the texture itself — each building gets its
+				-- own COLOURED mesh below rather than a tint on a white one.
 				mp.Color = tintFor(c.Name)
 				if kind == "bld_panel" and c.Size.Z > c.Size.X then
 					-- panel's long axis is X: yaw the Z-running walls to match
