@@ -250,15 +250,17 @@ do
 	mk("NB_Podium", Vector3.new(48, 4, 44), Vector3.new(0, 2, hz))
 	local outer = mk("NB_Wall", Vector3.new(48, 14, 1.5), Vector3.new(0, 11, backZ))
 	label(outer, "NORTH HALL — ramps E/W; inner face open to the pit, floor 2 above")
-	mk("NB_HallPillar", Vector3.new(3, 14, 3), Vector3.new(-22.5, 11, frontZ))
-	mk("NB_HallPillar", Vector3.new(3, 14, 3), Vector3.new(22.5, 11, frontZ))
+	-- open-face pillars only, inset so their 3-stud footprint lands INSIDE
+	-- the podium edge instead of hanging off it
+	mk("NB_HallPillar", Vector3.new(3, 14, 3), Vector3.new(-22.5, 11, hz + 20.5))
+	mk("NB_HallPillar", Vector3.new(3, 14, 3), Vector3.new(22.5, 11, hz + 20.5))
 	mk("NB_Floor2", Vector3.new(48, 1, 44), Vector3.new(0, 18.5, hz))
 	-- floor 2 is an OPEN level with real headroom (posts + roof), THEN the
 	-- solid tower cap above — not a slab crushed under the tower
+	-- NB_UpperWall already carries the boundary side, so posts there were
+	-- redundant AND overhung the slab: open-face pair only, inset.
 	for _, sx in { -22.5, 22.5 } do
-		for _, szc in { hz - 21, hz + 21 } do
-			mk("NB_UpperPost", Vector3.new(3, 20, 3), Vector3.new(sx, 29, szc))
-		end
+		mk("NB_UpperPost", Vector3.new(3, 20, 3), Vector3.new(sx, 29, hz + 20.5))
 	end
 	-- boundary-side wall: floor 2 is open on posts, so seal the outer face
 	-- (this side borders the map edge — nothing should be thrown out here)
@@ -278,10 +280,10 @@ do
 	mk("Room_Base", Vector3.new(48, 16, 44), Vector3.new(0, 8, pz)) -- solid, no way in
 	local deck = mk("Room_Deck", Vector3.new(48, 1, 44), Vector3.new(0, 16.5, pz))
 	label(deck, "SOUTH PERCH — solid; parkour crate->container->deck (both sides)")
+	-- Room_DeckWall carries the boundary side; posts there were redundant and
+	-- overhung the deck. Open-face pair only, inset inside the deck edge.
 	for _, sx in { -22.5, 22.5 } do
-		for _, sz in { pz - 21.5, pz + 21.5 } do
-			mk("Room_Post", Vector3.new(3, 20, 3), Vector3.new(sx, 26.5, sz)) -- 20-stud headroom
-		end
+		mk("Room_Post", Vector3.new(3, 20, 3), Vector3.new(sx, 26.5, pz - 20.5)) -- 20-stud headroom
 	end
 	-- boundary-side wall: the deck is open on posts, so seal the outer face
 	mk("Room_DeckWall", Vector3.new(48, 19.5, 1.5), Vector3.new(0, 26.75, pz + 21.25))
