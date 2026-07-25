@@ -657,27 +657,41 @@ do
 		bldg_tarp = { 134344618023053, 89292694419511 }, -- solid tower, tarp top (v65d)
 		bldg_brick = { 138397727486531, 85956331974645 }, -- clean solid brick (v65c)
 		bldg_warehouse = { 123778151690244, 100579815563326 },
+		-- centre-lane building components (v73): mapped 1:1 onto existing
+		-- parts so shapes are unchanged; CollisionFidelity=Box keeps the
+		-- collision mathematically identical to the primitives they replace
+		bld_column = { 136161903577786, 84442920783765 },
+		bld_panel = { 75625199042999, 133615164182321 },
+		bld_mass = { 124923462825128, 86632479507824 },
 		-- crane kit (v72): lattice mast, jib boom, twisted steel rope
 		crane_mast = { 126008349832708, 93528564387647 },
 		crane_arm = { 92107200748996, 78274682935714 },
 		crane_rope = { 117141007456779, 92312225022942 },
 	}
 	local cache = {}
-	local function meshPart(kind: string): MeshPart?
+	-- boxCollide: bake Box collision at creation. CollisionFidelity CANNOT be
+	-- changed after CreateMeshPartAsync — it must be passed in the options, or
+	-- the mesh keeps its default hull.
+	local function meshPart(kind: string, boxCollide: boolean?): MeshPart?
 		local def = IDS[kind]
-		if cache[kind] == nil then
+		local key = if boxCollide then kind .. "#box" else kind
+		if cache[key] == nil then
 			local ok, mp = pcall(function()
+				if boxCollide then
+					return AssetService:CreateMeshPartAsync(Content.fromAssetId(def[1]),
+						{ CollisionFidelity = Enum.CollisionFidelity.Box })
+				end
 				return AssetService:CreateMeshPartAsync(Content.fromAssetId(def[1]))
 			end)
 			if ok and mp then
 				mp.TextureID = "rbxassetid://" .. def[2]
 				mp.Anchored = true
-				cache[kind] = mp
+				cache[key] = mp
 			else
-				cache[kind] = false
+				cache[key] = false
 			end
 		end
-		local t = cache[kind]
+		local t = cache[key]
 		return if t then t:Clone() else nil
 	end
 	-- ferry containers + wrecking balls keep pose and labels
@@ -740,6 +754,42 @@ do
 		end
 	end
 	-- excavator parked on the south apron
+	-- ── CENTRE-LANE BUILDINGS: component mesh swap (v73) ────────────────
+	-- north hall + core tower + south perch. Each mesh takes the exact size
+	-- and CFrame of the part it replaces, so every walkable surface, opening
+	-- and ramp line stays where it was.
+	do
+		local COLUMN = { TowerPillar = true, NB_HallPillar = true, NB_UpperPost = true, Room_Post = true }
+		local PANEL = { TowerWallN = true, TowerWallE = true, TowerWallW = true, TowerWallS = true,
+			NB_Wall = true, NB_UpperWall = true, Room_DeckWall = true }
+		local MASS = { NB_Tower = true, Room_Tower = true, Room_Base = true }
+		local targets = {}
+		for _, c in m:GetChildren() do
+			if COLUMN[c.Name] or PANEL[c.Name] or MASS[c.Name] then
+				table.insert(targets, c)
+			end
+		end
+		for _, c in targets do
+			local kind = if COLUMN[c.Name] then "bld_column" elseif PANEL[c.Name] then "bld_panel" else "bld_mass"
+			local mp = meshPart(kind, true) -- Box collision baked at creation
+			if mp then
+				mp.Name = c.Name
+				if kind == "bld_panel" and c.Size.Z > c.Size.X then
+					-- panel's long axis is X: yaw the Z-running walls to match
+					mp.Size = Vector3.new(c.Size.Z, c.Size.Y, c.Size.X)
+					mp.CFrame = c.CFrame * CFrame.Angles(0, math.rad(90), 0)
+				else
+					mp.Size = c.Size
+					mp.CFrame = c.CFrame
+				end
+				local bb = c:FindFirstChildOfClass("BillboardGui")
+				if bb then bb.Parent = mp end
+				mp.Parent = m
+				c:Destroy()
+			end
+		end
+	end
+
 	local exc = meshPart("excavator")
 	if exc then
 		exc.Name = "OutworldExcavator"
