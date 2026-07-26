@@ -1175,6 +1175,13 @@ Remotes.Feedback.OnClientEvent:Connect(function(kind: string, data: any?)
 			applyBonk(dur)
 		end
 		setStatus("BONKED! watch where you dash", Color3.fromRGB(255, 200, 80))
+	elseif kind == "Launched" then
+		-- Wrecking-ball hit. Stun ONLY: no dodge, glider, throw or catch until
+		-- it expires. Deliberately does NOT call applyBonk — that pins the body
+		-- flat on the floor, which would fight the launch arc mid-air.
+		local dur = (data and data.duration) or BallConfig.WRECK_STUN
+		stunnedUntil = os.clock() + dur
+		setStatus("SMACKED by the wrecking ball!", Color3.fromRGB(255, 140, 60))
 	elseif kind == "PopUp" then
 		setStatus("BASH! ball popped up", Color3.fromRGB(150, 230, 150))
 	elseif kind == "Fake" then

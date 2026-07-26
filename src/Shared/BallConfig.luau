@@ -157,9 +157,17 @@ BallConfig.DRILL_LOST_RANGE = 90  -- unheld drill ball further than this = lost,
 -- Hit radius is the ball's own radius PLUS this pad, so the swing threatens
 -- a wide corridor rather than needing a pixel-perfect touch.
 BallConfig.WRECK_HIT_PAD = 8       -- studs of reach beyond the ball's surface
-BallConfig.WRECK_LAUNCH_UP = 115   -- upward launch speed (~34 studs of rise)
-BallConfig.WRECK_LAUNCH_OUT = 80   -- shove along the ball's direction of travel
-BallConfig.WRECK_FLY_TIME = 1.3    -- seconds of ragdoll-ish flight before control returns
+-- Arc shape: rise ~20 studs (~0.9s of hang) rather than the original ~34
+-- (~2.3s). Two seconds of helpless airtime loses you the whole fight, not
+-- just position, so that energy moved into the HORIZONTAL — you get punted
+-- across the map instead of popped into orbit.
+BallConfig.WRECK_LAUNCH_UP = 88    -- upward launch speed (~20 studs of rise)
+BallConfig.WRECK_LAUNCH_OUT = 95   -- shove along the ball's direction of travel
+BallConfig.WRECK_FLY_TIME = 1.1    -- must OUTLAST the arc (~0.9s at the
+                                   -- current launch speed) or the horizontal
+                                   -- push gets cut off before you land
+BallConfig.WRECK_STUN = 1.5        -- no dodge, glider, throw or catch while
+                                   -- flying and for a beat after landing
 BallConfig.WRECK_HIT_COOLDOWN = 2  -- per-player, stops the same swing re-hitting
 
 -- ── Dash bonk (reckless dodging has consequences) ───────────────────────

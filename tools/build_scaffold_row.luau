@@ -1167,8 +1167,13 @@ do
 		marker("RedSpawn" .. i, Vector3.new(155, 6, dz))
 		marker("BlueSpawn" .. i, Vector3.new(-155, 6, dz))
 	end
-	-- ball starts mid-map on the basin floor
-	marker("BallSpawn", Vector3.new(0, BASIN_TOP + 3, 0))
+	-- Ball spawns on OPEN basin floor east of the core tower. Not at map
+	-- centre (0,0): that is inside the tower footprint, so MakeFree's
+	-- floor-raycast rested the ball on the tower's upper slab and you had to
+	-- do the whole container climb before you could even pick one up.
+	-- x 45 clears the tower (pillars at ±24) and the scaffold (x 29), and
+	-- z 0 sits on solid ground between the two void pits (z ±25..82).
+	marker("BallSpawn", Vector3.new(45, BASIN_TOP + 3, 0))
 
 	-- scoreboards on the two centre buildings' inward faces
 	local function scoreboard(name: string, pos: Vector3, face: Enum.NormalId)

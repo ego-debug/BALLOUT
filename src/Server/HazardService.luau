@@ -24,6 +24,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
 
 local BallConfig = require(ReplicatedStorage.BallConfig)
+local BallService = require(script.Parent.BallService)
 
 local HazardService = {}
 
@@ -62,6 +63,61 @@ local started = false
 -- same trap the dash/ballform code hits).
 local hitAt: { [Player]: number } = {}
 
+-- Players currently mid-flight. A ONE-SHOT velocity write is not enough: the
+-- humanoid state machine drops back out of Physics into Freefall and its
+-- controller damps horizontal motion, so the victim ends up going almost
+-- straight up (measured 22 studs of travel where the launch called for ~93).
+-- The horizontal component is therefore re-asserted every frame for the whole
+-- flight, while gravity is left to shape Y. Same lesson as the dash code:
+-- scripted movement has to be driven per-frame, not fired once.
+type Flight = { root: BasePart, hum: Humanoid, hx: number, hz: number, until_: number, from: number, primed: boolean }
+local flying: { [Player]: Flight } = {}
+
+-- Don't keep pushing once they're back on the ground, or the victim skates
+-- along the floor for the rest of the window. Small grace period first so the
+-- frame right after launch (still touching ground) doesn't cancel it.
+-- Long enough to cover the whole ASCENT (apex is ~0.6s at the current launch
+-- speed) so a stray floor contact can never truncate the arc.
+local LAND_GRACE = 0.7
+
+local function stepFlights()
+	local now = os.clock()
+	for player, f in flying do
+		local landed = now - f.from > LAND_GRACE
+			and f.hum.FloorMaterial ~= Enum.Material.Air
+		if now >= f.until_ or landed or not f.root.Parent or f.hum.Health <= 0 then
+			flying[player] = nil
+			if f.root.Parent and f.hum.Health > 0 then
+				f.hum.PlatformStand = false
+				f.hum:ChangeState(Enum.HumanoidStateType.GettingUp)
+			end
+		else
+			-- PlatformStand (not just Physics state) is what actually frees the
+			-- body: the humanoid's hip-height constraint otherwise pins it to
+			-- the floor, so the victim SLID instead of launching (rises of 4,
+			-- 21 and 4 studs from identical hits). Angular velocity is zeroed
+			-- every frame — a limp body free to spin is what let the massless
+			-- limbs catch the floor and catapult the character in the old bonk
+			-- bug.
+			f.hum.PlatformStand = true
+			f.root.AssemblyAngularVelocity = Vector3.zero
+			if not f.primed then
+				-- ChangeState and the velocity write in launch() race each
+				-- other: if the humanoid is still in a walking state when the
+				-- write lands, the controller eats the vertical and the victim
+				-- barely leaves the floor (measured rises of 33, 23 and 9 studs
+				-- from identical hits). Re-assert the FULL launch on the first
+				-- frame, by which point Physics state is guaranteed.
+				f.primed = true
+				f.root.AssemblyLinearVelocity = Vector3.new(f.hx, BallConfig.WRECK_LAUNCH_UP, f.hz)
+			else
+				local v = f.root.AssemblyLinearVelocity
+				f.root.AssemblyLinearVelocity = Vector3.new(f.hx, v.Y, f.hz)
+			end
+		end
+	end
+end
+
 local function launch(player: Player, char: Model, dir: Vector3)
 	local root = char:FindFirstChild("HumanoidRootPart")
 	local hum = char:FindFirstChildOfClass("Humanoid")
@@ -70,14 +126,22 @@ local function launch(player: Player, char: Model, dir: Vector3)
 	end
 	local flat = Vector3.new(dir.X, 0, dir.Z)
 	flat = if flat.Magnitude > 0.01 then flat.Unit else Vector3.zero
-	hum:ChangeState(Enum.HumanoidStateType.Physics)
-	root.AssemblyLinearVelocity =
-		flat * BallConfig.WRECK_LAUNCH_OUT + Vector3.new(0, BallConfig.WRECK_LAUNCH_UP, 0)
-	task.delay(BallConfig.WRECK_FLY_TIME, function()
-		if char.Parent and hum.Health > 0 then
-			hum:ChangeState(Enum.HumanoidStateType.GettingUp)
-		end
-	end)
+	local hx = flat.X * BallConfig.WRECK_LAUNCH_OUT
+	local hz = flat.Z * BallConfig.WRECK_LAUNCH_OUT
+	-- take their actions away: no dodging or gliding out of the punt
+	BallService.ApplyStun(char, BallConfig.WRECK_STUN)
+	hum.PlatformStand = true
+	-- lift clear of the floor so the ground contact that was pinning the
+	-- launch is broken on the very first frame
+	root.CFrame = root.CFrame + Vector3.new(0, 3, 0)
+	root.AssemblyAngularVelocity = Vector3.zero
+	root.AssemblyLinearVelocity = Vector3.new(hx, BallConfig.WRECK_LAUNCH_UP, hz)
+	flying[player] = {
+		root = root, hum = hum, hx = hx, hz = hz,
+		from = os.clock(),
+		until_ = os.clock() + BallConfig.WRECK_FLY_TIME,
+		primed = false,
+	}
 end
 
 local function checkImpacts(p: Pendulum, ballPos: Vector3, travel: Vector3)
@@ -86,9 +150,20 @@ local function checkImpacts(p: Pendulum, ballPos: Vector3, travel: Vector3)
 	for _, player in Players:GetPlayers() do
 		local char = player.Character
 		local root = char and char:FindFirstChild("HumanoidRootPart")
-		if root and root:IsA("BasePart") then
+		local hum = char and char:FindFirstChildOfClass("Humanoid")
+		-- Only GROUNDED players can be hit. The flight entry clears after
+		-- WRECK_FLY_TIME but the arc itself lasts longer (~2.3s), so an
+		-- airborne victim was falling back through the corridor and getting
+		-- punted again — stacking to 100+ studs off a single swing. Requiring
+		-- ground contact makes one swing mean exactly one launch.
+		if root and root:IsA("BasePart") and hum and hum.FloorMaterial ~= Enum.Material.Air then
 			if (root.Position - ballPos).Magnitude <= reach then
-				if now - (hitAt[player] or -math.huge) >= BallConfig.WRECK_HIT_COOLDOWN then
+				-- Never re-hit someone already in flight. The corridor is wide
+				-- and the victim rises through it, so without this they get
+				-- JUGGLED: measured three stacked launches from one swing,
+				-- turning a 34-stud pop into a 130-stud punt.
+				if flying[player] == nil
+					and now - (hitAt[player] or -math.huge) >= BallConfig.WRECK_HIT_COOLDOWN then
 					hitAt[player] = now
 					-- shove along travel; fall back to radial if the ball is
 					-- momentarily stationary at the top of its arc
@@ -105,6 +180,7 @@ end
 
 local function step()
 	local t = os.clock()
+	stepFlights()
 	for _, p in pendulums do
 		local theta = p.amp * math.sin((t / p.period) * math.pi * 2 + p.phase)
 		local dir = (Vector3.new(0, -1, 0) * math.cos(theta)) + (p.swing * math.sin(theta))

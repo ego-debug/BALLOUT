@@ -800,6 +800,18 @@ local function resolveArrival(b: Ball, target: Fighter)
 end
 
 -- ── Catch input ────────────────────────────────────────────────────────────
+-- Public stun, for map hazards (wrecking balls) that need to take a player's
+-- actions away without going through the ball. Gates the SERVER handlers via
+-- the same `stunned` table everything else uses, and tells the client so its
+-- own dash / glider / throw gates close too.
+function BallService.ApplyStun(character: Model, duration: number)
+	stunned[character] = math.max(stunned[character] or 0, now() + duration)
+	local f = fighterFor(character)
+	if f then
+		feedback(f, "Launched", { duration = duration })
+	end
+end
+
 function BallService.RegisterCatch(character: Model)
 	if BallformService.IsBalled(character) then
 		return -- balled players can't catch
@@ -1351,6 +1363,23 @@ function BallService.Start()
 	local marker = if lobby then lobby:FindFirstChild("BallSpawn") else nil
 	if marker and marker:IsA("BasePart") then
 		BALL_SPAWN = marker.Position
+	end
+
+	-- ARENA TEST MODE: while the dev blockout is the active spawn, put the
+	-- ball in the blockout too — otherwise it sits back in the lobby and the
+	-- map can't be playtested at all. This also makes it a real SPAWNER
+	-- rather than a one-off drop: spawnPos is the same marker, and the
+	-- fall-off-the-world check re-frees the ball there, so the voids and the
+	-- wrecking balls can eat it as often as they like and it always comes back.
+	do
+		local zone = Workspace:FindFirstChild("BuildZone")
+		local blockout = zone and zone:FindFirstChild("ScaffoldRowBlockout")
+		local testSpawn = blockout and blockout:FindFirstChild("TestSpawn")
+		local arenaMarker = blockout and blockout:FindFirstChild("BallSpawn")
+		if testSpawn and testSpawn:IsA("SpawnLocation") and testSpawn.Enabled
+			and arenaMarker and arenaMarker:IsA("BasePart") then
+			BALL_SPAWN = arenaMarker.Position
+		end
 	end
 	primaryBall = newBall("Dodgeball", BALL_SPAWN, false)
 	makeFreeBall(primaryBall, BALL_SPAWN)
