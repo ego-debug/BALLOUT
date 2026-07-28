@@ -187,6 +187,20 @@ BallConfig.MATCH_TARGET_KOS = 10  -- Team KO: first team to this many KOs wins
 BallConfig.MATCH_END_LINGER = 5   -- winner splash before everyone returns to lobby
 BallConfig.MATCH_BOT_CATCH_CHANCE = 0.35 -- match bots catch this fraction of throws
 
+-- ── Player-ball carry (KC ball-up: scoop a balled-up player) ─────────────
+-- Walk into a teammate OR enemy who's in ballform with empty hands to scoop
+-- them overhead. An ENEMY scoop wraps the victim in CHAINS: they must mash
+-- Space PLAYER_BALL_BREAK_PRESSES times to burst free — even mid-air after
+-- being thrown. A thrown player-ball is an INSTANT KO on anyone it hits.
+BallConfig.PLAYER_BALL_PICKUP_RADIUS = 4.5
+BallConfig.PLAYER_BALL_BREAK_PRESSES = 10
+BallConfig.PLAYER_BALL_SPEED = 95   -- horizontal launch speed of a thrown player
+BallConfig.PLAYER_BALL_UP = 18      -- upward kick — a flat KC-style liner, not a lob
+                                    -- (34 sailed clean over grounded targets)
+BallConfig.PLAYER_BALL_FLY_TIME = 2.2
+BallConfig.PLAYER_BALL_HIT_RADIUS = 6 -- KO sweep radius: two curled bodies touch
+                                      -- at ~5-6 studs between roots
+
 -- ── Match-bot AI (BotAI.luau: wander / fetch the ball / close in and throw) ─
 BallConfig.BOT_WALK_SPEED = 14    -- slower than players (22): outrunnable
 BallConfig.BOT_THROW_RANGE = 70   -- holding bots close to this range before throwing

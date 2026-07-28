@@ -130,6 +130,16 @@ function BallformService.Disable(character: Model): boolean
 	return true
 end
 
+-- CarryService: while a balled player is HELD overhead, their sphere
+-- collider must not collide (it would shove the carrier around); it comes
+-- back for the thrown flight so the landing bounces.
+function BallformService.SetColliderEnabled(character: Model, on: boolean)
+	local shell = shells[character]
+	if shell and shell.collider.Parent then
+		shell.collider.CanCollide = on
+	end
+end
+
 -- Temporary shell (dash dive + landing roll). Auto-removes unless the
 -- player balled up in the meantime — then the held ballform owns it.
 function BallformService.PhysicsShell(character: Model, duration: number)

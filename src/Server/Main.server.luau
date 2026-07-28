@@ -13,6 +13,7 @@ local AvatarService = require(ServerScriptService.AvatarService)
 local MatchService = require(ServerScriptService.MatchService)
 local QueueService = require(ServerScriptService.QueueService)
 local HazardService = require(ServerScriptService.HazardService)
+local CarryService = require(ServerScriptService.CarryService)
 local LobbyMap = require(ServerStorage.Maps.Lobby)
 
 print("[Ballout] Booting throw/catch prototype…")
@@ -29,6 +30,7 @@ BallService.Start()
 MatchService.Start() -- builds the arena, hooks KO scoring
 QueueService.Start() -- watches the queue-room pads
 HazardService.Start() -- swings the wrecking balls, runs the pit ferries
+CarryService.Start() -- scoop balled-up players, chains + break-out mash
 
 -- Spawn the training dummy on its own (lower) training roof, KC-style.
 -- The map marks the spot with a "DummyPad" part; fall back to midfield.
@@ -137,6 +139,20 @@ debugFn.OnInvoke = function(cmd: string, character: Model, frac: number?, curve:
 	elseif cmd == "catch" then
 		BallService.RegisterCatch(character)
 		return "catch registered"
+	elseif cmd == "scoop" then
+		-- character = the CARRIER; the victim is the first balled player found
+		local CarryService = require(ServerScriptService.CarryService)
+		local plr = game:GetService("Players"):GetPlayers()[1]
+		if plr and plr.Character then
+			return CarryService.ForceScoop(character, plr.Character) and "scooped" or "scoop failed"
+		end
+		return "no victim"
+	elseif cmd == "carrythrow" then
+		local CarryService = require(ServerScriptService.CarryService)
+		return CarryService.ForceThrow(character, aim) and "thrown" or "throw failed"
+	elseif cmd == "carrystate" then
+		local CarryService = require(ServerScriptService.CarryService)
+		return CarryService.DebugState(character)
 	end
 	return "unknown cmd"
 end

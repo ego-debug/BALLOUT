@@ -36,6 +36,12 @@ local BallService = {}
 -- the KO came from a throw, the killer's character model.
 BallService.OnKO = nil :: ((Fighter, Model?) -> ())?
 
+-- Carry hooks (set by CarryService): a character carrying a PLAYER-ball has
+-- full hands (can't scoop the dodgeball), and a CHAINED victim can't unball
+-- until they mash their way out.
+BallService.HandsFullCheck = nil :: ((Model) -> boolean)?
+BallService.BallformLockCheck = nil :: ((Model) -> boolean)?
+
 -- ── State ────────────────────────────────────────────────────────────────
 -- MULTI-BALL: every ball is a self-contained state machine. The primary
 -- ball serves the lobby and matches; the drill ball belongs to the training
@@ -903,6 +909,37 @@ function BallService.NearestEnemyPos(character: Model): Vector3?
 	return if enemy then enemy.root.Position else nil
 end
 
+-- CarryService hooks ---------------------------------------------------------
+-- Snapshot of every registered fighter (scoop scans, KO sweeps).
+function BallService.AllFighters(): { Fighter }
+	return table.clone(fighters)
+end
+
+-- Are these two on opposing sides? (nil teams — the lobby — count as enemies:
+-- the chain toy works everywhere; only KOs are safe-zone-gated.)
+function BallService.AreEnemies(a: Model, b: Model): boolean
+	local fa, fb = fighterFor(a), fighterFor(b)
+	if not (fa and fb) then
+		return false
+	end
+	return fa.team == nil or fb.team == nil or fa.team ~= fb.team
+end
+
+-- A PLAYER-BALL hit: one touch is a KO, hearts ignored — except inside the
+-- lobby safe zone, where nothing ever KOs. Returns true if the KO landed.
+function BallService.InstantKO(character: Model, killer: Model?): boolean
+	local f = fighterFor(character)
+	if not f then
+		return false
+	end
+	if inSafeZone(f.root.Position) then
+		return false
+	end
+	hits[f.character] = BallConfig.HITS_TO_KO
+	koFighter(f, killer)
+	return true
+end
+
 -- Dev hook: dump the ball state machines. Top-level fields mirror the
 -- PRIMARY ball (existing test scripts keep working); `balls` has them all.
 function BallService.DebugState()
@@ -998,8 +1035,10 @@ local function checkPickupAndBash(b: Ball)
 					break
 				end
 				-- Mid-dash fighters bash; they don't scoop.
-			elseif d <= BallConfig.PICKUP_RADIUS and heldBy(f) == nil then
-				-- full hands don't scoop a second ball off the floor
+			elseif d <= BallConfig.PICKUP_RADIUS and heldBy(f) == nil
+				and not (BallService.HandsFullCheck and (BallService.HandsFullCheck :: (Model) -> boolean)(f.character)) then
+				-- full hands don't scoop a second ball off the floor —
+				-- and carrying a PLAYER-ball counts as full hands
 				holdBall(b, f)
 				setCharged(b, false)
 				break
@@ -1494,6 +1533,9 @@ function BallService.Start()
 			if actionLocked(char) then
 				return -- committed (dodge or catch): no balling up
 			end
+			if BallService.HandsFullCheck and (BallService.HandsFullCheck :: (Model) -> boolean)(char) then
+				return -- carrying a player-ball overhead: can't ball up
+			end
 			GliderService.Disable(char) -- can't glide as a ball
 			-- You can't be a ball AND hold a ball: drop it first.
 			local held = heldBy(f)
@@ -1506,6 +1548,10 @@ function BallService.Start()
 				feedback(f, "Ballform", { on = true })
 			end
 		else
+			if BallService.BallformLockCheck and (BallService.BallformLockCheck :: (Model) -> boolean)(char) then
+				return -- carried/chained: you unball by BREAKING OUT, not by
+				-- releasing the key — the server keeps you balled
+			end
 			if BallformService.Disable(char) then
 				feedback(f, "Ballform", { on = false })
 			end

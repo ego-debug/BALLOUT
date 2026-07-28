@@ -8,6 +8,7 @@ local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 local CollectionService = game:GetService("CollectionService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local TweenService = game:GetService("TweenService")
 
 local BallConfig = require(ReplicatedStorage.BallConfig)
 local Remotes = require(ReplicatedStorage.Remotes)
@@ -67,6 +68,10 @@ local dashReadyAt = 0
 local ballformOn = false
 local rollVel = Vector3.zero
 local rollCF = CFrame.identity
+-- Carried as a player-ball (server-confirmed): the carrier's client owns our
+-- physics, so the roll driver must stand down; chained = mash Space to break.
+local carriedLocal = false
+local carriedChained = false
 -- Smoothed body facing (world-space, flat). Eases between camera-forward
 -- and sprint-diagonal directions instead of snapping.
 local faceDir = Vector3.new(0, 0, -1)
@@ -420,10 +425,12 @@ RunService:BindToRenderStep("BalloutLockedCamera", Enum.RenderPriority.Camera.Va
 	if camera and camera.CameraSubject ~= root then
 		camera.CameraSubject = root
 	end
-	if camera and ballformOn then
+	if camera and ballformOn and not carriedLocal then
 		-- ── Rolling ball movement ──────────────────────────────────────
 		-- Physics state = the humanoid controller fully lets go, so our
 		-- roll velocity isn't braked back to zero every physics step.
+		-- (While CARRIED the server + carrier's client own our body —
+		-- driving the roll here would fight the weld/flight.)
 		if humanoid:GetState() ~= Enum.HumanoidStateType.Physics then
 			humanoid:ChangeState(Enum.HumanoidStateType.Physics)
 		end
@@ -778,6 +785,58 @@ local function setStatus(text: string, color: Color3)
 	status.TextColor3 = color
 end
 
+-- ── Chained! mash counter (carried by an enemy as a player-ball) ────────────
+local mashFrame = Instance.new("Frame")
+mashFrame.AnchorPoint = Vector2.new(0.5, 0.5)
+mashFrame.Position = UDim2.new(0.5, 0, 0.62, 0)
+mashFrame.Size = UDim2.fromOffset(260, 110)
+mashFrame.BackgroundTransparency = 1
+mashFrame.Visible = false
+mashFrame.Parent = gui
+
+local mashTitle = Instance.new("TextLabel")
+mashTitle.BackgroundTransparency = 1
+mashTitle.Font = Enum.Font.GothamBlack
+mashTitle.TextSize = 22
+mashTitle.TextColor3 = Color3.fromRGB(255, 120, 90)
+mashTitle.TextStrokeTransparency = 0.3
+mashTitle.Text = "MASH [SPACE] TO BREAK FREE!"
+mashTitle.Size = UDim2.new(1, 0, 0, 26)
+mashTitle.Parent = mashFrame
+
+local mashCount = Instance.new("TextLabel")
+mashCount.BackgroundTransparency = 1
+mashCount.Font = Enum.Font.GothamBlack
+mashCount.TextSize = 64
+mashCount.TextColor3 = Color3.fromRGB(255, 214, 90)
+mashCount.TextStrokeColor3 = Color3.fromRGB(40, 28, 12)
+mashCount.TextStrokeTransparency = 0.2
+mashCount.Text = "10"
+mashCount.Position = UDim2.new(0, 0, 0, 30)
+mashCount.Size = UDim2.new(1, 0, 0, 70)
+mashCount.Parent = mashFrame
+local mashScale = Instance.new("UIScale")
+mashScale.Parent = mashCount
+
+-- subtle per-press feedback: number pops + quick white flash
+local function mashPulse(left: number)
+	mashCount.Text = tostring(left)
+	mashCount.TextColor3 = Color3.fromRGB(255, 255, 255)
+	mashScale.Scale = 1.28
+	TweenService:Create(mashScale, TweenInfo.new(0.14, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = 1 }):Play()
+	task.delay(0.08, function()
+		mashCount.TextColor3 = Color3.fromRGB(255, 214, 90)
+	end)
+end
+
+-- Respawning clears any carried/chained state (a KO'd captive comes back free).
+player.CharacterAdded:Connect(function()
+	carriedLocal = false
+	carriedChained = false
+	mashFrame.Visible = false
+	ballformOn = false
+end)
+
 -- KC-accurate trick throws: the throw only curves/lobs if released inside
 -- the trick window opened by a spin (E) or flip (Q) jump.
 local function currentCurveDir(): number
@@ -1032,6 +1091,12 @@ UserInputService.InputBegan:Connect(function(input, processed)
 		doFlipJump() -- KC: flip -> release = lob
 	elseif input.KeyCode == Enum.KeyCode.Space
 		or input.KeyCode == Enum.KeyCode.ButtonA then
+		-- Carried as a player-ball: Space is the STRUGGLE button — chained,
+		-- every press chips at the chains; friendly ride, one press hops out.
+		if carriedLocal then
+			Remotes.CarryStruggle:FireServer()
+			return
+		end
 		-- Airborne: Space toggles the glider (grounded Space = normal jump).
 		local char = player.Character
 		local hum = char and char:FindFirstChildOfClass("Humanoid")
@@ -1096,6 +1161,40 @@ end)
 
 -- ── Server feedback ─────────────────────────────────────────────────────────
 Remotes.Feedback.OnClientEvent:Connect(function(kind: string, data: any?)
+	if kind == "Carried" then
+		carriedLocal = true
+		carriedChained = data and data.chained == true
+		stowGlider()
+		if carriedChained then
+			mashFrame.Visible = true
+			mashCount.Text = tostring(data and data.left or BallConfig.PLAYER_BALL_BREAK_PRESSES)
+			setStatus("CHAINED UP! Mash SPACE to break out!", Color3.fromRGB(255, 120, 90))
+		else
+			setStatus("Scooped by a teammate — SPACE to hop off", Color3.fromRGB(120, 220, 255))
+		end
+		return
+	elseif kind == "CarryTick" then
+		mashPulse(data and data.left or 0)
+		return
+	elseif kind == "CarryThrown" then
+		if carriedChained then
+			setStatus("THROWN! Keep mashing SPACE!", Color3.fromRGB(255, 120, 90))
+		else
+			setStatus("LAUNCHED!", Color3.fromRGB(255, 214, 90))
+		end
+		return
+	elseif kind == "CarryFreed" then
+		carriedLocal = false
+		carriedChained = false
+		mashFrame.Visible = false
+		setStatus("free!", Color3.fromRGB(140, 255, 160))
+		return
+	elseif kind == "CarryScooped" then
+		local chained = data and data.chained == true
+		setStatus(if chained then "Enemy captured! LMB to throw them" else "Teammate loaded! LMB to launch them",
+			Color3.fromRGB(255, 190, 90))
+		return
+	end
 	if kind == "PerfectCatch" or kind == "Catch" then
 		catchRootEndsAt = os.clock() + 0.25 -- close beat, then free
 	end

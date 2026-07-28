@@ -5,7 +5,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
-local NAMES = { "ThrowRequest", "CatchRequest", "FakeRequest", "DashRequest", "DropRequest", "FlipRequest", "BallformRequest", "SprintRequest", "GlideRequest", "PassRequest", "BonkReport", "Feedback", "MatchState" }
+local NAMES = { "ThrowRequest", "CatchRequest", "FakeRequest", "DashRequest", "DropRequest", "FlipRequest", "BallformRequest", "SprintRequest", "GlideRequest", "PassRequest", "BonkReport", "Feedback", "MatchState", "CarryStruggle" }
 
 local folder: Folder
 if RunService:IsServer() then
