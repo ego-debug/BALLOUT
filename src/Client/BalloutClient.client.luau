@@ -706,7 +706,9 @@ RunService:BindToRenderStep("BalloutLockedCamera", Enum.RenderPriority.Camera.Va
 			if targetRoot and targetRoot:IsA("BasePart") then
 				local to = targetRoot.Position - root.Position
 				local toFlat = Vector3.new(to.X, 0, to.Z)
-				if toFlat.Magnitude > 1 then
+				-- cone AND range: matches the server's lock rule exactly, so
+				-- the red outline never promises a lock the throw won't honor
+				if toFlat.Magnitude > 1 and to.Magnitude <= BallConfig.AIM_LOCK_RANGE then
 					inCone = camFlat:Dot(toFlat.Unit) >= aimCos
 				end
 			end

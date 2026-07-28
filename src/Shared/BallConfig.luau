@@ -107,6 +107,9 @@ BallConfig.GLIDE_TILT_FLARE = 20   -- tilt BACK while braking (legs swing forwar
 BallConfig.AIM_CONE_DEG = 25     -- look within this cone of a target to lock on
                                  -- (locked = red outline; throws home in.
                                  -- unlocked throws fly straight & blind)
+BallConfig.AIM_LOCK_RANGE = 120  -- lock-on reach in studs: past this, no red
+                                 -- outline and no homing — the throw goes to
+                                 -- the crosshair point like any blind throw
 
 -- ── Catch ───────────────────────────────────────────────────────────────
 BallConfig.CATCH_RADIUS = 6.0     -- studs; ball counts as "arriving" at target
@@ -183,5 +186,13 @@ BallConfig.MATCH_TEAM_SIZE = 3    -- 3v3; short human queues are filled with bot
 BallConfig.MATCH_TARGET_KOS = 10  -- Team KO: first team to this many KOs wins
 BallConfig.MATCH_END_LINGER = 5   -- winner splash before everyone returns to lobby
 BallConfig.MATCH_BOT_CATCH_CHANCE = 0.35 -- match bots catch this fraction of throws
+
+-- ── Match-bot AI (BotAI.luau: wander / fetch the ball / close in and throw) ─
+BallConfig.BOT_WALK_SPEED = 14    -- slower than players (22): outrunnable
+BallConfig.BOT_THROW_RANGE = 70   -- holding bots close to this range before throwing
+BallConfig.BOT_MAX_HOLD = 4       -- ...but never sit on the ball longer than this
+BallConfig.BOT_FETCH_RANGE = 90   -- chase a loose/free ball inside this radius
+BallConfig.BOT_WANDER_RADIUS = 40 -- idle roaming radius around the bot's post
+BallConfig.BOT_STRAFE_RANGE = 60  -- juke sideways when an armed enemy is this close
 
 return BallConfig

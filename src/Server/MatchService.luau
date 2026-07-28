@@ -20,6 +20,7 @@ local BallConfig = require(ReplicatedStorage.BallConfig)
 local Remotes = require(ReplicatedStorage.Remotes)
 local BallService = require(ServerScriptService.BallService)
 local BotService = require(ServerScriptService.BotService)
+local BotAI = require(ServerScriptService.BotAI)
 -- Scaffold Row replaced Block Party as the match arena (see STATUS.md);
 -- ArenaBlockParty stays in Maps/ for a future rotation.
 local ArenaMap = require(ServerStorage.Maps.ArenaScaffoldRow)
@@ -140,6 +141,7 @@ end
 
 local function despawnBots()
 	for _, bot in matchBots do
+		BotAI.Unregister(bot.model)
 		BallService.UnregisterFighter(bot.model)
 		bot.model:Destroy()
 	end
@@ -318,6 +320,8 @@ function MatchService.StartMatch(queued: { Player }): boolean
 				catchChance = BallConfig.MATCH_BOT_CATCH_CHANCE,
 			})
 			table.insert(matchBots, { model = model, root = root, team = team, home = cf })
+			-- give it a brain: wander, chase the ball, close in and throw
+			BotAI.Register(model, root, team, cf.Position)
 		end
 	end
 

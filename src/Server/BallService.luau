@@ -498,7 +498,10 @@ local function throwBall(b: Ball, f: Fighter, chargeFrac: number, curveDir: numb
 	local toEnemyFlat = Vector3.new(delta.X, 0, delta.Z)
 	local locked = f.isBot -- the dummy always locks
 	if not f.isBot and toEnemyFlat.Magnitude > 0.01 then
-		locked = lookFlat:Dot(toEnemyFlat.Unit) >= math.cos(math.rad(BallConfig.AIM_CONE_DEG))
+		-- Aim assist has RANGE, not just a cone: past AIM_LOCK_RANGE the
+		-- throw never homes (no more sniping the lobby dummy from the arena).
+		locked = dist <= BallConfig.AIM_LOCK_RANGE
+			and lookFlat:Dot(toEnemyFlat.Unit) >= math.cos(math.rad(BallConfig.AIM_CONE_DEG))
 	end
 
 	-- Unlocked throws fly TO the crosshair's world point (client raycast),
@@ -872,13 +875,32 @@ function BallService.DebugLocks(character: Model)
 	return { dash = dashLocked(character), catch = catchLocked(character), stunned = now() < (stunned[character] or 0) }
 end
 
--- HUD hook: live combat status for one fighter (MatchService rosters).
-function BallService.FighterStatus(character: Model): { hits: number, holding: boolean }
+-- HUD/AI hook: live combat status for one fighter (MatchService rosters,
+-- BotAI decisions).
+function BallService.FighterStatus(character: Model): { hits: number, holding: boolean, stunned: boolean }
 	local f = fighterFor(character)
 	return {
 		hits = hits[character] or 0,
 		holding = f ~= nil and heldBy(f) ~= nil,
+		stunned = now() < (stunned[character] or 0),
 	}
+end
+
+-- BotAI hook: the primary ball's live state for chase decisions.
+function BallService.PrimaryBallInfo(): { state: string, position: Vector3, holderTeam: string? }
+	return {
+		state = primaryBall.state,
+		position = primaryBall.part.Position,
+		holderTeam = if primaryBall.holder then primaryBall.holder.team else nil,
+	}
+end
+
+-- BotAI hook: where the nearest ENEMY of this character stands (team-aware —
+-- the same rule throws use), or nil when there's no one to fight.
+function BallService.NearestEnemyPos(character: Model): Vector3?
+	local f = fighterFor(character)
+	local enemy = if f then enemyOf(f) else nil
+	return if enemy then enemy.root.Position else nil
 end
 
 -- Dev hook: dump the ball state machines. Top-level fields mirror the
@@ -1080,10 +1102,17 @@ local function stepBall(b: Ball, dt: number)
 					applyCarry(holder) -- wind-down: the circle emptied
 				end
 			elseif b.botHoldStart and (now() - b.botHoldStart) >= BallConfig.BOT_HOLD_DELAY then
-				-- match bots: quick catch-and-return, as before
-				b.botHoldStart = nil
-				throwBall(b, holder, 1.0, 0, false)
-				return
+				-- Match bots: BotAI walks them toward an enemy while they hold,
+				-- so only release once someone is in throwing range — with a
+				-- max-hold failsafe so a cornered bot never turtles the ball.
+				local enemy = enemyOf(holder)
+				local enemyDist = if enemy then (enemy.root.Position - holder.root.Position).Magnitude else math.huge
+				if enemyDist <= BallConfig.BOT_THROW_RANGE
+					or (now() - b.botHoldStart) >= BallConfig.BOT_MAX_HOLD then
+					b.botHoldStart = nil
+					throwBall(b, holder, 1.0, 0, false)
+					return
+				end
 			end
 		end
 		-- Full windup reached: purple flame ignites — this throw will fly
