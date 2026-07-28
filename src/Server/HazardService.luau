@@ -299,11 +299,16 @@ function HazardService.Bind(model: Instance)
 end
 
 function HazardService.Start()
-	-- the dev blockout; the real arena can Bind() itself the same way
-	local zone = Workspace:FindFirstChild("BuildZone")
-	local blockout = zone and zone:FindFirstChild("ScaffoldRowBlockout")
-	if blockout then
-		local nb, nf = HazardService.Bind(blockout)
+	-- Scaffold Row is promoted to Workspace.BalloutArena at boot
+	-- (Maps/ArenaScaffoldRow); fall back to the dev-yard blockout so the
+	-- hazards still run for pure map-authoring sessions.
+	local target: Instance? = Workspace:FindFirstChild("BalloutArena")
+	if not target then
+		local zone = Workspace:FindFirstChild("BuildZone")
+		target = zone and zone:FindFirstChild("ScaffoldRowBlockout")
+	end
+	if target then
+		local nb, nf = HazardService.Bind(target)
 		print(("[Ballout] Hazards live: %d wrecking balls, %d ferries"):format(nb, nf))
 	end
 end

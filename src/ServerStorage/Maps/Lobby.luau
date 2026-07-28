@@ -43,6 +43,27 @@ function Lobby.Build(): Model
 	-- The hangout ball lives at HQ midfield, same spot as always.
 	marker("BallSpawn", Vector3.new(2, 2, 2), Vector3.new(0, 4, -20))
 
+	-- THE spawn: everyone spawns in the garage. This used to ride on the dev
+	-- blockout's TestSpawn — which is stripped now that Scaffold Row is a real
+	-- arena — so the lobby owns a proper (invisible) SpawnLocation over the
+	-- map's GarageSpawn pad.
+	local hq = Workspace:FindFirstChild("BalloutMap")
+	local pad = if hq then hq:FindFirstChild("GarageSpawn") else nil
+	local spawnPos = if pad and pad:IsA("BasePart")
+		then pad.Position + Vector3.new(0, 0.6, 0)
+		else Vector3.new(-5, 0.8, -43)
+	local spawnLoc = Instance.new("SpawnLocation")
+	spawnLoc.Name = "GarageSpawnLocation"
+	spawnLoc.Size = Vector3.new(9, 0.4, 9)
+	spawnLoc.CFrame = CFrame.lookAt(spawnPos, Vector3.new(spawnPos.X, spawnPos.Y, spawnPos.Z + 30)) -- face out the garage door
+	spawnLoc.Transparency = 1
+	spawnLoc.CanCollide = false
+	spawnLoc.CanQuery = false
+	spawnLoc.Anchored = true
+	spawnLoc.Duration = 0
+	spawnLoc.Neutral = true
+	spawnLoc.Parent = model
+
 	-- Whole-city safe zone: generously past the HQ playable bounds
 	-- (x -107..160, y -9..76, z -120..75, measured in Studio).
 	marker("SafeZone", Vector3.new(300, 110, 220), Vector3.new(26, 30, -22))

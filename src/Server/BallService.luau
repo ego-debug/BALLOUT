@@ -32,8 +32,9 @@ type Fighter = {
 
 local BallService = {}
 
--- Match hook (set by MatchService): called with the KO'd fighter.
-BallService.OnKO = nil :: ((Fighter) -> ())?
+-- Match hook (set by MatchService): called with the KO'd fighter and, when
+-- the KO came from a throw, the killer's character model.
+BallService.OnKO = nil :: ((Fighter, Model?) -> ())?
 
 -- ── State ────────────────────────────────────────────────────────────────
 -- MULTI-BALL: every ball is a self-contained state machine. The primary
@@ -435,6 +436,14 @@ function BallService.MakeFree(position: Vector3)
 	makeFreeBall(primaryBall, position)
 end
 
+-- Where the primary ball respawns after falling off the world. MatchService
+-- points this at the arena's BallSpawn for the match and back at the lobby
+-- after — otherwise a void-heavy arena (Scaffold Row's pits eat the ball
+-- constantly) would keep teleporting the match ball back to the lobby.
+function BallService.SetPrimarySpawn(position: Vector3)
+	primaryBall.spawnPos = position
+end
+
 local function computeThrowSpeed(tier: number, chargeFrac: number): number
 	if tier > 0 then
 		return BallConfig.CHARGED_SPEED + tier * BallConfig.SUPER_STEP
@@ -707,7 +716,7 @@ local function stepDashBonks()
 	end
 end
 
-local function koFighter(f: Fighter)
+local function koFighter(f: Fighter, killer: Model?)
 	hits[f.character] = 0
 	overcharge[f.character] = 0
 	feedback(f, "KO", nil)
@@ -720,7 +729,7 @@ local function koFighter(f: Fighter)
 	end
 	-- Match hook: MatchService keeps score off this.
 	if BallService.OnKO then
-		task.spawn(BallService.OnKO :: (Fighter) -> (), f)
+		task.spawn(BallService.OnKO :: (Fighter, Model?) -> (), f, killer)
 	end
 end
 
@@ -751,7 +760,7 @@ local function hitFighter(b: Ball, f: Fighter)
 	-- Stunned: no pickup, throws, catches or tricks until this expires.
 	stunned[f.character] = now() + BallConfig.STUN_TIME
 	if not safe and count >= BallConfig.HITS_TO_KO then
-		koFighter(f)
+		koFighter(f, b.flight.thrower)
 	end
 	-- Ball ricochets back the way it came — up and away, never caught.
 	goLoose(b, -pushDir * 11 + Vector3.new(0, 14, 0))
@@ -861,6 +870,15 @@ end
 -- Dev hook: report the commitment locks for a character.
 function BallService.DebugLocks(character: Model)
 	return { dash = dashLocked(character), catch = catchLocked(character), stunned = now() < (stunned[character] or 0) }
+end
+
+-- HUD hook: live combat status for one fighter (MatchService rosters).
+function BallService.FighterStatus(character: Model): { hits: number, holding: boolean }
+	local f = fighterFor(character)
+	return {
+		hits = hits[character] or 0,
+		holding = f ~= nil and heldBy(f) ~= nil,
+	}
 end
 
 -- Dev hook: dump the ball state machines. Top-level fields mirror the
@@ -1365,22 +1383,9 @@ function BallService.Start()
 		BALL_SPAWN = marker.Position
 	end
 
-	-- ARENA TEST MODE: while the dev blockout is the active spawn, put the
-	-- ball in the blockout too — otherwise it sits back in the lobby and the
-	-- map can't be playtested at all. This also makes it a real SPAWNER
-	-- rather than a one-off drop: spawnPos is the same marker, and the
-	-- fall-off-the-world check re-frees the ball there, so the voids and the
-	-- wrecking balls can eat it as often as they like and it always comes back.
-	do
-		local zone = Workspace:FindFirstChild("BuildZone")
-		local blockout = zone and zone:FindFirstChild("ScaffoldRowBlockout")
-		local testSpawn = blockout and blockout:FindFirstChild("TestSpawn")
-		local arenaMarker = blockout and blockout:FindFirstChild("BallSpawn")
-		if testSpawn and testSpawn:IsA("SpawnLocation") and testSpawn.Enabled
-			and arenaMarker and arenaMarker:IsA("BasePart") then
-			BALL_SPAWN = arenaMarker.Position
-		end
-	end
+	-- (The old ARENA TEST MODE crutch is gone: Scaffold Row is now a real
+	-- match arena — MatchService moves the ball there per match and points
+	-- SetPrimarySpawn at the arena, so the voids feed the ball back mid-match.)
 	primaryBall = newBall("Dodgeball", BALL_SPAWN, false)
 	makeFreeBall(primaryBall, BALL_SPAWN)
 
