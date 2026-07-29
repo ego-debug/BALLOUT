@@ -56,6 +56,8 @@ local hangEndsAt = 0
 local charging = false
 local chargeStart = 0
 local stickX = 0 -- last gamepad thumbstick X
+-- Tab toggles a free cursor for clicking UI (the locked camera eats the mouse).
+local cursorFree = false
 
 -- Dash state. Phases: dive (dashEndsAt) -> parkour roll (dashRollEndsAt)
 -- -> stand up. The humanoid rides the Physics state for the whole move, so
@@ -363,9 +365,16 @@ RunService:BindToRenderStep("BalloutLockedCamera", Enum.RenderPriority.Camera.Va
 	if not humanoid or not root or humanoid.Health <= 0 then return end
 
 	-- Mouse-lock is for mouse people; on touch the camera is drag-driven.
+	-- T frees the cursor (clicking UI like the music button), T again
+	-- re-locks — cursorFree is toggled in the input handler.
 	if not UserInputService.TouchEnabled then
-		UserInputService.MouseBehavior = Enum.MouseBehavior.LockCenter
-		UserInputService.MouseIconEnabled = false
+		if cursorFree then
+			UserInputService.MouseBehavior = Enum.MouseBehavior.Default
+			UserInputService.MouseIconEnabled = true
+		else
+			UserInputService.MouseBehavior = Enum.MouseBehavior.LockCenter
+			UserInputService.MouseIconEnabled = false
+		end
 	end
 	humanoid.AutoRotate = false
 
@@ -763,7 +772,7 @@ local status = Instance.new("TextLabel")
 status.Size = UDim2.fromOffset(520, 60)
 status.Position = UDim2.new(0.5, -260, 0.2, 0)
 status.BackgroundTransparency = 1
-status.Text = "LMB throw · E spin · Q flip · RMB catch · F fake · Ctrl dash · Shift sprint · Alt ballform · G drop"
+status.Text = "LMB throw · E spin · Q flip · RMB catch · F fake · Ctrl dash · Shift sprint · Alt ballform · G drop · T cursor · M music"
 status.TextColor3 = Color3.fromRGB(255, 255, 255)
 status.TextStrokeTransparency = 0.4
 status.TextScaled = true
@@ -1170,6 +1179,11 @@ UserInputService.InputBegan:Connect(function(input, processed)
 		if not isStunned() then
 			Remotes.PassRequest:FireServer() -- pass / request a pass
 		end
+	elseif input.KeyCode == Enum.KeyCode.T then
+		-- free the cursor to click UI; T again to get the camera back
+		-- (Tab is off-limits: Roblox core reserves it for the player list)
+		cursorFree = not cursorFree
+		setStatus(if cursorFree then "cursor free — T to re-lock" else "locked in", Color3.fromRGB(180, 220, 255))
 	elseif input.KeyCode == Enum.KeyCode.G
 		or input.KeyCode == Enum.KeyCode.DPadLeft then
 		Remotes.DropRequest:FireServer()

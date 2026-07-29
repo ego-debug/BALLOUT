@@ -78,7 +78,7 @@ musicBtn.BackgroundTransparency = 0.35
 musicBtn.Font = Enum.Font.GothamBold
 musicBtn.TextSize = 13
 musicBtn.TextColor3 = Color3.fromRGB(240, 240, 245)
-musicBtn.Text = "♪ MUSIC: ON"
+musicBtn.Text = "♪ MUSIC: ON (M)"
 musicBtn.Parent = musicGui
 local mbc = Instance.new("UICorner")
 mbc.CornerRadius = UDim.new(0, 8)
@@ -86,7 +86,7 @@ mbc.Parent = musicBtn
 
 local function toggleMusic()
 	musicMuted = not musicMuted
-	musicBtn.Text = if musicMuted then "♪ MUSIC: OFF" else "♪ MUSIC: ON"
+	musicBtn.Text = if musicMuted then "♪ MUSIC: OFF (M)" else "♪ MUSIC: ON (M)"
 	musicBtn.TextColor3 = if musicMuted then Color3.fromRGB(140, 140, 150) else Color3.fromRGB(240, 240, 245)
 	applyMute()
 end
