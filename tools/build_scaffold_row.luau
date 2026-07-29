@@ -337,19 +337,21 @@ local swing = mkCF("SwingZoneMark", Vector3.new(20, 0.25, 106), -- ±53: tip sli
 	Color3.fromRGB(190, 150, 150))
 label(swing, "SWING PATH (diagonal, toward/away from the core)")
 -- ══ NORTH LANE: SECOND CRANE (opposite lane from crane 1's southern arc) ════
--- WEST corridor of the north flank: arc LOW at z -100 (past the north pit),
--- endpoints at the pit flank (z ~-35) and the map edge (z ~-140). The MAST
--- stands OUTSIDE the playable bounds — only the arm reaches in.
+-- WEST corridor of the north flank: arc LOW at z -79 — the seam between the
+-- boarding-hall lane and the container/pit lane (owner-picked spot), so ONE
+-- swing sweeps the building lane on the far end and the container lane on
+-- the near end. The MAST stands OUTSIDE the playable bounds — only the
+-- (long) jib reaches in.
 mk("CraneMast2", Vector3.new(6, 110, 6), Vector3.new(-40, 55, -152)) -- extra-tall: arc runs the void's full length
-mk("CraneArm2", Vector3.new(4, 3, 52), Vector3.new(-40, 108, -126)) -- mast -> tip
-mk("WreckChain2", Vector3.new(1, 77.5, 1), Vector3.new(-40, 67.75, -100))
-local ball2 = mk("WreckBall2", Vector3.new(26, 26, 26), Vector3.new(-40, 16, -100), GREY_DK)
+mk("CraneArm2", Vector3.new(4, 3, 73), Vector3.new(-40, 108, -115.5)) -- mast -> tip (tip over z -79)
+mk("WreckChain2", Vector3.new(1, 77.5, 1), Vector3.new(-40, 67.75, -79))
+local ball2 = mk("WreckBall2", Vector3.new(26, 26, 26), Vector3.new(-40, 16, -79), GREY_DK)
 ball2.Shape = Enum.PartType.Ball
 label(ball2, "WRECKING BALL 2 — pendulum from the arm TIP (single pivot)")
--- pendulum reach ~±75 (chain 77.5): ground-contact z -153..-47, then the
--- ball rides at container-jumper height across the pit to its far edge —
--- bailing off a ride threads the swing window
-local swing2 = mk("SwingZoneMark2", Vector3.new(20, 0.25, 135), Vector3.new(-40, 1.2, -92.5), Color3.fromRGB(190, 150, 150))
+-- pendulum reach ~±75 (chain 77.5): ground-contact z -154..-4 — deep into
+-- the boarding-hall lane one way, across the pit/container lane the other —
+-- bailing off a container ride threads the swing window
+local swing2 = mk("SwingZoneMark2", Vector3.new(20, 0.25, 135), Vector3.new(-40, 1.2, -79), Color3.fromRGB(190, 150, 150))
 label(swing2, "SWING PATH 2 — low at center, max height at both ends")
 
 -- ══ E + W: SPAWN YARDS (edge centers) ═══════════════════════════════════════
@@ -1027,7 +1029,7 @@ do
 	local CRANE1 = { CraneMast = true, CraneArm = true, WreckChain = true, WreckBall = true, SwingZoneMark = true }
 	local CRANE2 = { CraneMast2 = true, CraneArm2 = true, WreckChain2 = true, WreckBall2 = true, SwingZoneMark2 = true }
 	local crane1Delta = bandDelta(76, 68)   -- ball 1 hangs over x 76
-	local crane2Delta = bandDelta(-40, -100) -- ball 2 over x -40
+	local crane2Delta = bandDelta(-40, -79) -- ball 2 over x -40 (arc low point)
 
 	for _, c in m:GetChildren() do
 		if c:IsA("BasePart") and not SKIP[c.Name] then
