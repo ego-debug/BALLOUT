@@ -236,15 +236,10 @@ end
 -- JUMP the gap up onto the catwalk.
 --   basin floor -13 | crate top -9 | container top -5 | catwalk 0.3
 --   container east end x -39 vs catwalk west end x -33 = 6-stud gap
--- SCAFFOLD CLIMB (v84): no wooden crates — a stacked CONTAINER YARD instead.
--- The basin-floor -> catwalk climb is ~19 studs after scaling and a 7-stud
--- jump caps each hop, so three surfaces are required. Two containers give
--- that without any brown boxes:
---   basin floor -> A (+6.0) -> B (+6.5) -> catwalk (+6.8)
--- and B sits back far enough that the final leap is a ~9.5-stud gap
--- (roughly double the old 5.8) — needs a sprint run-up, which is the
--- physics ceiling for a 6.8-stud rise.
-mk("ScafContainer", Vector3.new(26, 8, 10), Vector3.new(-80, 1.14, -29.2), Color3.fromRGB(140, 90, 90))
+-- SCAFFOLD CLIMB (v85): ONE container, not two. The old stepping-stone
+-- container (basin -> A -> B -> catwalk) predates the double jump — the
+-- Q-flip air-hop covers the height that step A existed for, so it's gone
+-- (owner call). Route now: basin floor -> double-jump onto B -> catwalk.
 mk("ScafContainer2", Vector3.new(26, 8, 10), Vector3.new(-52.55, 5.62, -29.2), Color3.fromRGB(90, 110, 140))
 -- plaza crates on SOLID ground only ({-6,48} used to strand over the south pit)
 for _, cdef in { { 46, 10 }, { -14, 16 }, { 48, -34 }, { -44, 44 } } do
