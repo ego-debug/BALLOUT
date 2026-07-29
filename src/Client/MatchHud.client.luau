@@ -19,8 +19,35 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
 
 local Remotes = require(ReplicatedStorage.Remotes)
+local SoundKit = require(ReplicatedStorage.SoundKit)
 
 local player = Players.LocalPlayer
+
+-- ── Music: electro swing everywhere (KC's genre, our tracks) ────────────────
+-- Lobby loop by default; match loop while YOU are in a match; spectators
+-- keep the lobby vibe.
+local lobbyLoop = SoundKit.Create("lobbyMusic", true)
+local matchLoop = SoundKit.Create("matchMusic", true)
+if lobbyLoop then
+	lobbyLoop:Play()
+end
+
+local function setMusic(inMatch: boolean)
+	if lobbyLoop then
+		if inMatch and lobbyLoop.Playing then
+			lobbyLoop:Stop()
+		elseif not inMatch and not lobbyLoop.Playing then
+			lobbyLoop:Play()
+		end
+	end
+	if matchLoop then
+		if inMatch and not matchLoop.Playing then
+			matchLoop:Play()
+		elseif not inMatch and matchLoop.Playing then
+			matchLoop:Stop()
+		end
+	end
+end
 
 local RED = Color3.fromRGB(255, 82, 70)
 local BLUE = Color3.fromRGB(80, 150, 255)
@@ -356,9 +383,11 @@ Remotes.MatchState.OnClientEvent:Connect(function(data: { [string]: any })
 	if state == "Idle" then
 		gui.Enabled = false
 		myTeam = nil
+		setMusic(false)
 		return
 	end
 	gui.Enabled = true
+	setMusic(data.teams and data.teams[player.Name] ~= nil)
 	redCount.Text = tostring(data.red or 0)
 	blueCount.Text = tostring(data.blue or 0)
 	mid.Text = ("RD %d · TO %d"):format(data.round or 1, data.target or 10)
@@ -374,13 +403,16 @@ Remotes.MatchState.OnClientEvent:Connect(function(data: { [string]: any })
 		showBanner(("%s — BEST OF 3 · FIRST TO %d"):format(tostring(data.mapName or "MATCH"), data.target or 10), NEON, 1.6)
 	elseif data.event == "countdown" then
 		popCount(tostring(data.n), WHITE)
+		SoundKit.Play2D("tick")
 	elseif data.event == "go" then
 		popCount("GO!", GOLD)
+		SoundKit.Play2D("whistle")
 	elseif data.event == "round" then
 		local winner = tostring(data.roundWinner)
 		local color = TEAM_COLOR[winner] or WHITE
 		if myTeam then
 			showBanner(if winner == myTeam then "ROUND WON!" else "ROUND LOST", color, 2.5)
+			SoundKit.Play2D(if winner == myTeam then "perfect" else "tick")
 		else
 			showBanner(("%s TAKES THE ROUND!"):format(winner:upper()), color, 2.5)
 		end
@@ -411,8 +443,10 @@ Remotes.MatchState.OnClientEvent:Connect(function(data: { [string]: any })
 			if myTeam then
 				if winner == myTeam then
 					showBanner("VICTORY!", GOLD, 4)
+					SoundKit.Play2D("winSting")
 				else
 					showBanner("DEFEAT", DIM, 4)
+					SoundKit.Play2D("loseSting")
 				end
 			else
 				showBanner(("%s WINS!"):format(winner:upper()), TEAM_COLOR[winner] or WHITE, 3)

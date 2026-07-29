@@ -29,6 +29,7 @@ local Debris = game:GetService("Debris")
 
 local BallConfig = require(ReplicatedStorage.BallConfig)
 local Remotes = require(ReplicatedStorage.Remotes)
+local SoundKit = require(ReplicatedStorage.SoundKit)
 local BallService = require(ServerScriptService.BallService)
 local BallformService = require(ServerScriptService.BallformService)
 
@@ -159,6 +160,9 @@ local function burstChains(c: Carry)
 	c.countLabel = nil
 	if not model then
 		return
+	end
+	if c.victimRoot.Parent then
+		SoundKit.PlayAt(c.victimRoot, "chainBreak")
 	end
 	-- links fly apart: unweld, unfreeze, fling outward, clean up after
 	for _, p in model:GetChildren() do
@@ -486,6 +490,7 @@ function CarryService.Start()
 			c.countLabel.Text = tostring(math.max(c.pressesLeft, 0))
 		end
 		flashChains(c)
+		SoundKit.PlayAt(c.victimRoot, "chainRattle")
 		victimFeedback(c, "CarryTick", { left = math.max(c.pressesLeft, 0) })
 		if c.pressesLeft <= 0 then
 			freeVictim(c, true) -- chains burst, ballform pops, control returns

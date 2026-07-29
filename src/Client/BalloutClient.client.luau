@@ -12,8 +12,12 @@ local TweenService = game:GetService("TweenService")
 
 local BallConfig = require(ReplicatedStorage.BallConfig)
 local Remotes = require(ReplicatedStorage.Remotes)
+local SoundKit = require(ReplicatedStorage.SoundKit)
 
 local Workspace = game:GetService("Workspace")
+
+-- The windup charge-up hum: starts with the hold, cuts on release/fake.
+local chargeSound = SoundKit.Create("charge", false)
 
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
@@ -964,6 +968,10 @@ local function startCharge()
 	if isStunned() or actionLockActive() then return end
 	charging = true
 	chargeStart = os.clock()
+	if chargeSound then
+		chargeSound.TimePosition = 0
+		chargeSound:Play()
+	end
 	-- KC-style: you CAN jump while charging — releasing mid-hop is the lob.
 	-- The release-freeze stops you at whatever point of the jump you're in.
 	Remotes.ThrowRequest:FireServer("start")
@@ -972,6 +980,9 @@ end
 local function releaseThrow()
 	if not charging then return end
 	charging = false
+	if chargeSound then
+		chargeSound:Stop()
+	end
 	local frac = math.clamp((os.clock() - chargeStart) / BallConfig.FULL_CHARGE_TIME, 0, 1)
 	meterFill.Size = UDim2.fromScale(0, 1)
 	-- Aim = camera look, NOT the character (the model may be mid-spin).

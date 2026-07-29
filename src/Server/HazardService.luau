@@ -24,6 +24,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
 
 local BallConfig = require(ReplicatedStorage.BallConfig)
+local SoundKit = require(ReplicatedStorage.SoundKit)
 local BallService = require(script.Parent.BallService)
 
 local HazardService = {}
@@ -130,6 +131,7 @@ local function launch(player: Player, char: Model, dir: Vector3)
 	local hz = flat.Z * BallConfig.WRECK_LAUNCH_OUT
 	-- take their actions away: no dodging or gliding out of the punt
 	BallService.ApplyStun(char, BallConfig.WRECK_STUN)
+	SoundKit.PlayAt(root, "clang") -- the wrecking ball RINGS on contact
 	hum.PlatformStand = true
 	-- lift clear of the floor so the ground contact that was pinning the
 	-- launch is broken on the very first frame

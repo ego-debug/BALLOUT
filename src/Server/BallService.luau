@@ -16,6 +16,7 @@ local ServerScriptService = game:GetService("ServerScriptService")
 
 local BallConfig = require(ReplicatedStorage.BallConfig)
 local Remotes = require(ReplicatedStorage.Remotes)
+local SoundKit = require(ReplicatedStorage.SoundKit)
 local AnimService = require(ServerScriptService.AnimService)
 local BallformService = require(ServerScriptService.BallformService)
 local GliderService = require(ServerScriptService.GliderService)
@@ -562,6 +563,7 @@ local function throwBall(b: Ball, f: Fighter, chargeFrac: number, curveDir: numb
 	flight.locked = locked
 	flight.thrower = f.character
 	flight.isPass = false
+	SoundKit.PlayAt(b.part, "throw")
 
 	local curve = math.clamp(curveDir, -1, 1)
 	local aimVec = if locked then (targetPos - origin) else ((pointTarget :: Vector3) - origin)
@@ -634,6 +636,7 @@ function BallService.Pass(f: Fighter)
 	flight.origin = origin
 	flight.s = 0
 	flight.duration = dist / BallConfig.CHARGED_SPEED
+	SoundKit.PlayAt(b.part, "throw")
 	flight.sideOffset = Vector3.zero
 	flight.arcHeight = BallConfig.BASE_ARC
 	flight.controlT = 0.5
@@ -653,10 +656,12 @@ local function catchBall(b: Ball, catcher: Fighter, perfect: boolean)
 		end
 	end)
 
+	SoundKit.PlayAt(catcher.root, "catch")
 	if perfect then
 		local tier = math.min((overcharge[catcher.character] or 0) + 1, BallConfig.MAX_TIER)
 		overcharge[catcher.character] = tier
 		setCharged(b, true) -- purple flame aura, ball stays orange
+		SoundKit.PlayAt(catcher.root, "perfect")
 		feedback(catcher, "PerfectCatch", { tier = tier })
 	else
 		overcharge[catcher.character] = 0
@@ -759,6 +764,7 @@ end
 local function koFighter(f: Fighter, killer: Model?)
 	hits[f.character] = 0
 	overcharge[f.character] = 0
+	SoundKit.PlayAt(f.root, "ko")
 	feedback(f, "KO", nil)
 	AnimService.Reset(f.character)
 	if f.player then
@@ -792,6 +798,7 @@ local function hitFighter(b: Ball, f: Fighter)
 	end
 	travel = Vector3.new(travel.X, 0, travel.Z)
 	local pushDir = if travel.Magnitude > 0.1 then travel.Unit else -f.root.CFrame.LookVector
+	SoundKit.PlayAt(f.root, "hit")
 	feedback(f, "Hit", { count = count, ko = not safe and count >= BallConfig.HITS_TO_KO, knock = pushDir })
 	-- Struck on the back if the ball was moving the way the victim faces.
 	local look = f.root.CFrame.LookVector
@@ -1129,6 +1136,7 @@ local function checkPickupAndBash(b: Ball)
 				-- and carrying a PLAYER-ball counts as full hands
 				holdBall(b, f)
 				setCharged(b, false)
+				SoundKit.PlayAt(f.root, "pickup")
 				break
 			end
 		end
@@ -1372,6 +1380,9 @@ local function stepBall(b: Ball, dt: number)
 		end
 		if newPos.Y <= floorY and overFloor then
 			newPos = Vector3.new(newPos.X, floorY, newPos.Z)
+			if flight.velocity.Y < -12 then
+				SoundKit.PlayAt(b.part, "bounce") -- real smack, not roll jitter
+			end
 			local vy = -flight.velocity.Y * BallConfig.BOUNCE_RESTITUTION
 			if vy < 6 then
 				vy = 0 -- too weak to bounce again: start rolling
@@ -1783,6 +1794,7 @@ function BallService.Start()
 		}
 		if d.Magnitude > 0.01 then
 			AnimService.DashPose(char)
+			SoundKit.PlayAt(f.root, "dash")
 			-- Sphere shell for the whole dive+roll: the tumbling body slides
 			-- smoothly instead of catching the floor (camera stays glassy).
 			BallformService.PhysicsShell(char, BallConfig.DODGE_TIME + BallConfig.DASH_ROLL_TIME + 0.05)
