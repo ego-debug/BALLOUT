@@ -43,6 +43,34 @@ function Lobby.Build(): Model
 	-- The hangout ball lives at HQ midfield, same spot as always.
 	marker("BallSpawn", Vector3.new(2, 2, 2), Vector3.new(0, 4, -20))
 
+	-- Spawner pad DEVICE: circle on the deck, the ball levitates over it
+	-- (same furniture as the arena pads — players learn it in the lobby).
+	local base = Instance.new("Part")
+	base.Name = "BallPad"
+	base.Shape = Enum.PartType.Cylinder
+	base.Size = Vector3.new(0.5, 7, 7)
+	base.CFrame = CFrame.new(0, 0.25, -20) * CFrame.Angles(0, 0, math.rad(90))
+	base.Color = Color3.fromRGB(38, 36, 44)
+	base.Material = Enum.Material.Metal
+	base.Anchored = true
+	base.Parent = model
+	local ring = Instance.new("Part")
+	ring.Name = "BallPadRing"
+	ring.Shape = Enum.PartType.Cylinder
+	ring.Size = Vector3.new(0.15, 5.6, 5.6)
+	ring.CFrame = CFrame.new(0, 0.55, -20) * CFrame.Angles(0, 0, math.rad(90))
+	ring.Color = Color3.fromRGB(255, 170, 60)
+	ring.Material = Enum.Material.Neon
+	ring.Anchored = true
+	ring.CanCollide = false
+	ring.CanQuery = false
+	ring.Parent = model
+	local glow = Instance.new("PointLight")
+	glow.Color = Color3.fromRGB(255, 170, 60)
+	glow.Range = 12
+	glow.Brightness = 0.9
+	glow.Parent = ring
+
 	-- THE spawn: everyone spawns in the garage. This used to ride on the dev
 	-- blockout's TestSpawn — which is stripped now that Scaffold Row is a real
 	-- arena — so the lobby owns a proper (invisible) SpawnLocation over the

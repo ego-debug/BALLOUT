@@ -91,7 +91,6 @@ local function sense(brain: Brain, t: number)
 		brain.goal = nil
 		return
 	end
-	local ballInfo = BallService.PrimaryBallInfo()
 	local myPos = brain.root.Position
 
 	if status.holding then
@@ -109,22 +108,36 @@ local function sense(brain: Brain, t: number)
 		return
 	end
 
-	local ballDist = (ballInfo.position - myPos).Magnitude
-	local ballFree = ballInfo.state == "Free" or ballInfo.state == "Loose"
-	if ballFree and ballDist <= BallConfig.BOT_FETCH_RANGE then
+	-- MULTI-BALL: hunt the NEAREST usable ball; fear the nearest armed enemy.
+	local nearestFree: Vector3? = nil
+	local nearestFreeDist = math.huge
+	local nearestThreat: Vector3? = nil
+	local nearestThreatDist = math.huge
+	for _, info in BallService.BallsInfo() do
+		if not info.isDrill then
+			local d = (info.position - myPos).Magnitude
+			if (info.state == "Free" or info.state == "Loose") and d < nearestFreeDist then
+				nearestFree, nearestFreeDist = info.position, d
+			elseif info.state == "Held" and info.holderTeam ~= nil
+				and info.holderTeam ~= brain.team and d < nearestThreatDist then
+				nearestThreat, nearestThreatDist = info.position, d
+			end
+		end
+	end
+
+	if nearestFree and nearestFreeDist <= BallConfig.BOT_FETCH_RANGE then
 		brain.mode = "fetch"
-		brain.goal = ballInfo.position
+		brain.goal = nearestFree
 		return
 	end
 
 	-- armed enemy close by: juke sideways like a person trying not to get hit
-	if ballInfo.state == "Held" and ballInfo.holderTeam ~= nil
-		and ballInfo.holderTeam ~= brain.team and ballDist <= BallConfig.BOT_STRAFE_RANGE then
+	if nearestThreat and nearestThreatDist <= BallConfig.BOT_STRAFE_RANGE then
 		if brain.mode ~= "strafe" then
 			brain.strafeSign = if math.random() < 0.5 then 1 else -1
 		end
 		brain.mode = "strafe"
-		local away = flat(myPos - ballInfo.position)
+		local away = flat(myPos - nearestThreat)
 		local side = Vector3.new(-away.Z, 0, away.X).Unit * brain.strafeSign
 		brain.goal = myPos + side * 10 + away.Unit * 2
 		return

@@ -105,6 +105,33 @@ mid.Position = UDim2.new(0.5, 0, 0, 12)
 mid.Size = UDim2.fromOffset(90, 30)
 mid.Parent = board
 
+-- Round pips (best-of-3): one dot per round win, each side of the center.
+local pips: { [string]: { Frame } } = { Red = {}, Blue = {} }
+for _, team in { "Red", "Blue" } do
+	for i = 1, 2 do
+		local pip = Instance.new("Frame")
+		pip.AnchorPoint = Vector2.new(0.5, 0)
+		local sideSign = if team == "Red" then -1 else 1
+		pip.Position = UDim2.new(0.5, sideSign * (52 + (i - 1) * 14), 0, 2)
+		pip.Size = UDim2.fromOffset(9, 9)
+		pip.BackgroundColor3 = Color3.fromRGB(45, 42, 52)
+		pip.Parent = board
+		local pc = Instance.new("UICorner")
+		pc.CornerRadius = UDim.new(1, 0)
+		pc.Parent = pip
+		pips[team][i] = pip
+	end
+end
+
+local function updatePips(redWins: number, blueWins: number)
+	for i, pip in pips.Red do
+		pip.BackgroundColor3 = if i <= redWins then RED else Color3.fromRGB(45, 42, 52)
+	end
+	for i, pip in pips.Blue do
+		pip.BackgroundColor3 = if i <= blueWins then BLUE else Color3.fromRGB(45, 42, 52)
+	end
+end
+
 local mapLabel = Instance.new("TextLabel")
 mapLabel.BackgroundTransparency = 1
 mapLabel.Font = Enum.Font.GothamBold
@@ -334,7 +361,8 @@ Remotes.MatchState.OnClientEvent:Connect(function(data: { [string]: any })
 	gui.Enabled = true
 	redCount.Text = tostring(data.red or 0)
 	blueCount.Text = tostring(data.blue or 0)
-	mid.Text = ("FIRST TO %d"):format(data.target or 10)
+	mid.Text = ("RD %d · TO %d"):format(data.round or 1, data.target or 10)
+	updatePips(data.roundsRed or 0, data.roundsBlue or 0)
 	if data.mapName then
 		mapLabel.Text = tostring(data.mapName)
 	end
@@ -343,11 +371,21 @@ Remotes.MatchState.OnClientEvent:Connect(function(data: { [string]: any })
 
 	-- event beats
 	if data.event == "start" then
-		showBanner(("%s — FIRST TO %d"):format(tostring(data.mapName or "MATCH"), data.target or 10), NEON, 1.6)
+		showBanner(("%s — BEST OF 3 · FIRST TO %d"):format(tostring(data.mapName or "MATCH"), data.target or 10), NEON, 1.6)
 	elseif data.event == "countdown" then
 		popCount(tostring(data.n), WHITE)
 	elseif data.event == "go" then
 		popCount("GO!", GOLD)
+	elseif data.event == "round" then
+		local winner = tostring(data.roundWinner)
+		local color = TEAM_COLOR[winner] or WHITE
+		if myTeam then
+			showBanner(if winner == myTeam then "ROUND WON!" else "ROUND LOST", color, 2.5)
+		else
+			showBanner(("%s TAKES THE ROUND!"):format(winner:upper()), color, 2.5)
+		end
+	elseif data.event == "roundstart" then
+		showBanner(("ROUND %d"):format(data.round or 2), NEON, 1.4)
 	elseif data.event == "ko" then
 		local victim = tostring(data.victim)
 		local killer = data.killer and tostring(data.killer) or nil

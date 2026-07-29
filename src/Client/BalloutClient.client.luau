@@ -131,6 +131,7 @@ local function setFootsteps(on: boolean)
 	end
 end
 local stickY = 0 -- gamepad thumbstick Y (X is tracked further down)
+local touchSprintSince: number? = nil -- touch auto-sprint: forward-hold timer
 
 -- ── Dash bonk (client-predicted) ────────────────────────────────────────────
 -- The dash MOVES on the client, so the wall is felt HERE first — the bonk
@@ -198,6 +199,9 @@ local function ballInputDir(camera: Camera): Vector3
 	if UserInputService:IsKeyDown(Enum.KeyCode.S) then z += 1 end
 	if UserInputService:IsKeyDown(Enum.KeyCode.A) then x -= 1 end
 	if UserInputService:IsKeyDown(Enum.KeyCode.D) then x += 1 end
+	-- gamepad: the left stick steers too (dead zone so drift doesn't creep)
+	if math.abs(stickX) > 0.2 then x += stickX end
+	if math.abs(stickY) > 0.2 then z -= stickY end
 	local look = camera.CFrame.LookVector
 	local lookFlat = Vector3.new(look.X, 0, look.Z)
 	lookFlat = if lookFlat.Magnitude > 0.01 then lookFlat.Unit else Vector3.zAxis
@@ -354,8 +358,11 @@ RunService:BindToRenderStep("BalloutLockedCamera", Enum.RenderPriority.Camera.Va
 	local root = character:FindFirstChild("HumanoidRootPart") :: BasePart?
 	if not humanoid or not root or humanoid.Health <= 0 then return end
 
-	UserInputService.MouseBehavior = Enum.MouseBehavior.LockCenter
-	UserInputService.MouseIconEnabled = false
+	-- Mouse-lock is for mouse people; on touch the camera is drag-driven.
+	if not UserInputService.TouchEnabled then
+		UserInputService.MouseBehavior = Enum.MouseBehavior.LockCenter
+		UserInputService.MouseIconEnabled = false
+	end
 	humanoid.AutoRotate = false
 
 	-- ONE camera mode, always: track the root position (never a body part,
@@ -382,10 +389,22 @@ RunService:BindToRenderStep("BalloutLockedCamera", Enum.RenderPriority.Camera.Va
 
 	-- Sprint latch: cleared only by stopping forward movement or reversing.
 	-- Winding up a throw kills the sprint too — you trudge while charging.
-	if not UserInputService:IsKeyDown(Enum.KeyCode.W)
-		or UserInputService:IsKeyDown(Enum.KeyCode.S)
-		or chargingHeld then
+	-- "Forward" = W on keyboard OR the gamepad stick pushed up. On TOUCH
+	-- there's no room for a sprint button: holding the thumbstick forward
+	-- for a second auto-latches the sprint instead.
+	local touchOnly = UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
+	local touchForward = touchOnly and humanoid.MoveDirection.Magnitude > 0.5
+		and humanoid.MoveDirection:Dot(faceDir) > 0.4
+	local forwardHeld = UserInputService:IsKeyDown(Enum.KeyCode.W) or stickY > 0.35 or touchForward
+	local backHeld = UserInputService:IsKeyDown(Enum.KeyCode.S) or stickY < -0.35
+	if not forwardHeld or backHeld or chargingHeld then
 		sprintLatched = false
+		touchSprintSince = nil
+	elseif touchForward and not sprintLatched then
+		touchSprintSince = touchSprintSince or os.clock()
+		if os.clock() - touchSprintSince > 1 then
+			sprintLatched = true
+		end
 	end
 	local isSprinting = false
 	if not ballformOn then
@@ -800,7 +819,9 @@ mashTitle.Font = Enum.Font.GothamBlack
 mashTitle.TextSize = 22
 mashTitle.TextColor3 = Color3.fromRGB(255, 120, 90)
 mashTitle.TextStrokeTransparency = 0.3
-mashTitle.Text = "MASH [SPACE] TO BREAK FREE!"
+mashTitle.Text = if UserInputService.KeyboardEnabled
+	then "MASH [SPACE] TO BREAK FREE!"
+	else "MASH [JUMP] TO BREAK FREE!"
 mashTitle.Size = UDim2.new(1, 0, 0, 26)
 mashTitle.Parent = mashFrame
 
@@ -1069,6 +1090,38 @@ local function doDash()
 	setStatus("dash!", Color3.fromRGB(150, 230, 150))
 end
 
+-- The JUMP press means three things depending on state (Space, ButtonA and
+-- the mobile jump button all funnel here): struggle while carried, toggle
+-- the glider while airborne, otherwise the normal jump just happens.
+local function onJumpPressed()
+	-- Carried as a player-ball: jump is the STRUGGLE button — chained,
+	-- every press chips at the chains; friendly ride, one press hops out.
+	if carriedLocal then
+		Remotes.CarryStruggle:FireServer()
+		return
+	end
+	local char = player.Character
+	local hum = char and char:FindFirstChildOfClass("Humanoid")
+	if gliding then
+		stowGlider()
+	elseif hum and hum.FloorMaterial == Enum.Material.Air
+		and not ballformOn and not isStunned() and not actionLockActive() then
+		gliding = true
+		glideFlaring = false
+		glideTilt = 0
+		glideHeading = Vector3.new(faceDir.X, 0, faceDir.Z).Unit
+		-- Start from your current forward momentum (capped at boost).
+		local rootPart = char and char:FindFirstChild("HumanoidRootPart")
+		if rootPart and rootPart:IsA("BasePart") then
+			local v = rootPart.AssemblyLinearVelocity
+			glideSpeed = math.min(Vector3.new(v.X, 0, v.Z).Magnitude, BallConfig.GLIDE_STEER_SPEED)
+		else
+			glideSpeed = BallConfig.WALK_SPEED * BallConfig.GLIDE_DRIFT_FRAC
+		end
+		Remotes.GlideRequest:FireServer(true)
+	end
+end
+
 UserInputService.InputBegan:Connect(function(input, processed)
 	if processed then return end
 	if input.UserInputType == Enum.UserInputType.MouseButton1
@@ -1091,38 +1144,13 @@ UserInputService.InputBegan:Connect(function(input, processed)
 		doFlipJump() -- KC: flip -> release = lob
 	elseif input.KeyCode == Enum.KeyCode.Space
 		or input.KeyCode == Enum.KeyCode.ButtonA then
-		-- Carried as a player-ball: Space is the STRUGGLE button — chained,
-		-- every press chips at the chains; friendly ride, one press hops out.
-		if carriedLocal then
-			Remotes.CarryStruggle:FireServer()
-			return
-		end
-		-- Airborne: Space toggles the glider (grounded Space = normal jump).
-		local char = player.Character
-		local hum = char and char:FindFirstChildOfClass("Humanoid")
-		if gliding then
-			stowGlider()
-		elseif hum and hum.FloorMaterial == Enum.Material.Air
-			and not ballformOn and not isStunned() and not actionLockActive() then
-			gliding = true
-			glideFlaring = false
-			glideTilt = 0
-			glideHeading = Vector3.new(faceDir.X, 0, faceDir.Z).Unit
-			-- Start from your current forward momentum (capped at boost).
-			local rootPart = char and char:FindFirstChild("HumanoidRootPart")
-			if rootPart and rootPart:IsA("BasePart") then
-				local v = rootPart.AssemblyLinearVelocity
-				glideSpeed = math.min(Vector3.new(v.X, 0, v.Z).Magnitude, BallConfig.GLIDE_STEER_SPEED)
-			else
-				glideSpeed = BallConfig.WALK_SPEED * BallConfig.GLIDE_DRIFT_FRAC
-			end
-			Remotes.GlideRequest:FireServer(true)
-		end
-	elseif input.KeyCode == Enum.KeyCode.LeftShift then
-		-- Toggle the sprint latch (only arms if moving forward).
+		onJumpPressed()
+	elseif input.KeyCode == Enum.KeyCode.LeftShift
+		or input.KeyCode == Enum.KeyCode.ButtonL3 then
+		-- Toggle the sprint latch (only arms if moving forward — W or stick up).
 		if sprintLatched then
 			sprintLatched = false
-		elseif UserInputService:IsKeyDown(Enum.KeyCode.W)
+		elseif (UserInputService:IsKeyDown(Enum.KeyCode.W) or stickY > 0.35)
 			and not UserInputService:IsKeyDown(Enum.KeyCode.S) then
 			sprintLatched = true
 		end
@@ -1158,6 +1186,90 @@ UserInputService.InputChanged:Connect(function(input)
 		stickY = input.Position.Y
 	end
 end)
+
+-- ── Touch controls (mobile v1) ──────────────────────────────────────────────
+-- On-screen buttons for everything that isn't movement/camera/jump (those
+-- come free from Roblox's touch thumbstick + jump button). Layout clusters
+-- around the jump button, biggest = most used. Needs a real-device pass for
+-- exact positions, but every mechanic is reachable.
+local isTouch = UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
+
+if isTouch then
+	local ContextActionService = game:GetService("ContextActionService")
+
+	local function bindBtn(name: string, title: string, pos: UDim2, cb: (Enum.UserInputState) -> ())
+		ContextActionService:BindAction(name, function(_, state)
+			cb(state)
+			return Enum.ContextActionResult.Sink
+		end, true)
+		ContextActionService:SetTitle(name, title)
+		ContextActionService:SetPosition(name, pos)
+	end
+
+	-- THROW: hold to charge, let go to throw — same muscle memory as LMB/R2.
+	bindBtn("BalloutThrow", "THROW", UDim2.new(1, -150, 1, -120), function(state)
+		if state == Enum.UserInputState.Begin then
+			startCharge()
+		elseif state == Enum.UserInputState.End or state == Enum.UserInputState.Cancel then
+			releaseThrow()
+		end
+	end)
+	bindBtn("BalloutCatch", "CATCH", UDim2.new(1, -215, 1, -60), function(state)
+		if state == Enum.UserInputState.Begin then
+			doCatch()
+		end
+	end)
+	bindBtn("BalloutDash", "DASH", UDim2.new(1, -85, 1, -185), function(state)
+		if state == Enum.UserInputState.Begin then
+			doDash()
+		end
+	end)
+	bindBtn("BalloutSpin", "SPIN", UDim2.new(1, -215, 1, -130), function(state)
+		if state == Enum.UserInputState.Begin then
+			doSpinJump()
+		end
+	end)
+	bindBtn("BalloutFlip", "FLIP", UDim2.new(1, -150, 1, -190), function(state)
+		if state == Enum.UserInputState.Begin then
+			doFlipJump()
+		end
+	end)
+	bindBtn("BalloutPass", "PASS", UDim2.new(1, -280, 1, -95), function(state)
+		if state == Enum.UserInputState.Begin and not isStunned() then
+			Remotes.PassRequest:FireServer()
+		end
+	end)
+	-- BALL-UP is a TOGGLE on touch (both thumbs are busy — holding is cruel).
+	local ballToggled = false
+	bindBtn("BalloutBall", "BALL", UDim2.new(1, -20, 1, -120), function(state)
+		if state == Enum.UserInputState.Begin then
+			if not ballToggled and (isStunned() or actionLockActive()) then
+				return
+			end
+			ballToggled = not ballToggled
+			Remotes.BallformRequest:FireServer(ballToggled)
+		end
+	end)
+	-- keep the toggle honest if the server flips us (scoop, chains, breakout)
+	Remotes.Feedback.OnClientEvent:Connect(function(kind: string, data: any?)
+		if kind == "Ballform" then
+			ballToggled = data and data.on == true
+		end
+	end)
+
+	-- The default touch JUMP button never sends KeyCode.Space — JumpRequest
+	-- is how it reaches us. Debounced (JumpRequest repeats while held); this
+	-- is what makes chain-mashing and the glider work on phones.
+	local lastJumpReq = 0
+	UserInputService.JumpRequest:Connect(function()
+		local t = os.clock()
+		if t - lastJumpReq < 0.2 then
+			return
+		end
+		lastJumpReq = t
+		onJumpPressed()
+	end)
+end
 
 -- ── Server feedback ─────────────────────────────────────────────────────────
 Remotes.Feedback.OnClientEvent:Connect(function(kind: string, data: any?)

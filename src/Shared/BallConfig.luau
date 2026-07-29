@@ -183,9 +183,18 @@ BallConfig.QUEUE_BOT_FALLBACK = 180 -- wait this long for real players before bo
 BallConfig.QUEUE_ALL_IN_TIME = 15   -- ...but if EVERYONE in the server is already on
                                     -- the pad, nobody's left to wait for: start sooner
 BallConfig.MATCH_TEAM_SIZE = 3    -- 3v3; short human queues are filled with bots
-BallConfig.MATCH_TARGET_KOS = 10  -- Team KO: first team to this many KOs wins
-BallConfig.MATCH_END_LINGER = 5   -- winner splash before everyone returns to lobby
+BallConfig.MATCH_TARGET_KOS = 10  -- Team KO: first team to this many KOs takes the ROUND
+BallConfig.MATCH_ROUNDS_TO_WIN = 2 -- KC match arc: best of 3 rounds
+BallConfig.ROUND_END_LINGER = 4   -- round-winner splash before the next round resets in
+BallConfig.MATCH_END_LINGER = 5   -- match-winner splash before everyone returns to lobby
 BallConfig.MATCH_BOT_CATCH_CHANCE = 0.35 -- match bots catch this fraction of throws
+
+-- ── Ball spawner pads (KC: several balls per arena, always one to find) ──
+-- Circle floor devices; the ball LEVITATES above the ring until scooped.
+-- Away-from-home balls that sit unheld re-dock after BALL_RESPAWN_TIME.
+BallConfig.BALL_HOVER = 2.6        -- levitation height above the pad
+BallConfig.BALL_RESPAWN_TIME = 12  -- idle/lost seconds before re-docking
+BallConfig.BALL_HOME_RADIUS = 4    -- within this of the hover point = docked
 
 -- ── Player-ball carry (KC ball-up: scoop a balled-up player) ─────────────
 -- Walk into a teammate OR enemy who's in ballform with empty hands to scoop

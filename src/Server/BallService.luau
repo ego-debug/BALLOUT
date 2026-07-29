@@ -80,11 +80,24 @@ type Ball = {
 	decorWelds: { WeldConstraint },
 	spawnPos: Vector3, -- fall-off-the-world respawn spot
 	isDrill: boolean,
+	homePad: BasePart?, -- spawner pad this ball docks/levitates over
+	awaySince: number?, -- when it started sitting idle away from home
+	hoverPhase: number, -- per-ball bob/spin offset so pads don't sync
 }
 
 local balls: { Ball } = {}
 local primaryBall: Ball
 local drillBall: Ball
+local arenaBalls: { Ball } = {} -- spawner-pad balls living in the match arena
+local newBallImpl: ((name: string, spawnPos: Vector3, isDrill: boolean) -> Ball)? = nil
+
+-- Where a spawner ball levitates: above its pad's top face. Pads are thin
+-- rotated cylinders, so the vertical half-thickness is the SMALLEST axis
+-- (Size.Y here would be the radius).
+local function dockPoint(pad: BasePart): Vector3
+	local halfThick = math.min(pad.Size.X, pad.Size.Y, pad.Size.Z) / 2
+	return pad.Position + Vector3.new(0, halfThick + BallConfig.BALL_HOVER, 0)
+end
 
 local function heldBy(f: Fighter): Ball?
 	for _, b in balls do
@@ -434,6 +447,24 @@ local function makeFreeBall(b: Ball, position: Vector3)
 	-- Rest on whatever roof is under this point (roofs vary in height).
 	local fy = floorYBelow(Vector3.new(position.X, math.max(position.Y, groundY) + 4, position.Z)) or groundY
 	b.part.Position = Vector3.new(position.X, fy + BallConfig.BALL_DIAMETER / 2, position.Z)
+	setCharged(b, false)
+end
+
+-- Snap a spawner ball back onto its pad: levitating, charged-state cleared,
+-- ready to be spotted and scooped.
+local function dockBall(b: Ball)
+	local pad = b.homePad
+	if not pad or pad.Parent == nil then
+		makeFreeBall(b, b.spawnPos)
+		return
+	end
+	releaseHold(b)
+	b.state = "Free"
+	b.holder = nil
+	b.botHoldStart = nil
+	b.awaySince = nil
+	b.flight.target = nil
+	b.part.Position = dockPoint(pad)
 	setCharged(b, false)
 end
 
@@ -901,6 +932,63 @@ function BallService.PrimaryBallInfo(): { state: string, position: Vector3, hold
 	}
 end
 
+-- BotAI hook: every ball's live state (multi-ball arenas — bots chase the
+-- NEAREST usable ball, not just the primary).
+function BallService.BallsInfo(): { { state: string, position: Vector3, holderTeam: string?, isDrill: boolean } }
+	local infos = {}
+	for _, b in balls do
+		table.insert(infos, {
+			state = b.state,
+			position = b.part.Position,
+			holderTeam = if b.holder then b.holder.team else nil,
+			isDrill = b.isDrill,
+		})
+	end
+	return infos
+end
+
+-- MatchService: give the arena its ball fleet — one levitating ball per
+-- "BallSpawnerPad" part in the arena model. Called once after the arena
+-- is built; safe to call again (no duplicates).
+function BallService.RegisterSpawnerPads(model: Model)
+	if #arenaBalls > 0 then
+		return #arenaBalls
+	end
+	local newBall = newBallImpl
+	if not newBall then
+		return 0
+	end
+	local i = 0
+	for _, pad in model:GetChildren() do
+		if pad.Name == "BallSpawnerPad" and pad:IsA("BasePart") then
+			i += 1
+			local home = dockPoint(pad)
+			local b = newBall("ArenaBall" .. i, home, false)
+			b.homePad = pad
+			b.spawnPos = home
+			dockBall(b)
+			table.insert(arenaBalls, b)
+		end
+	end
+	return i
+end
+
+-- Round/match reset: every arena ball back on its pad.
+function BallService.ResetArenaBalls()
+	for _, b in arenaBalls do
+		dockBall(b)
+	end
+end
+
+-- Round reset: a fresh round means fresh bodies — hits, overcharge and
+-- stuns don't carry across rounds.
+function BallService.ClearCombat(character: Model)
+	hits[character] = 0
+	overcharge[character] = 0
+	stunned[character] = nil
+end
+
+
 -- BotAI hook: where the nearest ENEMY of this character stands (team-aware —
 -- the same rule throws use), or nil when there's no one to fight.
 function BallService.NearestEnemyPos(character: Model): Vector3?
@@ -1274,7 +1362,12 @@ local function stepBall(b: Ball, dt: number)
 		local overFloor = floorFound ~= nil
 		local floorY = (floorFound or -1e9) + BallConfig.BALL_DIAMETER / 2
 		if newPos.Y < groundY - 80 then
-			makeFreeBall(b, b.spawnPos)
+			-- fell off the world: spawner balls re-dock at their pad
+			if b.homePad then
+				dockBall(b)
+			else
+				makeFreeBall(b, b.spawnPos)
+			end
 			return
 		end
 		if newPos.Y <= floorY and overFloor then
@@ -1302,6 +1395,26 @@ local function stepBall(b: Ball, dt: number)
 		checkPickupAndBash(b)
 
 	elseif state == "Free" then
+		local pad = b.homePad
+		if pad and pad.Parent then
+			local home = dockPoint(pad)
+			if (b.part.Position - home).Magnitude <= BallConfig.BALL_HOME_RADIUS then
+				-- DOCKED: levitate over the pad — bob + slow spin so the ball
+				-- reads as "here, take me" from across the arena.
+				b.awaySince = nil
+				local t = now() + b.hoverPhase
+				b.part.CFrame = CFrame.new(home + Vector3.new(0, math.sin(t * 2) * 0.35, 0))
+					* CFrame.Angles(0, t * 0.9, 0)
+			else
+				-- sitting idle somewhere else: after a while it re-docks, so
+				-- there's ALWAYS a ball to find at the pads
+				if b.awaySince == nil then
+					b.awaySince = now()
+				elseif now() - b.awaySince >= BallConfig.BALL_RESPAWN_TIME then
+					dockBall(b)
+				end
+			end
+		end
 		checkPickupAndBash(b)
 	end
 end
@@ -1439,10 +1552,14 @@ function BallService.Start()
 			decorWelds = {},
 			spawnPos = spawnPos,
 			isDrill = isDrill,
+			homePad = nil,
+			awaySince = nil,
+			hoverPhase = math.random() * math.pi * 2,
 		}
 		table.insert(balls, b)
 		return b
 	end
+	newBallImpl = newBall
 
 	-- The lobby (if built) owns the hangout ball; fall back to HQ midfield.
 	local lobby = Workspace:FindFirstChild("BalloutLobby")
@@ -1451,11 +1568,18 @@ function BallService.Start()
 		BALL_SPAWN = marker.Position
 	end
 
-	-- (The old ARENA TEST MODE crutch is gone: Scaffold Row is now a real
-	-- match arena — MatchService moves the ball there per match and points
-	-- SetPrimarySpawn at the arena, so the voids feed the ball back mid-match.)
+	-- The lobby ball STAYS in the lobby now — matches run on their own
+	-- spawner-pad ball fleet (RegisterSpawnerPads). If the lobby built a
+	-- BallPad device, the hangout ball docks/levitates over it.
 	primaryBall = newBall("Dodgeball", BALL_SPAWN, false)
-	makeFreeBall(primaryBall, BALL_SPAWN)
+	local lobbyPad = if lobby then lobby:FindFirstChild("BallPad") else nil
+	if lobbyPad and lobbyPad:IsA("BasePart") then
+		primaryBall.homePad = lobbyPad
+		primaryBall.spawnPos = dockPoint(lobbyPad)
+		dockBall(primaryBall)
+	else
+		makeFreeBall(primaryBall, BALL_SPAWN)
+	end
 
 	-- The training bot's practice ball spawns at his pad; stepDrillRefill
 	-- hands it to him as soon as he registers.

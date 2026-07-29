@@ -70,6 +70,50 @@ function Arena.Build(): Model?
 		end
 	end
 
+	-- ── Ball spawner pads (KC: several balls, always one nearby) ─────────
+	-- Circle devices on the floor; BallService docks a levitating ball over
+	-- each part named "BallSpawnerPad". Heights are raycast onto whatever
+	-- floor is at each spot, so the list is just x/z.
+	local PAD_SPOTS = {
+		Vector3.new(65, 0, -650),   -- midcourt basin (the old single-ball spot)
+		Vector3.new(190, 0, -676),  -- east approach, off the Red spawn yard
+		Vector3.new(-190, 0, -676), -- west approach, off the Blue spawn yard
+		Vector3.new(0, 0, -740),    -- north basin, toward the boarding hall
+		Vector3.new(0, 0, -560),    -- south basin, toward the perch building
+	}
+	local padRay = RaycastParams.new()
+	padRay.FilterType = Enum.RaycastFilterType.Include
+	padRay.FilterDescendantsInstances = { blockout }
+	for _, spot in PAD_SPOTS do
+		local hit = Workspace:Raycast(Vector3.new(spot.X, 120, spot.Z), Vector3.new(0, -400, 0), padRay)
+		local floorY = if hit then hit.Position.Y else 0
+		local base = Instance.new("Part")
+		base.Name = "BallSpawnerPad"
+		base.Shape = Enum.PartType.Cylinder
+		base.Size = Vector3.new(0.5, 7, 7)
+		base.CFrame = CFrame.new(spot.X, floorY + 0.25, spot.Z) * CFrame.Angles(0, 0, math.rad(90))
+		base.Color = Color3.fromRGB(38, 36, 44)
+		base.Material = Enum.Material.Metal
+		base.Anchored = true
+		base.Parent = blockout
+		local ring = Instance.new("Part")
+		ring.Name = "BallSpawnerRing"
+		ring.Shape = Enum.PartType.Cylinder
+		ring.Size = Vector3.new(0.15, 5.6, 5.6)
+		ring.CFrame = CFrame.new(spot.X, floorY + 0.55, spot.Z) * CFrame.Angles(0, 0, math.rad(90))
+		ring.Color = Color3.fromRGB(255, 170, 60)
+		ring.Material = Enum.Material.Neon
+		ring.Anchored = true
+		ring.CanCollide = false
+		ring.CanQuery = false
+		ring.Parent = blockout
+		local glow = Instance.new("PointLight")
+		glow.Color = Color3.fromRGB(255, 170, 60)
+		glow.Range = 12
+		glow.Brightness = 0.9
+		glow.Parent = ring
+	end
+
 	-- promote
 	local model = blockout :: Model
 	model.Name = "BalloutArena"

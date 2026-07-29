@@ -153,6 +153,9 @@ debugFn.OnInvoke = function(cmd: string, character: Model, frac: number?, curve:
 	elseif cmd == "carrystate" then
 		local CarryService = require(ServerScriptService.CarryService)
 		return CarryService.DebugState(character)
+	elseif cmd == "instantko" then
+		-- test hook: fast-forward KOs to exercise round/match flow
+		return BallService.InstantKO(character, nil)
 	end
 	return "unknown cmd"
 end

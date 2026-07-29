@@ -27,8 +27,11 @@ local ArenaMap = require(ServerStorage.Maps.ArenaScaffoldRow)
 
 local MatchService = {}
 
-local state = "Idle" -- "Idle" | "Countdown" | "Active" | "Ending"
+local state = "Idle" -- "Idle" | "Countdown" | "Active" | "RoundEnd" | "Ending"
 local score = { Red = 0, Blue = 0 }
+-- KC match arc: best of 3 — first team to MATCH_ROUNDS_TO_WIN round wins.
+local roundWins = { Red = 0, Blue = 0 }
+local roundNumber = 1
 local participants: { [Player]: string } = {} -- player -> "Red" | "Blue"
 local matchBots: { { model: Model, root: BasePart, team: string, home: CFrame } } = {}
 local arena: Model?
@@ -67,7 +70,8 @@ local function setScoreboards(text: string)
 end
 
 local function updateScore()
-	setScoreboards(("RED %d — %d BLUE"):format(score.Red, score.Blue))
+	setScoreboards(("RD %d · RED %d — %d BLUE · (%d-%d)"):format(
+		roundNumber, score.Red, score.Blue, roundWins.Red, roundWins.Blue))
 end
 
 -- KC-style roster for the HUD: every combatant (humans AND bots) with
@@ -117,6 +121,10 @@ local function announce(extra: { [string]: any }?)
 		teams = teams,
 		roster = buildRoster(),
 		mapName = ArenaMap.DisplayName,
+		round = roundNumber,
+		roundsRed = roundWins.Red,
+		roundsBlue = roundWins.Blue,
+		roundsToWin = BallConfig.MATCH_ROUNDS_TO_WIN,
 	}
 	if extra then
 		for k, v in extra do
@@ -124,12 +132,6 @@ local function announce(extra: { [string]: any }?)
 		end
 	end
 	Remotes.MatchState:FireAllClients(payload)
-end
-
-local function lobbyBallSpawn(): Vector3
-	local lobby = Workspace:FindFirstChild("BalloutLobby")
-	local marker = if lobby then lobby:FindFirstChild("BallSpawn") else nil
-	return if marker and marker:IsA("BasePart") then marker.Position else Vector3.new(0, 4, -20)
 end
 
 local function garageSpawnCFrame(): CFrame
@@ -148,13 +150,53 @@ local function despawnBots()
 	table.clear(matchBots)
 end
 
+-- Everyone (humans + bots) back on their spawns, fresh bodies, balls docked.
+local function resetForRound()
+	local slots = { Red = 0, Blue = 0 }
+	for player, team in participants do
+		slots[team] += 1
+		local character = player.Character
+		local root = character and character:FindFirstChild("HumanoidRootPart")
+		if character and root and root:IsA("BasePart") then
+			BallService.ClearCombat(character)
+			root.CFrame = spawnCFrame(team, slots[team])
+		end
+	end
+	for _, bot in matchBots do
+		BallService.ClearCombat(bot.model)
+		bot.root.CFrame = bot.home
+	end
+	BallService.ResetArenaBalls()
+end
+
+-- 3-2-1-GO into an Active round (used by StartMatch and every round reset).
+local function runCountdown()
+	state = "Countdown"
+	task.spawn(function()
+		task.wait(0.8) -- let the splash breathe
+		for n = 3, 1, -1 do
+			if state ~= "Countdown" then
+				return -- abandoned mid-countdown
+			end
+			announce({ event = "countdown", n = n })
+			task.wait(1)
+		end
+		if state ~= "Countdown" then
+			return
+		end
+		state = "Active"
+		BallService.ResetArenaBalls() -- balls drop onto their pads at GO
+		announce({ event = "go" })
+	end)
+end
+
 local function endMatch(winner: string?)
-	if state ~= "Active" and state ~= "Countdown" then
+	if state == "Idle" or state == "Ending" then
 		return
 	end
 	state = "Ending"
 	if winner then
-		setScoreboards(("%s WINS!  (%d — %d)"):format(winner:upper(), score.Red, score.Blue))
+		setScoreboards(("%s WINS THE MATCH!  (%d — %d)"):format(winner:upper(), roundWins.Red, roundWins.Blue))
 	else
 		setScoreboards("MATCH ABANDONED")
 	end
@@ -178,13 +220,40 @@ local function endMatch(winner: string?)
 		end
 		table.clear(diedConns)
 		table.clear(recentKO)
-		-- ball home: back to the lobby, and the void-respawn point with it
-		BallService.SetPrimarySpawn(lobbyBallSpawn())
-		BallService.MakeFree(lobbyBallSpawn())
-		setScoreboards("RED 0 — 0 BLUE")
+		BallService.ResetArenaBalls() -- fleet docked for the next match
 		score.Red, score.Blue = 0, 0
+		roundWins.Red, roundWins.Blue = 0, 0
+		roundNumber = 1
+		setScoreboards("RED 0 — 0 BLUE")
 		state = "Idle"
 		announce()
+	end)
+end
+
+-- A team hit the KO target: they take the ROUND. First to
+-- MATCH_ROUNDS_TO_WIN rounds takes the match (KC best-of-3).
+local function endRound(winner: string)
+	if state ~= "Active" then
+		return
+	end
+	roundWins[winner] += 1
+	if roundWins[winner] >= BallConfig.MATCH_ROUNDS_TO_WIN then
+		endMatch(winner)
+		return
+	end
+	state = "RoundEnd"
+	updateScore()
+	announce({ event = "round", roundWinner = winner })
+	task.delay(BallConfig.ROUND_END_LINGER, function()
+		if state ~= "RoundEnd" then
+			return -- match got abandoned during the splash
+		end
+		roundNumber += 1
+		score.Red, score.Blue = 0, 0
+		resetForRound()
+		updateScore()
+		announce({ event = "roundstart" })
+		runCountdown()
 	end)
 end
 
@@ -204,7 +273,7 @@ local function scoreKO(victimTeam: string, victimName: string, killerName: strin
 	updateScore()
 	announce({ event = "ko", victim = victimName, victimTeam = victimTeam, killer = killerName, cause = cause })
 	if score[scorer] >= BallConfig.MATCH_TARGET_KOS then
-		endMatch(scorer)
+		endRound(scorer)
 	end
 end
 
@@ -326,26 +395,9 @@ function MatchService.StartMatch(queued: { Player }): boolean
 	end
 
 	-- KC-style round intro: everyone's placed, big 3-2-1-GO on every HUD,
-	-- and the ball only drops at GO — no head start on the scramble.
+	-- and the spawner-pad balls dock at GO — no head start on the scramble.
 	announce({ event = "start" })
-	task.spawn(function()
-		task.wait(0.8) -- let the map-name splash breathe
-		for n = 3, 1, -1 do
-			if state ~= "Countdown" then
-				return -- abandoned mid-countdown
-			end
-			announce({ event = "countdown", n = n })
-			task.wait(1)
-		end
-		if state ~= "Countdown" then
-			return
-		end
-		state = "Active"
-		-- ball to midcourt; void pits respawn it right back at midcourt too
-		BallService.SetPrimarySpawn(arenaBallPos())
-		BallService.MakeFree(arenaBallPos())
-		announce({ event = "go" })
-	end)
+	runCountdown()
 	return true
 end
 
@@ -364,7 +416,8 @@ end
 function MatchService.Start()
 	arena = ArenaMap.Build()
 	if arena then
-		print("[Ballout] Match arena ready: " .. ArenaMap.DisplayName)
+		local pads = BallService.RegisterSpawnerPads(arena)
+		print(("[Ballout] Match arena ready: %s (%d ball spawners)"):format(ArenaMap.DisplayName, pads))
 	else
 		warn("[Ballout] Scaffold Row blockout missing — matches disabled")
 	end
