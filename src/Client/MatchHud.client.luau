@@ -32,6 +32,17 @@ if lobbyLoop then
 	lobbyLoop:Play()
 end
 
+local musicMuted = false
+
+local function applyMute()
+	for _, loop in { lobbyLoop, matchLoop } do
+		if loop then
+			local spec = SoundKit.SOUNDS[if loop == lobbyLoop then "lobbyMusic" else "matchMusic"]
+			loop.Volume = if musicMuted then 0 else spec.volume
+		end
+	end
+end
+
 local function setMusic(inMatch: boolean)
 	if lobbyLoop then
 		if inMatch and lobbyLoop.Playing then
@@ -47,7 +58,45 @@ local function setMusic(inMatch: boolean)
 			matchLoop:Stop()
 		end
 	end
+	applyMute()
 end
+
+-- ── Music mute button (always on screen, its own gui — the match HUD gui
+-- is disabled outside matches) + M key ─────────────────────────────────────
+local musicGui = Instance.new("ScreenGui")
+musicGui.Name = "BalloutMusicToggle"
+musicGui.ResetOnSpawn = false
+musicGui.Parent = player:WaitForChild("PlayerGui")
+
+local musicBtn = Instance.new("TextButton")
+musicBtn.AnchorPoint = Vector2.new(1, 1)
+musicBtn.Position = UDim2.new(1, -10, 1, -10)
+musicBtn.Size = UDim2.fromOffset(92, 30)
+-- literal colors: this block runs before the HUD palette is declared below
+musicBtn.BackgroundColor3 = Color3.fromRGB(16, 14, 22)
+musicBtn.BackgroundTransparency = 0.35
+musicBtn.Font = Enum.Font.GothamBold
+musicBtn.TextSize = 13
+musicBtn.TextColor3 = Color3.fromRGB(240, 240, 245)
+musicBtn.Text = "♪ MUSIC: ON"
+musicBtn.Parent = musicGui
+local mbc = Instance.new("UICorner")
+mbc.CornerRadius = UDim.new(0, 8)
+mbc.Parent = musicBtn
+
+local function toggleMusic()
+	musicMuted = not musicMuted
+	musicBtn.Text = if musicMuted then "♪ MUSIC: OFF" else "♪ MUSIC: ON"
+	musicBtn.TextColor3 = if musicMuted then Color3.fromRGB(140, 140, 150) else Color3.fromRGB(240, 240, 245)
+	applyMute()
+end
+musicBtn.Activated:Connect(toggleMusic)
+
+game:GetService("UserInputService").InputBegan:Connect(function(input, processed)
+	if not processed and input.KeyCode == Enum.KeyCode.M then
+		toggleMusic()
+	end
+end)
 
 local RED = Color3.fromRGB(255, 82, 70)
 local BLUE = Color3.fromRGB(80, 150, 255)

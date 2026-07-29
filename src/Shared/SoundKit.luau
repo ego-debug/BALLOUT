@@ -38,9 +38,10 @@ SoundKit.SOUNDS = {
 	winSting = { id = 1840076509, volume = 0.7 },           -- victory (APM)
 	loseSting = { id = 115475565309914, volume = 0.6 },     -- defeat (APM)
 	charge = { id = 95429388386736, volume = 0.45 },        -- windup charge-up
-	-- music (APM electro swing — KC's genre, none of KC's tracks)
-	lobbyMusic = { id = 9040344598, volume = 0.25 },
-	matchMusic = { id = 1837102958, volume = 0.3 },
+	-- music (APM electro swing — KC's genre, none of KC's tracks).
+	-- QUIET on purpose: music is a bed, the game reads through its SFX.
+	lobbyMusic = { id = 9040344598, volume = 0.08 },
+	matchMusic = { id = 1837102958, volume = 0.1 },
 } :: { [string]: Spec }
 
 local function build(name: string): Sound?
